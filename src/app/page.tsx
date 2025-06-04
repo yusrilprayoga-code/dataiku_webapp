@@ -3,6 +3,7 @@
 import { useState, ChangeEvent } from 'react';
 import { Upload, File as FileIcon, Eye, Trash2, Search } from 'lucide-react'; // Renamed File to FileIcon to avoid conflict with File interface
 import Papa from 'papaparse';
+import XLSX from 'xlsx';
 
 interface FileData {
   id: string;
@@ -47,9 +48,7 @@ export default function FileUploadViewer() {
     let inCurveSection = false;
     let inDataSection = false;
 
-    // First pass: Extract headers from ~Curve Information Block
-    // Lines in ~Curve section typically start with the mnemonic, followed by a dot, unit, description.
-    // Example: DEPT.M              : 1  DEPTH
+    // First pass: Extract headers from ~Curve Information Bloc
     for (const line of lines) {
         const trimmedLine = line.trim();
 
@@ -76,7 +75,6 @@ export default function FileUploadViewer() {
         }
     }
     
-    // Second pass: Extract data from ~ASCII Log Data
     for (const line of lines) {
         const trimmedLine = line.trim();
 
@@ -135,6 +133,9 @@ export default function FileUploadViewer() {
           parsedData = await parseCSVFile(fileContent);
         } else if (file.name.toLowerCase().endsWith('.las')) {
           parsedData = parseLASFile(fileContent);
+        } else if (file.name.toLowerCase().endsWith('.xlsx')) {
+          const arrayBufferContent = await readFileAsArrayBuffer(file);
+          parsedData = parseXLSXFileWithSheetJS(arrayBufferContent);
         } else {
           throw new Error('Unsupported file type. Please upload .csv or .las files.');
         }
@@ -192,6 +193,73 @@ export default function FileUploadViewer() {
       reader.readAsText(file);
     });
   };
+
+  const readFileAsArrayBuffer = (file: globalThis.File): Promise<ArrayBuffer> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result instanceof ArrayBuffer) {
+        resolve(e.target.result);
+      } else {
+        reject(new Error('Failed to read file as ArrayBuffer: Result was not an ArrayBuffer.'));
+      }
+    };
+    reader.onerror = (e) => {
+      console.error("FileReader error:", reader.error);
+      reject(new Error('Failed to read file using FileReader: ' + reader.error?.message));
+    };
+    reader.readAsArrayBuffer(file);
+  });
+};
+
+  const parseXLSXFileWithSheetJS = (arrayBuffer: ArrayBuffer): { headers: string[], data: any[] } => {
+  try {
+    // Use XLSX.read() to parse the ArrayBuffer
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+    // Get the first sheet name
+    const firstSheetName = workbook.SheetNames[0];
+    if (!firstSheetName) {
+      throw new Error('XLSX file (SheetJS) contains no sheets.');
+    }
+
+    // Get the worksheet object
+    const worksheet = workbook.Sheets[firstSheetName];
+
+    // Convert sheet to an array of arrays (header: 1 means the first array is headers)
+    // defval: "" ensures empty cells are treated as empty strings
+    const sheetDataAsArrayOfArrays: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+    
+    if (!sheetDataAsArrayOfArrays || sheetDataAsArrayOfArrays.length === 0) {
+      return { headers: [], data: [] }; // Empty sheet
+    }
+
+    // The first inner array is the headers
+    const headers: string[] = sheetDataAsArrayOfArrays[0].map(String);
+    
+    // The rest of the arrays are data rows
+    const dataRows = sheetDataAsArrayOfArrays.slice(1);
+
+    // Convert array data rows to objects
+    const data: any[] = dataRows.map(rowArray => {
+      const rowObject: any = {};
+      headers.forEach((header, index) => {
+        // Ensure rowArray has the element, otherwise default to empty string
+        rowObject[header] = rowArray[index] !== undefined ? rowArray[index] : "";
+      });
+      return rowObject;
+    });
+
+    return { headers, data };
+
+  } catch (error) {
+    console.error("Error parsing XLSX file with SheetJS:", error);
+    if (error instanceof Error) {
+      throw new Error(`SheetJS XLSX parsing failed: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred during SheetJS XLSX parsing.");
+  }
+};
 
   const parseCSVFile = (content: string): Promise<{ headers: string[], data: any[] }> => {
     return new Promise((resolve, reject) => {
@@ -273,12 +341,12 @@ export default function FileUploadViewer() {
               <p className="text-sm text-gray-600">
                 {isUploading ? 'Processing files...' : 'Click to upload or drag files here'}
               </p>
-              <p className="text-xs text-gray-400 mt-1">Supports .csv and .las files</p>
+              <p className="text-xs text-gray-400 mt-1">Supports .csv, .las, and .xlsx files</p>
             </div>
             <input
               type="file"
               multiple
-              accept=".csv,.las"
+              accept=".csv, .las, .xlsx"
               onChange={handleFileUpload}
               disabled={isUploading}
               className="hidden"
