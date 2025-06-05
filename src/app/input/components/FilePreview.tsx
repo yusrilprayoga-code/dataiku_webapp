@@ -2,7 +2,7 @@
 import React from 'react';
 import { FileData, ParsedSubFile } from '../types'; // Adjust path
 import { formatFileSize } from '../utils/fileUtils'; // Adjust path
-import { Eye, FileTextIcon, File as FileIcon, Folder as FolderIcon } from 'lucide-react'; // Add FileTextIcon
+import { Eye, FileTextIcon, File as FileIcon, Folder as FolderIcon, Plus, DownloadCloud, UploadCloud} from 'lucide-react'; // Add FileTextIcon
 
 interface FilePreviewProps {
   selectedFile: FileData | null;

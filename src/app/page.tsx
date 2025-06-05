@@ -1,5 +1,5 @@
 // app/your-route/page.tsx
-import FileUploadViewer from './components/FileUploadViewer'; // Adjust path
+import FileUploadViewer from './input/components/FileUploadViewer'; // Adjust path
 
 export default function MyDataViewerPage() {
   return (

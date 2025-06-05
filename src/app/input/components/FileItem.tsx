@@ -20,7 +20,7 @@ const FileItem: React.FC<FileItemProps> = ({ file, isSelected, onSelect, onDelet
   let IconComponent = FileIcon;
   if (file.isStructureFromZip) {
     IconComponent = FolderIcon; // For structures from ZIP
-  } else if (file.isZip || file.originalFileType === 'application/zip') {
+  } else if (file.originalFileType === 'application/zip') {
     IconComponent = FileArchiveIcon; // For plain ZIP files (if you still have this case)
   }
 
