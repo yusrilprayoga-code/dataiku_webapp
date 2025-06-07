@@ -4,7 +4,8 @@
 import React, { useState, ChangeEvent } from 'react';
 import JSZip from 'jszip';
 import Papa from 'papaparse';
-import { ParsedSubFile, FileData, ProcessedFileDataForDisplay, StagedStructure } from '../types'; // Adjust path
+import { ParsedSubFile, FileData} from '../types'; // Adjust path
+import {ProcessedFileDataForDisplay, StagedStructure} from '../../../stores/appDataStore';
 import { readFileContent, readFileAsArrayBuffer } from '../utils/fileUtils'; // Adjust path
 import { parseLASFile, parseCSVFile, parseXLSXFileWithSheetJS } from '../utils/fileParser'; // Adjust path
 import FileList from './FileList';
@@ -46,53 +47,57 @@ const handleProceedToNextPage = () => {
     return;
   }
 
-  const filesForNextPage: ProcessedFileDataForDisplay[] = [];
+const filesForNextPage: ProcessedFileDataForDisplay[] = [];
   uploadedFiles.forEach(fileData => {
-    if (fileData.isStructureFromZip) { // Files from a processed ZIP structure
+    // Case 1: Files from a processed ZIP structure
+    if (fileData.isStructureFromZip) {
       fileData.lasFiles?.forEach(subFile => {
         filesForNextPage.push({
           id: subFile.id,
-          name: `<span class="math-inline">\{fileData\.name\}/</span>{subFile.name}`, // e.g., StructureInZip/log.las
+          name: `${fileData.name}/${subFile.name}`,
           originalName: subFile.name,
           structurePath: fileData.name,
           type: 'las-as-csv',
-          content: subFile.content, // Already parsed
-          headers: subFile.headers, // Already parsed
+          content: subFile.content,
+          headers: subFile.headers,
+          rawContentString: subFile.rawContentString, // <-- FIX: Copy the raw content over
         });
       });
       fileData.csvFiles?.forEach(subFile => {
         filesForNextPage.push({
           id: subFile.id,
-          name: `<span class="math-inline">\{fileData\.name\}/</span>{subFile.name}`, // e.g., StructureInZip/markers.csv
+          name: `${fileData.name}/${subFile.name}`,
           originalName: subFile.name,
           structurePath: fileData.name,
           type: 'csv',
           content: subFile.content,
           headers: subFile.headers,
+          rawContentString: subFile.rawContentString, // <-- FIX: Copy the raw content over
         });
       });
-    } else if (fileData.content && fileData.headers) { // Single uploaded LAS or CSV files
+    } 
+    // Case 2: Single uploaded LAS or CSV files
+    else if (fileData.rawFileContent && typeof fileData.rawFileContent === 'string') {
+      let fileType: 'las-as-csv' | 'csv' | null = null;
       if (fileData.name.toLowerCase().endsWith('.las')) {
-        filesForNextPage.push({
-          id: fileData.id,
-          name: fileData.name,
-          type: 'las-as-csv',
-          content: fileData.content,
-          headers: fileData.headers,
-        });
+        fileType = 'las-as-csv';
       } else if (fileData.name.toLowerCase().endsWith('.csv')) {
+        fileType = 'csv';
+      }
+
+      if (fileType) {
         filesForNextPage.push({
-          id: fileData.id,
-          name: fileData.name,
-          type: 'csv',
-          content: fileData.content,
-          headers: fileData.headers,
+           id: fileData.id,
+           name: fileData.name,
+           type: fileType,
+           content: fileData.content || [],
+           headers: fileData.headers || [],
+           rawContentString: fileData.rawFileContent, // <-- FIX: Copy the raw content over
         });
       }
-      // Note: XLSX files are currently ignored for passing to the next page based on your prompt.
-      // Add logic here if XLSX or other types should also be included.
     }
   });
+
 
   if (filesForNextPage.length === 0) {
     setMessage("No relevant LAS or CSV files found in the current uploads to proceed.");
@@ -106,12 +111,8 @@ const handleProceedToNextPage = () => {
   };
 
   setStagedStructure(newStructureForNextPage);
-  // Clear current page's state if desired, or leave it for back-navigation
-  // setUploadedFiles([]);
-  // setSelectedFile(null);
-  // setSelectedSubFile(null); // If you had this state
-  setMessage(''); // Clear any previous messages
-  router.push('/folder_display'); // Navigate to the new page
+  setMessage('');
+  router.push('/data-input-utama');
 };
 
   const processZipFile = async (

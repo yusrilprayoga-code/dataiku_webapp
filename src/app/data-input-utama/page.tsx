@@ -43,11 +43,68 @@ const DataTablePreview: React.FC<{ headers: string[]; content: any[] }> = ({ hea
   );
 };
 
+interface QCResult {
+  well_name: string;
+  status: string;
+  details: string;
+}
+interface QCResponse {
+  qc_summary: QCResult[];
+  output_files: Record<string, string>; // filename -> file content as string
+}
 
 export default function DataInputUtamaPage() {
   const router = useRouter();
   const { stagedStructure, clearStagedStructure } = useAppDataStore();
   const [selectedFileForPreview, setSelectedFileForPreview] = useState<ProcessedFileDataForDisplay | null>(null);
+  const [isQcRunning, setIsQcRunning] = useState(false);
+  const [qcResults, setQcResults] = useState<QCResponse | null>(null);
+
+const handleRunQc = async () => {
+  if (!stagedStructure || stagedStructure.files.length === 0) {
+    alert("No files to process.");
+    return;
+  }
+
+  setIsQcRunning(true);
+  setQcResults(null);
+
+  // This logic now works because rawContentString is part of the ProcessedFileDataForDisplay type
+  const filesToProcess = stagedStructure.files.map(file => ({
+    name: file.originalName || file.name,
+    content: file.rawContentString,
+  }));
+
+  // The check for mismatching lengths is now just a safety measure; it shouldn't fail
+  if (filesToProcess.some(f => !f.content)) {
+      alert("Error: Some files are missing their raw content. Please re-upload.");
+      setIsQcRunning(false);
+      return;
+  }
+
+
+    try {
+      const response = await fetch('/api/run-qc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: filesToProcess }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'Failed to run QC process on the server.');
+      }
+
+      const results: QCResponse = await response.json();
+      setQcResults(results);
+
+    } catch (error) {
+      console.error("Failed to run QC:", error);
+      alert(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsQcRunning(false);
+    }
+  };
 
   useEffect(() => {
     if (!stagedStructure) {
@@ -83,8 +140,86 @@ export default function DataInputUtamaPage() {
     setSelectedFileForPreview(file);
   };
 
+  
+
   return (
+    
     <div className="flex h-screen bg-gray-50">
+      <div className="mt-auto pt-4 border-t">
+        <button
+          onClick={handleRunQc}
+          disabled={isQcRunning}
+          className="w-full px-4 py-3 bg-green-500 text-white font-bold rounded hover:bg-green-600 disabled:bg-gray-400 flex items-center justify-center gap-2"
+        >
+          {isQcRunning ? (
+            <>
+              <div className="w-5 h-5 border-t-2 border-white rounded-full animate-spin"></div>
+              Processing...
+            </>
+          ) : (
+            "Run Quality Control"
+          )}
+        </button>
+      </div>
+      {qcResults && (
+        <div className="mt-6">
+          <h2 className="text-lg font-medium text-gray-700">QC Results</h2>
+          <div className="mt-2 overflow-x-auto">
+            <table className="min-w-full text-sm divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Well Name</th>
+                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Final Status</th>
+                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Details</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {qcResults.qc_summary.map((result, index) => (
+                  <tr key={index} className={
+                    result.status === 'PASS' ? 'bg-green-50' :
+                    result.status === 'ERROR' ? 'bg-red-100' : 'bg-yellow-50'
+                  }>
+                    <td className="px-4 py-2 whitespace-nowrap font-medium">{result.well_name}</td>
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        result.status === 'PASS' ? 'bg-green-200 text-green-800' :
+                        result.status === 'ERROR' ? 'bg-red-200 text-red-800' : 'bg-yellow-200 text-yellow-800'
+                      }`}>
+                        {result.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">{result.details}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-4">
+              <h3 className="text-md font-semibold text-gray-700">Download Processed Files</h3>
+              <div className="mt-2 flex flex-wrap gap-2">
+                  {Object.entries(qcResults.output_files).map(([filename, content]) => (
+                      <button
+                          key={filename}
+                          onClick={() => {
+                              const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+                              const link = document.createElement('a');
+                              const url = URL.createObjectURL(blob);
+                              link.setAttribute('href', url);
+                              link.setAttribute('download', filename);
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(url);
+                          }}
+                          className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                      >
+                          {filename}
+                      </button>
+                  ))}
+              </div>
+          </div>
+        </div>
+      )}
       {/* Left Panel: Structure and File List */}
       <div className="w-1/3 bg-white border-r border-gray-200 flex flex-col p-4 space-y-4">
         <div className="flex items-center gap-2 pb-2 border-b">
