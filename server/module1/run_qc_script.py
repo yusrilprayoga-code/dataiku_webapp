@@ -18,41 +18,94 @@ def check_extreme_values(df, column):
         return len(extremes) > 0
     return False
 
+
 def add_markers_to_df(df, well_name, all_markers_df):
-    print(f"      [Markers] Starting marker processing for {well_name}", file=sys.stderr)
-    """Adds a 'MARKER' column to the LAS DataFrame based on matching well markers."""
-    df['MARKER'] = None
+    """
+    [Your custom logic] Menambahkan kolom marker ke DataFrame berdasarkan file marker yang sesuai.
+    """
+    # Inisialisasi kolom marker dengan None
+    df['Marker'] = None
+    print(f"\n[Markers] 🕵️  Starting custom marker search for Well: '{well_name}'", file=sys.stderr)
+
     if all_markers_df.empty:
+        print(f"  [Markers] ⚠️ Warning: The main marker DataFrame is empty. Cannot apply any markers.", file=sys.stderr)
         return False
-
-    well_markers = all_markers_df[all_markers_df['Well identifier'] == well_name]
-    if well_markers.empty:
-        # Fallback to check partial name match if no exact match found
-        well_prefix = well_name.split('-')[0] if '-' in well_name else well_name
-        well_markers = all_markers_df[all_markers_df['Well identifier'].str.contains(well_prefix, na=False)]
-
-    if well_markers.empty:
-        print(f"      [Markers] No matching markers found for {well_name}", file=sys.stderr)        
-        return False
-
-    well_markers = well_markers.copy()
-    if well_markers['MD'].dtype == object:
-        well_markers['MD'] = well_markers['MD'].str.replace(',', '.', regex=False).astype(float)
-    
-    well_markers = well_markers.sort_values(by='MD').reset_index(drop=True)
-
-    min_depth, max_depth = df['DEPTH'].min(), df['DEPTH'].max()
-
-    for i in range(len(well_markers)):
-        current_marker = well_markers.iloc[i]
-        start_depth = current_marker['MD']
-        end_depth = well_markers.iloc[i + 1]['MD'] if i + 1 < len(well_markers) else np.inf
         
-        mask = (df['DEPTH'] >= start_depth) & (df['DEPTH'] < end_depth)
-        df.loc[mask, 'MARKER'] = current_marker['Surface']
-        
-    print(f"      [Markers] Finished marker processing for {well_name}", file=sys.stderr)
-    return not df['MARKER'].isna().all()
+    try:
+        # Filter marker hanya untuk sumur yang sedang diproses (case-insensitive)
+        well_markers = all_markers_df[all_markers_df['Well identifier'].str.upper() == well_name.upper()]
+
+        if well_markers.empty:
+            print(f"  [Markers] No exact name match for '{well_name}'. Trying partial prefix match...", file=sys.stderr)
+            well_prefix = well_name.split('-')[0].upper() if '-' in well_name else well_name.upper()
+            well_markers = all_markers_df[all_markers_df['Well identifier'].str.upper().str.contains(well_prefix, na=False)]
+
+        if not well_markers.empty:
+            print(f"  [Markers] ✅ Ditemukan {len(well_markers)} marker untuk sumur {well_name}", file=sys.stderr)
+            well_markers = well_markers.copy()
+
+            # Handle jika format angka pakai koma decimal
+            if well_markers['MD'].dtype == object:
+                well_markers['MD'] = pd.to_numeric(well_markers['MD'].str.replace(',', '.', regex=False), errors='coerce')
+            
+            well_markers.dropna(subset=['MD'], inplace=True)
+            well_markers = well_markers.sort_values(by='MD').reset_index(drop=True)
+            
+            if well_markers.empty:
+                print(f"  [Markers] ❌ No valid numeric markers remain for '{well_name}' after cleaning.", file=sys.stderr)
+                return False
+
+            min_depth = df['DEPTH'].min()
+            max_depth = df['DEPTH'].max()
+            print(f"  [Markers] 🔍 Debug - Data depth range: {min_depth:.2f} - {max_depth:.2f}", file=sys.stderr)
+            
+            markers_in_range = well_markers[(well_markers['MD'] >= min_depth) & (well_markers['MD'] <= max_depth)].copy()
+            markers_before_data = well_markers[well_markers['MD'] < min_depth]
+            relevant_markers = pd.DataFrame()
+
+            if len(markers_in_range) == 0 and len(markers_before_data) > 0:
+                relevant_markers = markers_before_data.iloc[-1:].copy()
+                print(f"  [Markers] 🔍 No markers in data range, using last marker before data starts.", file=sys.stderr)
+            elif len(markers_before_data) > 0:
+                last_marker_before = markers_before_data.iloc[-1:].copy()
+                relevant_markers = pd.concat([last_marker_before, markers_in_range]).reset_index(drop=True)
+                print(f"  [Markers] 🔍 Using last marker before data + markers in range.", file=sys.stderr)
+            else:
+                relevant_markers = markers_in_range
+                print(f"  [Markers] 🔍 Using only markers within data range.", file=sys.stderr)
+
+            if len(relevant_markers) == 0:
+                print(f"  [Markers] ⚠️ Tidak ada marker yang berada dalam range depth data LAS ({min_depth} - {max_depth})", file=sys.stderr)
+                return False
+
+            print(f"  [Markers] 🔍 Debug - Relevant markers: {len(relevant_markers)}", file=sys.stderr)
+
+            first_marker_before_data = not relevant_markers.empty and relevant_markers.iloc[0]['MD'] < min_depth
+
+            for i in range(len(relevant_markers)):
+                current_marker_surface = relevant_markers.iloc[i]['Surface']
+                current_depth = relevant_markers.iloc[i]['MD']
+
+                if i == 0 and first_marker_before_data:
+                    next_depth = relevant_markers.iloc[i+1]['MD'] if len(relevant_markers) > 1 else np.inf
+                    mask = (df['DEPTH'] >= min_depth) & (df['DEPTH'] < next_depth)
+                else:
+                    next_depth = relevant_markers.iloc[i+1]['MD'] if i + 1 < len(relevant_markers) else np.inf
+                    mask = (df['DEPTH'] >= current_depth) & (df['DEPTH'] < next_depth)
+                
+                df.loc[mask, 'Marker'] = current_marker_surface
+                print(f"    -> Assigned '{current_marker_surface}' to {mask.sum()} rows.", file=sys.stderr)
+
+            unique_markers = df['Marker'].dropna().unique()
+            print(f"  [Markers] ✅ Marker assignment complete. Unique markers in data: {list(unique_markers)}", file=sys.stderr)
+            return True
+
+    except Exception as e:
+        print(f"  [Markers] ❌ Error saat menambahkan marker: {str(e)}", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+
+    print(f"  [Markers] ⚠️ Tidak ada data marker yang sesuai untuk sumur {well_name}", file=sys.stderr)
+    return False
 
 def process_files(input_dir):
     """Main processing function."""

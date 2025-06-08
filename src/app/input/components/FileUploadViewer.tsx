@@ -13,9 +13,6 @@ import FilePreview from './FilePreview';
 import { useRouter } from 'next/navigation'; // For navigation
 import { useAppDataStore } from '../../../stores/appDataStore'; // Adjust path to your store
 import { DownloadCloud, Plus, UploadCloud } from 'lucide-react';
-// Icons are now mostly in sub-components, but ensure they are imported there:
-// import { Upload, File as FileIcon, Eye, Trash2, Search, FileArchiveIcon, FileTextIcon, Folder as FolderIcon } from 'lucide-react';
-
 
 export default function FileUploadViewer() {
   const [uploadedFiles, setUploadedFiles] = useState<FileData[]>([]);
@@ -24,11 +21,6 @@ export default function FileUploadViewer() {
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
-
-  // processZipFile function (as defined in previous step, ensuring it uses imported parsers)
-  // This function is quite large and specific to the FileData structure, so keeping it here
-  // or making it a very specific utility is a choice.
-// Inside FileUploadViewer component
 
 const router = useRouter();
 const { setStagedStructure } = useAppDataStore();
