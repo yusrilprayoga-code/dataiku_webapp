@@ -1,7 +1,11 @@
-export interface ParsedCsvData {
+// src/lib/csv-parser.ts
+
+// Tipe data untuk satu baris data log yang sudah bersih
+export interface ParsedLogData {
   [key: string]: number | string | null;
 }
 
+// Tipe data untuk satu blok marker yang sudah diproses
 export interface ProcessedMarker {
   top: number;
   base: number;
@@ -9,50 +13,63 @@ export interface ProcessedMarker {
   color: string;
 }
 
-// Fungsi untuk mem-parsing string CSV menjadi array of objects
-export function parseCsvData(csvString: string): ParsedCsvData[] {
-  // Menggunakan regular expression /\r?\n/ untuk menangani akhir baris Windows (\r\n) dan Unix (\n)
+export function ParsedCsvData(csvString: string): ParsedLogData[] {
+  // ... (kode parser dari jawaban sebelumnya sudah benar, pastikan Anda menggunakan versi itu)
+  // ... (versi yang sudah menangani DEPT kosong dan sorting)
   const lines = csvString.trim().split(/\r?\n/);
   if (lines.length < 2) return [];
 
-  const headerIndex = lines.findIndex(line => line.trim() !== '');
+  const headerIndex = lines.findIndex(line => line.trim() !== '' && line.toUpperCase().includes('DEPTH'));
   if (headerIndex === -1) return [];
 
-  const headers = lines[headerIndex].split(',').map(h => h.trim());
+  const headers = lines[headerIndex].split(',').map(h => h.trim().toUpperCase()); // Konsisten ke huruf besar
+  const deptColumnIndex = headers.findIndex(h => h === 'DEPTH');
+
+  if (deptColumnIndex === -1) return [];
+  
   const dataLines = lines.slice(headerIndex + 1);
+  const parsedData: ParsedLogData[] = [];
+  let lastValidDepth: number | null = null;
+  const assumedDepthStep = 0.1524;
 
-  const parsedRows = dataLines
-    .filter(line => line.trim() !== '') // 1. Filter baris yang benar-benar kosong
-    .map(line => {
-      const values = line.split(',');
-      const row: ParsedCsvData = {};
-      headers.forEach((header, index) => {
-        const value = values[index]?.trim();
-        if (!value) {
-          row[header] = null;
-        } else if (header === 'MARKER' && value) {
-          row[header] = value;
-        } else {
-          const numValue = parseFloat(value);
-          row[header] = isNaN(numValue) ? null : numValue;
-        }
-      });
-      return row;
+  dataLines.forEach(line => {
+    if (line.trim() === '') return;
+    const values = line.split(',');
+    const row: ParsedLogData = {};
+    let currentDepth: number | null = parseFloat(values[deptColumnIndex]);
+    
+    if (isNaN(currentDepth)) {
+      if (lastValidDepth !== null) {
+        currentDepth = lastValidDepth + assumedDepthStep;
+      } else {
+        return; 
+      }
+    }
+    lastValidDepth = currentDepth;
+
+    headers.forEach((header, index) => {
+      if (index === deptColumnIndex) {
+          row[header] = currentDepth;
+          return;
+      }
+      const value = values[index]?.trim();
+      if (!value) {
+        row[header] = null;
+      } else if (header === 'MARKER') {
+        row[header] = value;
+      } else {
+        const numValue = parseFloat(value);
+        row[header] = isNaN(numValue) ? null : numValue;
+      }
     });
-
-  // --- LANGKAH BARU YANG DITAMBAHKAN ---
-  // 2. Filter baris di mana kolom DEPTH tidak valid (null atau bukan angka)
-  const validRows = parsedRows.filter(row => 
-    row['DEPTH'] !== null && typeof row['DEPTH'] === 'number'
-  );
-
-  return validRows;
+    parsedData.push(row);
+  });
+  return parsedData;
 }
 
 
-// Fungsi processMarkersFromData TIDAK PERLU DIUBAH.
-// Logikanya sudah aman karena akan menerima data yang sudah bersih.
-export function processMarkersFromData(data: ParsedCsvData[]): ProcessedMarker[] {
+// Fungsi processMarkersFromData tidak perlu diubah
+export function processMarkersFromData(data: ParsedLogData[]): ProcessedMarker[] {
     const markers: ProcessedMarker[] = [];
     let currentMarker: { name: string; top: number } | null = null;
     const markerColors: { [key: string]: string } = {
@@ -63,9 +80,7 @@ export function processMarkersFromData(data: ParsedCsvData[]): ProcessedMarker[]
     data.forEach((row, index) => {
       const markerName = row['MARKER'] as string | null;
       const depth = row['DEPTH'] as number;
-      
-      // Guard clause ini menjadi lebih efektif karena data yang masuk sudah pasti punya DEPTH
-      if (!depth) return;
+      if (depth === null) return;
   
       if (markerName && (!currentMarker || markerName !== currentMarker.name)) {
         if (currentMarker) {
@@ -84,6 +99,5 @@ export function processMarkersFromData(data: ParsedCsvData[]): ProcessedMarker[]
           });
       }
     });
-  
     return markers;
 }
