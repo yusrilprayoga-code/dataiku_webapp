@@ -39,7 +39,7 @@ export function plotLine(
   const newTrace: Partial<Data> = {
     type: 'scattergl', x: dfWell.map(d => d[col]), y: dfWell.map(d => d[DEPTH_COL]),
     line: { color: colorCol[baseKey] ? colorCol[baseKey][0] : 'black', width: LINE_WIDTH, },
-    name: String(label), legendgroup: legends[nSeq - 1], showlegend: true, xaxis: `x${nSeq}`, yaxis: `y${nSeq}`,
+    name: String(label), legendgroup: legends[nSeq - 1], showlegend: true, xaxis: `x${nSeq}`, yaxis: 'y',
   };
   
   const newData = [...existingData, newTrace as Data];
@@ -93,7 +93,7 @@ export function plotXoverLogNormal(
   const trace1: Partial<Data> = {
     type: 'scattergl', x: dfWell.map(d => d[col1]), y: dfWell.map(d => d[DEPTH_COL]),
     line: { color: colorCol[key][0], width: LINE_WIDTH }, name: col1, legendgroup: legends[nSeq - 1], showlegend: false,
-    xaxis: `x${nSeq}`, yaxis: `y${nSeq}`,
+    xaxis: `x${nSeq}`, yaxis: 'y',
   };
   dataBuilder.push(trace1 as Data);
   // Terapkan domain pada sumbu-x utama track ini
@@ -106,7 +106,7 @@ export function plotXoverLogNormal(
   const trace2: Partial<Data> = {
     type: 'scattergl', x: dfWell.map(d => d[col2]), y: dfWell.map(d => d[DEPTH_COL]),
     line: { color: colorCol[key][1], width: LINE_WIDTH }, name: col2, legendgroup: legends[nSeq - 1], showlegend: false,
-    xaxis: `x${overlayXaxisId}`, yaxis: `y${nSeq}`,
+    xaxis: `x${overlayXaxisId}`, yaxis: 'y',
   };
   dataBuilder.push(trace2 as Data);
   (layoutBuilder as any)[`xaxis${overlayXaxisId}`] = { side: 'top', range: range2, overlaying: `x${nSeq}`, };
@@ -120,12 +120,12 @@ export function plotXoverLogNormal(
       if (xoverDf.length === 0) continue;
       const fillTrace1: Partial<Data> = {
         type: 'scatter', x: xoverDf.map(d => d[dataCol[key][2]]), y: xoverDf.map(d => d[DEPTH_COL]),
-        showlegend: false, line: { color: 'rgba(0,0,0,0)' }, xaxis: `x${shadingXaxisId}`, yaxis: `y${nSeq}`, hoverinfo: 'none',
+        showlegend: false, line: { color: 'rgba(0,0,0,0)' }, xaxis: `x${shadingXaxisId}`, yaxis: 'y', hoverinfo: 'none',
       };
       const fillTrace2: Partial<Data> = {
         type: 'scatter', x: xoverDf.map(d => d[dataCol[key][3]]), y: xoverDf.map(d => d[DEPTH_COL]),
         showlegend: false, line: { color: 'rgba(0,0,0,0)' }, fill: 'tonextx',
-        fillcolor: fillcol(xoverDf[0].label, yColor, nColor), xaxis: `x${shadingXaxisId}`, yaxis: `y${nSeq}`, hoverinfo: 'none',
+        fillcolor: fillcol(xoverDf[0].label, yColor, nColor), xaxis: `x${shadingXaxisId}`, yaxis: 'y', hoverinfo: 'none',
       };
       dataBuilder.push(fillTrace1 as Data, fillTrace2 as Data);
     }
@@ -196,7 +196,7 @@ export function plotFlag(
     colorscale: colorscale,
     showscale: false,
     xaxis: `x${nSeq}`,
-    yaxis: `y${nSeq}`, // Pastikan terhubung ke y-axis yang benar
+    yaxis: 'y', 
   };
   
   dataBuilder.push(trace as Data);
@@ -215,7 +215,7 @@ export function plotFlag(
  */
 export function plotTextsMarker(
   existingLayout: Partial<Layout>,
-  dfText: MarkerData[], // Menggunakan MarkerData
+  dfText: MarkerData[],
   depthBtm: number,
   nSeq: number
 ): Partial<Layout> {
@@ -223,26 +223,28 @@ export function plotTextsMarker(
 
   const newAnnotations = dfText.map(row => {
     const y = row['Mean Depth'];
-    if (y >= depthBtm) return null; // Jangan render jika di luar jangkauan
-
-    return {
-      x: 0.5, y: y,
-      xref: `x${nSeq} domain`, // Gunakan domain untuk posisi tengah
-      yref: 'y',
-      xanchor: 'center', yanchor: 'middle',
-      text: row.Surface.substring(0, 6),
-      showarrow: false,
-      font: { size: 10, color: 'black' },
-      bgcolor: 'white',
-    } as Partial<Layout['annotations'][0]>;
-  }).filter(Boolean); // Hapus entri null
+    
+    // FIX: Kondisi diubah agar sesuai dengan logika Python asli.
+    // Hanya tampilkan marker jika kedalamannya berada dalam rentang plot.
+    if (y < depthBtm) { 
+      return {
+        x: 0.5, y: y,
+        xref: `x${nSeq} domain`,
+        yref: 'y',
+        xanchor: 'center', yanchor: 'middle',
+        text: `<b>${row.Surface.substring(0, 8)}</b>`, // Dibuat tebal
+        showarrow: false,
+        font: { size: 10, color: 'black' },
+        bgcolor: 'rgba(255, 255, 255, 0.7)', // Latar belakang sedikit transparan
+        borderpad: 2,
+      } as Partial<Layout['annotations'][0]>;
+    }
+    return null; // Kembalikan null jika kondisi tidak terpenuhi
+  }).filter(Boolean) as Partial<Layout['annotations'][0]>[]; // Hapus semua entri null dari array
 
   const existingAnnotations = existingLayout.annotations || [];
   return { 
     ...existingLayout, 
-    annotations: [
-      ...existingAnnotations, 
-      ...newAnnotations as Partial<Layout['annotations'][0]>[]
-    ] 
+    annotations: [...existingAnnotations, ...newAnnotations] 
   };
 }
