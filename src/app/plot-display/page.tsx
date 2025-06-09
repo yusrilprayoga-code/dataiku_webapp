@@ -1,5 +1,3 @@
-// src/app/page.tsx (Diperbarui)
-
 import LeftSidebar from '../../components/layout/LeftSidebar';
 import MainContent from '../../components/layout/MainContent';
 import RightSidebar from '../../components/layout/RightSidebar';
