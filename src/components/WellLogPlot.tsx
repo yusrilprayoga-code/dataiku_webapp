@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/components/WellLogPlot.tsx (Perbaikan Final untuk Type Assertion)
+// src/components/WellLogPlot.tsx (Versi Final dengan Filter Data)
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { LogDataRow } from '@/types';
-import { extractMarkersWithMeanDepth, normalizeXover } from '@/utils/processData';
-import { plotLine, plotXoverLogNormal, plotFlag, plotTextsMarker } from '@/utils/plotters';
-import { ratioPlots } from '@/config/plotConfig';
+import { extractMarkersWithMeanDepth, normalizeXover } from '@/plot_function/processData';
+import { plotLine, plotXoverLogNormal, plotFlag, plotTextsMarker } from '@/plot_function/plotters';
+import { layoutAxis, layoutDrawLines, layoutRangeAllAxis } from '@/plot_function/layout';
+import { ratioPlots, DEPTH_COL } from '@/config/plotConfig';
 import dynamic from 'next/dynamic';
 import { Layout, Data } from 'plotly.js';
 
@@ -17,6 +18,9 @@ interface WellLogPlotProps {
   wellName: string;
 }
 
+// Nilai null standar di file LAS
+const NULL_VALUE = -999.25;
+
 const WellLogPlot: React.FC<WellLogPlotProps> = ({ initialData, wellName }) => {
   const [plotData, setPlotData] = useState<Data[]>([]);
   const [plotLayout, setPlotLayout] = useState<Partial<Layout>>({});
@@ -25,78 +29,76 @@ const WellLogPlot: React.FC<WellLogPlotProps> = ({ initialData, wellName }) => {
   useEffect(() => {
     if (initialData && initialData.length > 0) {
       
-      const processedData = normalizeXover(initialData, 'NPHI', 'RHOB');
-      const extractedMarkers = extractMarkersWithMeanDepth(initialData);
+      // FIX #1: Urutkan dan filter data null
+      const sortedData = [...initialData].sort((a, b) => a[DEPTH_COL] - b[DEPTH_COL]);
+      const filteredData = sortedData.filter(row => {
+        // Hapus baris jika nilai GR atau RHOB adalah nilai null
+        return row.GR !== NULL_VALUE && row.RHOB !== NULL_VALUE;
+      });
 
-      const sequence = ['MARKER', 'GR', 'RT', 'NPHI_RHOB'];
+      const processedData = normalizeXover(normalizeXover(filteredData, 'NPHI', 'RHOB'), 'RT', 'RHOB');
+      const extractedMarkers = extractMarkersWithMeanDepth(initialData); // Marker bisa diambil dari data asli
+
+      const sequence = ['MARKER', 'GR', 'RT_RHOB', 'NPHI_RHOB'];
       const nPlots = sequence.length;
-
       const ratios = sequence.map(key => ratioPlots[key] || 1);
-      const totalRatio = ratios.reduce((sum, ratio) => sum + ratio, 0);
-      const domains: [number, number][] = [];
-      let currentStart = 0;
-      const spacing = 0.01;
-
-      for (let i = 0; i < ratios.length; i++) {
-        const normalizedWidth = (ratios[i] / totalRatio) * (1 - (nPlots - 1) * spacing);
-        const end = currentStart + normalizedWidth;
-        domains.push([currentStart, end]);
-        currentStart = end + spacing;
-      }
+      const domains = calculateDomains(ratios, nPlots);
 
       let dataBuilder: Data[] = [];
       let layoutBuilder: Partial<Layout> = {}; 
       let counter = 0;
+      const axesMap: Record<string, string[]> = {};
 
       sequence.forEach((key, index) => {
         const nSeq = index + 1;
-        
-        if (key === 'MARKER') {
-          const result = plotFlag(dataBuilder, layoutBuilder, processedData, key, nSeq);
-          dataBuilder = result.data;
-          
-          const maxDepth = Math.max(...processedData.map(d => d.DEPTH));
-          layoutBuilder = plotTextsMarker(result.layout, extractedMarkers, maxDepth, nSeq);
-          
-          // FIX: Gunakan Type Assertion 'as any' untuk mengatur domain
-          (layoutBuilder as any)[`xaxis${nSeq}`].domain = domains[index];
+        axesMap[key] = [];
 
-        } else if (key === 'GR') {
-          const result = plotLine(dataBuilder, layoutBuilder, processedData, key, nSeq, {
-            domain: domains[index]
-          });
-          dataBuilder = result.data;
-          layoutBuilder = result.layout;
-          
-        } else if (key === 'RT') {
-          const result = plotLine(dataBuilder, layoutBuilder, processedData, key, nSeq, {
-            type: 'log',
-            domain: domains[index]
-          });
-          dataBuilder = result.data;
-          layoutBuilder = result.layout;
-
-        } else if (key === 'NPHI_RHOB') {
-          const result = plotXoverLogNormal(dataBuilder, layoutBuilder, processedData, key, nSeq, counter, nPlots, {
-            yColor: 'yellow',
-            domain: domains[index]
-          });
-          dataBuilder = result.data;
-          layoutBuilder = result.layout;
-          counter = result.counter;
+        let result;
+        switch (key) {
+          case 'MARKER':
+            result = plotFlag(dataBuilder, layoutBuilder, processedData, key, nSeq);
+            layoutBuilder = plotTextsMarker(result.layout, extractedMarkers, Math.max(...processedData.map(d => d[DEPTH_COL])), nSeq);
+            (layoutBuilder as any)[`xaxis${nSeq}`] = { ...((layoutBuilder as any)[`xaxis${nSeq}`] || {}), domain: domains[index] };
+            break;
+          case 'GR':
+            result = plotLine(dataBuilder, layoutBuilder, processedData, key, nSeq, { domain: domains[index] });
+            break;
+          case 'RT_RHOB':
+            result = plotXoverLogNormal(dataBuilder, layoutBuilder, processedData, key, nSeq, counter, nPlots, { domain: domains[index] });
+            counter = (result as any).counter;
+            break;
+          case 'NPHI_RHOB':
+            result = plotXoverLogNormal(dataBuilder, layoutBuilder, processedData, key, nSeq, counter, nPlots, { yColor: 'yellow', domain: domains[index] });
+            counter = (result as any).counter;
+            break;
+        }
+        if(result) {
+            dataBuilder = result.data;
+            layoutBuilder = result.layout;
+            axesMap[key] = Object.keys(layoutBuilder).filter(k => k.startsWith('xaxis') || k.startsWith('yaxis'));
         }
       });
       
-      layoutBuilder.title = { text: `Well Log ${wellName}` };
-      layoutBuilder.height = 800;
-      layoutBuilder.showlegend = false;
-      layoutBuilder.yaxis = { autorange: 'reversed', title: { text: 'DEPTH (m)' } };
-      layoutBuilder.margin = { l: 60, r: 40, t: 80, b: 40 };
-      layoutBuilder.hovermode = 'y unified';
-      layoutBuilder.plot_bgcolor = 'white';
+      let finalLayout = layoutRangeAllAxis(layoutBuilder, axesMap);
+      finalLayout = layoutDrawLines(finalLayout, ratios, processedData, 50);
+      finalLayout = layoutAxis(finalLayout, axesMap, ratios);
+
+      finalLayout.title = { text: `Well Log ${wellName}`, y: 0.99, font: { size: 16 } };
+      finalLayout.height = 800;
+      finalLayout.showlegend = false;
+      // FIX #2: Konfigurasi Y-Axis utama yang akan digunakan bersama
+      finalLayout.yaxis = { 
+        title: { text: 'DEPTH (m)' },
+        autorange: 'reversed', 
+        domain: [0, 0.8], // Domain 80% di bawah, menyisakan 20% untuk header
+        showgrid: false, // Grid akan digambar manual dengan shapes
+      };
+      finalLayout.margin = { l: 60, r: 40, t: 140, b: 40 };
+      finalLayout.hovermode = 'y unified';
+      finalLayout.plot_bgcolor = 'white';
 
       setPlotData(dataBuilder);
-      setPlotLayout(layoutBuilder);
+      setPlotLayout(finalLayout);
       setIsLoading(false);
     }
   }, [initialData, wellName]);
@@ -114,5 +116,21 @@ const WellLogPlot: React.FC<WellLogPlotProps> = ({ initialData, wellName }) => {
     </div>
   );
 };
+
+function calculateDomains(ratios: number[], nPlots: number): [number, number][] {
+    const totalRatio = ratios.reduce((sum, ratio) => sum + ratio, 0);
+    const domains: [number, number][] = [];
+    let currentStart = 0;
+    const spacing = 0.01;
+    const plotAreaWidth = 1 - (nPlots > 1 ? (nPlots - 1) * spacing : 0);
+
+    for (let i = 0; i < ratios.length; i++) {
+        const normalizedWidth = (ratios[i] / totalRatio) * plotAreaWidth;
+        const end = currentStart + normalizedWidth;
+        domains.push([currentStart, end]);
+        currentStart = end + spacing;
+    }
+    return domains;
+}
 
 export default WellLogPlot;
