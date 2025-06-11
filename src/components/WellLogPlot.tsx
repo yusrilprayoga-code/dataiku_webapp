@@ -4,9 +4,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { LogDataRow } from '@/types';
-import { extractMarkersWithMeanDepth, normalizeXover } from '@/utils/processData';
-import { plotLine, plotXoverLogNormal, plotFlag, plotTextsMarker } from '@/utils/plotters';
-import { layoutAxis, layoutDrawLines, layoutRangeAllAxis } from '@/utils/layout';
+import { extractMarkersWithMeanDepth, normalizeXover } from '@/plot_function/processData';
+import { plotLine, plotXoverLogNormal, plotFlag, plotTextsMarker } from '@/plot_function/plotters';
+import { layoutAxis, layoutDrawLines, layoutRangeAllAxis } from '@/plot_function/layout';
 import { ratioPlots, DEPTH_COL } from '@/config/plotConfig';
 import dynamic from 'next/dynamic';
 import { Layout, Data } from 'plotly.js';
