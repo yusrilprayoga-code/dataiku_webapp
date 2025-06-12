@@ -1,4 +1,5 @@
-import { type LogDataRow } from '@/types';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { type LogDataRow, type MarkerData, type XptNote } from '@/types';
 import { type Data, type Layout } from 'plotly.js';
 import {
   dataCol,
@@ -8,8 +9,12 @@ import {
   legends,
   rangeCol,
   thres,
-  layoutBuilder
+  colorsDict,
+  flagColor,
+  flagsName
 } from './plotConfig';
+import { encodeWithNan, generateNewColor, rgbToHex } from './otherConfig';
+
 
 // Definisikan tipe untuk hasil return dari plotter agar konsisten
 interface PlotterResult {
@@ -211,7 +216,7 @@ export function plotLine(
     console.warn(`Konfigurasi rentang untuk '${baseKey}' tidak ditemukan di 'rangeCol'.`);
   } else if (type === 'log') {
     // Pengaturan untuk skala logaritmik
-    layoutBuilder[xaxisKey] = {
+    (layoutBuilder as any)[xaxisKey] = {
       side: 'top',
       type: 'log',
       range: [Math.log10(range[0]), Math.log10(range[1])],
@@ -219,14 +224,14 @@ export function plotLine(
     };
   } else {
     // Pengaturan untuk skala linear
-    layoutBuilder[xaxisKey] = {
+    (layoutBuilder as any)[xaxisKey] = {
       side: 'top',
       range: range,
       domain: domain,
     };
   }
 
-  return { data: dataBuilder, layout: layoutBuilder };
+  return { data: dataBuilder, layout: (layoutBuilder as any) };
 }
 
 /**
@@ -304,14 +309,14 @@ export function plotFillXToInt(
   const range = rangeCol[key as keyof typeof rangeCol][index];
   
   if (range) {
-    layoutBuilder[xaxisKey] = {
+    (layoutBuilder as any)[xaxisKey] = {
       side: 'top',
       range: range,
       domain: domain,
     };
   }
 
-  return { data: dataBuilder, layout: layoutBuilder };
+  return { data: dataBuilder, layout: (layoutBuilder as any) };
 }
 
 /**
@@ -364,7 +369,7 @@ export function plotDualGr(
   dataBuilder.push(trace1 as Data);
 
   // Atur layout untuk sumbu-x pertama
-  layoutBuilder[`xaxis${nSeq}`] = {
+  (layoutBuilder as any)[`xaxis${nSeq}`] = {
     side: 'top',
     range: range1,
     domain: domain,
@@ -390,14 +395,14 @@ export function plotDualGr(
   dataBuilder.push(trace2 as Data);
 
   // Atur layout untuk sumbu-x kedua, dan set `overlaying`
-  layoutBuilder[overlayXaxisId] = {
+  (layoutBuilder as any)[overlayXaxisId] = {
     side: 'top',
     range: range2,
     overlaying: `x${nSeq}`, // <-- Kunci untuk menumpuk sumbu ini di atas sumbu utama
   };
 
   // Kembalikan semua hasil yang telah diperbarui
-  return { data: dataBuilder, layout: layoutBuilder, counter: currentCounter };
+  return { data: dataBuilder, layout: (layoutBuilder as any), counter: currentCounter };
 }
 
 /**
@@ -513,7 +518,7 @@ export function plotGsaCrossover(
     
     // Atur layout untuk sumbu arsiran (tak terlihat)
     const fillRange = rangeCol[key as keyof typeof rangeCol][0];
-    layoutBuilder[fillAxisId] = {
+    (layoutBuilder as any)[fillAxisId] = {
       visible: false, overlaying: `x${nSeq}`,
       range: logScale ? [Math.log10(fillRange[0]), Math.log10(fillRange[1])] : fillRange
     };
@@ -526,18 +531,18 @@ export function plotGsaCrossover(
   const range1 = rangeCol[key as keyof typeof rangeCol][0];
   const range2 = rangeCol[key as keyof typeof rangeCol][1];
 
-  layoutBuilder[`xaxis${nSeq}`] = {
+  (layoutBuilder as any)[`xaxis${nSeq}`] = {
     side: 'top', domain: domain,
     type: logScale ? 'log' : 'linear',
     range: logScale ? [Math.log10(range1[0]), Math.log10(range1[1])] : range1
   };
-  layoutBuilder[overlayAxis2Id] = {
+  (layoutBuilder as any)[overlayAxis2Id] = {
     side: 'top', overlaying: `x${nSeq}`,
     type: logScale ? 'log' : 'linear',
     range: logScale ? [Math.log10(range2[0]), Math.log10(range2[1])] : range2
   };
   
-  return { data: dataBuilder, layout: layoutBuilder, counter: currentCounter };
+  return { data: dataBuilder, layout: (layoutBuilder as any), counter: currentCounter };
 }
 
 /**
@@ -606,7 +611,7 @@ export function plotTwoFeaturesSimple(
   const range2 = rangeCol[key as keyof typeof rangeCol][1];
 
   // Layout untuk sumbu-x pertama
-  layoutBuilder[`xaxis${nSeq}`] = {
+  (layoutBuilder as any)[`xaxis${nSeq}`] = {
     side: 'top',
     domain: domain,
     type: logScale ? 'log' : 'linear',
@@ -615,7 +620,7 @@ export function plotTwoFeaturesSimple(
   
   // Layout untuk sumbu-x kedua (overlay)
   if (range2) {
-    layoutBuilder[overlayXaxisId] = {
+    (layoutBuilder as any)[overlayXaxisId] = {
       side: 'top',
       overlaying: `x${nSeq}`,
       type: logScale ? 'log' : 'linear',
@@ -623,7 +628,7 @@ export function plotTwoFeaturesSimple(
     };
   }
 
-  return { data: dataBuilder, layout: layoutBuilder, counter: currentCounter };
+  return { data: dataBuilder, layout: (layoutBuilder as any), counter: currentCounter };
 }
 
 /**
@@ -647,7 +652,7 @@ export function plotThreeFeaturesSimple(
 ): PlotterResult & { counter: number } {
   const { logScale = false, domain } = options;
 
-  let dataBuilder = [...existingData];
+  const dataBuilder = [...existingData];
   const layoutBuilder = { ...existingLayout };
   let currentCounter = counter;
 
@@ -706,7 +711,7 @@ export function plotThreeFeaturesSimple(
   const range3 = rangeCol[key as keyof typeof rangeCol][2];
 
   // Layout untuk sumbu-x pertama (utama)
-  layoutBuilder[`xaxis${nSeq}`] = {
+  (layoutBuilder as any)[`xaxis${nSeq}`] = {
     side: 'top', domain: domain,
     type: logScale ? 'log' : 'linear',
     range: logScale ? [Math.log10(range1[0]), Math.log10(range1[1])] : range1
@@ -714,7 +719,7 @@ export function plotThreeFeaturesSimple(
   
   // Layout untuk sumbu-x kedua (overlay)
   if (range2) {
-    layoutBuilder[overlayAxis2Id] = {
+    (layoutBuilder as any)[overlayAxis2Id] = {
       side: 'top', overlaying: `x${nSeq}`,
       type: logScale ? 'log' : 'linear',
       range: logScale ? [Math.log10(range2[0]), Math.log10(range2[1])] : range2
@@ -723,14 +728,14 @@ export function plotThreeFeaturesSimple(
 
   // Layout untuk sumbu-x ketiga (overlay)
   if (range3) {
-    layoutBuilder[overlayAxis3Id] = {
+    (layoutBuilder as any)[overlayAxis3Id] = {
       side: 'top', overlaying: `x${nSeq}`,
       type: logScale ? 'log' : 'linear',
       range: logScale ? [Math.log10(range3[0]), Math.log10(range3[1])] : range3
     };
   }
 
-  return { data: dataBuilder, layout: layoutBuilder, counter: currentCounter };
+  return { data: dataBuilder, layout: (layoutBuilder as any), counter: currentCounter };
 }
 
 /**
@@ -755,8 +760,8 @@ export function plotFourFeaturesSimple(
 ): PlotterResult & { counter: number } {
   const { logScale = false, domain } = options;
 
-  let dataBuilder = [...existingData];
-  let layoutBuilder = { ...existingLayout };
+  const dataBuilder = [...existingData];
+  const layoutBuilder = { ...existingLayout };
   
   // Loop untuk membuat 4 trace dan 4 axis layout
   for (let i = 0; i < 4; i++) {
@@ -801,7 +806,7 @@ export function plotFourFeaturesSimple(
       // Konfigurasi untuk sumbu overlay
       axisConfig = {
         side: 'top',
-        overlaying: `x${nSeq}`,
+        overlaying: `x${nSeq}` as any,
       };
     }
 
@@ -813,13 +818,13 @@ export function plotFourFeaturesSimple(
       axisConfig.range = range;
     }
     
-    layoutBuilder[xaxisId] = axisConfig;
+    (layoutBuilder as any)[xaxisId] = axisConfig;
   }
 
   // Update counter dengan jumlah sumbu overlay yang ditambahkan (3)
   const finalCounter = counter + 3;
 
-  return { data: dataBuilder, layout: layoutBuilder, counter: finalCounter };
+  return { data: dataBuilder, layout: (layoutBuilder as any), counter: finalCounter };
 }
 
 /**
@@ -844,8 +849,8 @@ export function plotXover(
 ): PlotterResult & { counter: number } {
   const { yColor = 'limegreen', nColor = 'lightgray', domain } = options;
 
-  let dataBuilder = [...existingData];
-  let layoutBuilder = { ...existingLayout };
+  const dataBuilder = [...existingData];
+  const layoutBuilder = { ...existingLayout };
   let currentCounter = counter;
   
   const mainXaxisId = `x${nSeq}`;
@@ -891,7 +896,7 @@ export function plotXover(
 
   // --- 3. Atur Layout untuk Sumbu-x Utama ---
   const range = rangeCol[key as keyof typeof rangeCol][0];
-  layoutBuilder[mainXaxisId] = {
+  (layoutBuilder as any)[mainXaxisId] = {
     side: 'top',
     type: 'log',
     range: [Math.log10(range[0]), Math.log10(range[1])],
@@ -907,10 +912,654 @@ export function plotXover(
     xaxis: emptyOverlayId, yaxis: 'y',
   } as Data);
 
-  layoutBuilder[emptyOverlayId] = {
+  (layoutBuilder as any)[emptyOverlayId] = {
     overlaying: mainXaxisId, side: 'top', type: 'log',
     range: [Math.log10(range[0]), Math.log10(range[1])],
   };
 
-  return { data: dataBuilder, layout: layoutBuilder, counter: currentCounter };
+  return { data: dataBuilder, layout: (layoutBuilder as any), counter: currentCounter };
+}
+
+export function plotXoverThres(
+  existingData: Data[],
+  existingLayout: Partial<Layout>,
+  dfWell: LogDataRow[],
+  key: string,
+  nSeq: number,
+  options: {
+    yColor?: string;
+    nColor?: string;
+    domain?: [number, number];
+  } = {}
+): PlotterResult {
+  const { yColor = colorsDict.red, nColor = 'lightgray', domain } = options;
+
+  const dataBuilder = [...existingData];
+  const layoutBuilder = { ...existingLayout };
+  const mainXaxisId = `x${nSeq}`;
+  const thresholdValue = thres[key];
+
+  // --- 1. Plot Area Arsiran ---
+  const fillSegments = xoverLabelDf(dfWell, key, 1);
+  for (const segment of fillSegments) {
+    dataBuilder.push({
+      type: 'scatter', x: segment.map(d => d[dataCol[key][0]]), y: segment.map(d => d[DEPTH_COL]),
+      showlegend: false, line: { color: 'rgba(0,0,0,0)' }, hoverinfo: 'none',
+      xaxis: mainXaxisId, yaxis: 'y',
+    } as Data);
+    dataBuilder.push({
+      type: 'scatter', x: segment.map(() => thresholdValue), y: segment.map(d => d[DEPTH_COL]),
+      fill: 'tonextx', fillcolor: fillcol(segment[0].label, yColor, nColor),
+      showlegend: false, line: { color: 'rgba(0,0,0,0)' }, hoverinfo: 'none',
+      xaxis: mainXaxisId, yaxis: 'y',
+    } as Data);
+  }
+
+  // --- 2. Plot Garis Data dan Garis Threshold ---
+  const col = dataCol[key][0];
+  dataBuilder.push({
+    type: 'scattergl', x: dfWell.map(d => d[col]), y: dfWell.map(d => d[DEPTH_COL]),
+    line: { color: colorCol[key][0], width: LINE_WIDTH }, name: col,
+    legendgroup: legends[nSeq - 1], showlegend: true,
+    xaxis: mainXaxisId, yaxis: 'y',
+  } as Data);
+
+  dataBuilder.push({
+    type: 'scattergl', x: dfWell.map(() => thresholdValue), y: dfWell.map(d => d[DEPTH_COL]),
+    line: { color: colorsDict.red, width: LINE_WIDTH }, name: 'Threshold',
+    legendgroup: legends[nSeq - 1], showlegend: true,
+    xaxis: mainXaxisId, yaxis: 'y',
+  } as Data);
+
+  // --- 3. Atur Layout Sumbu ---
+  (layoutBuilder as any)[mainXaxisId] = {
+    side: 'top',
+    range: rangeCol[key as keyof typeof rangeCol][0],
+    domain: domain,
+  };
+
+  return { data: dataBuilder, layout: (layoutBuilder as any) };
+}
+
+export function plotXoverLogNormal(
+  existingData: Data[],
+  existingLayout: Partial<Layout>,
+  dfWell: LogDataRow[],
+  key: string,
+  nSeq: number,
+  counter: number,
+  nPlots: number,
+  options: {
+    yColor?: string;
+    nColor?: string;
+    type?: number;
+    excludeCrossover?: boolean;
+    domain?: [number, number];
+  } = {}
+): PlotterResult & { counter: number } {
+
+  const { yColor = 'limegreen', nColor = 'lightgray', type = 1, excludeCrossover = false, domain } = options;
+
+  const dataBuilder = [...existingData];
+  const layoutBuilder = { ...existingLayout };
+  let currentCounter = counter;
+
+  const col1 = dataCol[key][0];
+  const range1 = rangeCol[key as keyof typeof rangeCol][0];
+  dataBuilder.push({
+    type: 'scattergl', x: dfWell.map(d => d[col1]), y: dfWell.map(d => d[DEPTH_COL]),
+    line: { color: colorCol[key][0], width: LINE_WIDTH }, name: col1, legendgroup: legends[nSeq - 1], showlegend: false,
+    xaxis: `x${nSeq}`, yaxis: 'y',
+  } as Data);
+  (layoutBuilder as any)[`xaxis${nSeq}`] = { side: 'top', range: range1, domain: domain };
+
+  currentCounter++;
+  const overlayXaxisId = `x${nPlots + currentCounter}`;
+  const col2 = dataCol[key][1];
+  const range2 = rangeCol[key as keyof typeof rangeCol][1];
+  dataBuilder.push({
+    type: 'scattergl', x: dfWell.map(d => d[col2]), y: dfWell.map(d => d[DEPTH_COL]),
+    line: { color: colorCol[key][1], width: LINE_WIDTH }, name: col2, legendgroup: legends[nSeq - 1], showlegend: false,
+    xaxis: overlayXaxisId, yaxis: 'y',
+  } as Data);
+  (layoutBuilder as any)[overlayXaxisId] = { side: 'top', range: range2, overlaying: `x${nSeq}` };
+
+  if (!excludeCrossover) {
+    currentCounter++;
+    const shadingXaxisId = `x${nPlots + currentCounter}`;
+    const xoverDfs = xoverLabelDf(dfWell, key, type);
+    for (const xoverDf of xoverDfs) {
+      if (xoverDf.length === 0) continue;
+      dataBuilder.push({ type: 'scatter', x: xoverDf.map(d => d[dataCol[key][2]]), y: xoverDf.map(d => d[DEPTH_COL]), showlegend: false, line: { color: 'rgba(0,0,0,0)' }, xaxis: shadingXaxisId, yaxis: 'y', hoverinfo: 'none' } as Data);
+      dataBuilder.push({ type: 'scatter', x: xoverDf.map(d => d[dataCol[key][3]]), y: xoverDf.map(d => d[DEPTH_COL]), fill: 'tonextx', fillcolor: fillcol(xoverDf[0].label, yColor, nColor), showlegend: false, line: { color: 'rgba(0,0,0,0)' }, xaxis: shadingXaxisId, yaxis: 'y', hoverinfo: 'none' } as Data);
+    }
+    (layoutBuilder as any)[shadingXaxisId] = { visible: false, overlaying: `x${nSeq}`, range: range1 };
+  }
+
+  return { data: dataBuilder, layout: (layoutBuilder as any), counter: currentCounter };
+}
+
+export function plotFillXToZero(
+  existingData: Data[],
+  existingLayout: Partial<Layout>,
+  dfWell: LogDataRow[],
+  key: string,
+  nSeq: number,
+  index: number,
+  options: {
+    domain?: [number, number];
+    fillColor?: string;
+  } = {}
+): PlotterResult {
+  const { domain, fillColor = 'lightgray' } = options;
+
+  const col = dataCol[key][index];
+  const color = colorCol[key][index];
+  const range = rangeCol[key as keyof typeof rangeCol][index];
+
+  const newTrace: Partial<Data> = {
+    type: 'scatter',
+    x: dfWell.map(d => d[col]),
+    y: dfWell.map(d => d[DEPTH_COL]),
+    line: { color: color, width: LINE_WIDTH },
+    name: col,
+    legendgroup: legends[nSeq - 1] || `legend${nSeq}`,
+    showlegend: true,
+    fill: 'tozerox', // <-- Kunci untuk mengisi area ke garis x=0
+    fillcolor: fillColor,
+    xaxis: `x${nSeq}`,
+    yaxis: 'y',
+  };
+
+  const dataBuilder = [...existingData, newTrace as Data];
+  const layoutBuilder = { ...existingLayout };
+
+  (layoutBuilder as any)[`xaxis${nSeq}`] = {
+    side: 'top',
+    range: range,
+    domain: domain,
+  };
+
+  return { data: dataBuilder, layout: (layoutBuilder as any) };
+}
+
+/**
+ * Membuat plot stacked area, berguna untuk menampilkan komposisi.
+ * Menggunakan properti `fill: 'tonextx'`.
+ *
+ * @returns Objek baru yang berisi `data`, `layout`, dan `counter` yang telah diperbarui.
+ */
+export function plotNFillXToZero(
+  existingData: Data[],
+  existingLayout: Partial<Layout>,
+  dfWell: LogDataRow[],
+  key: string,
+  nSeq: number,
+  counter: number,
+  nPlots: number,
+  options: {
+    domain?: [number, number];
+  } = {}
+): PlotterResult & { counter: number } {
+  const { domain } = options;
+
+  const dataBuilder = [...existingData];
+  const layoutBuilder = { ...existingLayout };
+  let currentCounter = counter;
+  const mainXaxisId = `x${nSeq}`;
+
+  // Loop melalui setiap kolom yang didefinisikan untuk 'key' ini
+  const cols = dataCol[key] || [];
+  cols.forEach((col, index) => {
+    const trace: Partial<Data> = {
+      type: 'scatter',
+      x: dfWell.map(d => d[col]),
+      y: dfWell.map(d => d[DEPTH_COL]),
+      name: col,
+      line: { color: colorCol[key][index], width: 0 }, // Garis dibuat tidak terlihat
+      legendgroup: legends[nSeq - 1] || `legend${nSeq}`,
+      showlegend: true,
+      // Trace pertama mengisi ke nol, sisanya mengisi ke trace sebelumnya
+      fill: index === 0 ? 'tozerox' : 'tonextx',
+      xaxis: mainXaxisId,
+      yaxis: 'y',
+    };
+    dataBuilder.push(trace as Data);
+  });
+
+  // Atur layout untuk sumbu-x utama
+  (layoutBuilder as any)[mainXaxisId] = {
+    side: 'top',
+    range: rangeCol[key as keyof typeof rangeCol][0],
+    domain: domain,
+  };
+
+  // Tambahkan sumbu overlay kosong sesuai logika Python asli
+  for (let j = 1; j < cols.length; j++) {
+    currentCounter++;
+    const emptyOverlayId = `x${nPlots + currentCounter}`;
+    dataBuilder.push({
+      type: 'scatter', x: [], y: [], showlegend: false, hoverinfo: 'skip',
+      xaxis: emptyOverlayId, yaxis: 'y',
+    } as Data);
+    (layoutBuilder as any)[emptyOverlayId] = {
+      overlaying: mainXaxisId,
+      side: 'top',
+      range: rangeCol[key as keyof typeof rangeCol][0],
+    };
+  }
+
+  return { data: dataBuilder, layout: (layoutBuilder as any), counter: currentCounter };
+}
+
+/**
+ * Membuat track plot kategorikal (flag) menggunakan Heatmap.
+ */
+export function plotFlag(
+  existingData: Data[],
+  existingLayout: Partial<Layout>,
+  dfWell: LogDataRow[],
+  key: string,
+  nSeq: number
+): PlotterResult {
+  const dataBuilder = [...existingData];
+  const layoutBuilder = { ...existingLayout };
+  
+  let finalFlagColors: Record<number, string>;
+  let finalFlagsNames: Record<number, string>;
+  let maxVal: number;
+  let currentDfWell = [...dfWell];
+  const col = dataCol[key][0];
+
+  if (['MARKER', 'RGBE', 'RPBE'].includes(key)) {
+    const result = encodeWithNan(currentDfWell, col);
+    currentDfWell = result.data;
+    finalFlagsNames = result.names;
+    maxVal = Object.keys(finalFlagsNames).length;
+    
+    const tempColors: Record<number, string> = {};
+    for (let i = 0; i < maxVal; i++) {
+        tempColors[i] = rgbToHex(generateNewColor({}, 0));
+    }
+    tempColors[0] = 'rgba(0,0,0,0)';
+    finalFlagColors = tempColors;
+  } else {
+    finalFlagColors = flagColor[key];
+    finalFlagsNames = flagsName[key];
+    if (!finalFlagsNames) {
+      console.error(`flagsName untuk key '${key}' tidak ditemukan.`);
+      return { data: dataBuilder, layout: (layoutBuilder as any) };
+    }
+    maxVal = Math.max(...Object.keys(finalFlagsNames).map(Number)) + 1;
+  }
+  
+  const zData = [currentDfWell.map(d => (d[col] as number) / maxVal)];
+  const customData = currentDfWell.map(row => finalFlagsNames[row[col] as number] || '');
+  
+  const bvals = Array.from({ length: maxVal + 1 }, (_, i) => i);
+  const colors = Object.values(finalFlagColors);
+  const colorscale = discreteColorscale(bvals, colors);
+
+  const trace: Partial<Data> = {
+    type: 'heatmap', z: zData, zmin: 0, zmax: 1,
+    y: currentDfWell.map(d => d[DEPTH_COL]), customdata: customData,
+    hovertemplate: '%{customdata}<extra></extra>', colorscale: colorscale as any,
+    showscale: false, xaxis: `x${nSeq}`, yaxis: 'y',
+  };
+  
+  dataBuilder.push(trace as Data);
+  (layoutBuilder as any)[`xaxis${nSeq}`] = { 
+    side: 'top', zeroline: false, showgrid: false, showticklabels: false,
+  };
+
+  return { data: dataBuilder, layout: (layoutBuilder as any) };
+}
+
+/**
+ * Membuat plot yang menampilkan titik-titik data sebagai simbol (marker)
+ * pada sebuah track dengan rentang [0, 1].
+ */
+export function plotXptPoint(
+  existingData: Data[],
+  existingLayout: Partial<Layout>,
+  dfWell: LogDataRow[],
+  key: string,
+  nSeq: number,
+  options: {
+    domain?: [number, number];
+  } = {}
+): PlotterResult {
+  const { domain } = options;
+  const col = dataCol[key][0];
+
+  const dataBuilder = [...existingData];
+  const layoutBuilder = { ...existingLayout };
+  const mainXaxisId = `x${nSeq}`;
+
+  // Trace untuk simbol/marker
+  dataBuilder.push({
+    type: 'scattergl',
+    mode: 'markers',
+    x: dfWell.map(d => d[col]),
+    y: dfWell.map(d => d[DEPTH_COL]),
+    marker: {
+      symbol: 'circle-open',
+      color: colorCol[key][0] || 'black',
+      size: 8,
+      line: { width: 1.5 }
+    },
+    name: col,
+    showlegend: true,
+    xaxis: mainXaxisId,
+    yaxis: 'y',
+  } as Data);
+  
+  // Trace dummy tak terlihat untuk menetapkan batas kanan sumbu-x ke 1
+  dataBuilder.push({
+    type: 'scatter', x: dfWell.map(() => 1), y: dfWell.map(d => d[DEPTH_COL]),
+    line: { color: 'rgba(0,0,0,0)', width: 0 },
+    showlegend: false, hoverinfo: 'skip',
+    xaxis: mainXaxisId, yaxis: 'y',
+  } as Data);
+
+  // Atur layout sumbu
+  (layoutBuilder as any)[mainXaxisId] = {
+    side: 'top',
+    range: [0, 1], // Rentang tetap
+    domain: domain,
+    showticklabels: false, // Sembunyikan label angka pada sumbu ini
+  };
+  
+  return { data: dataBuilder, layout: (layoutBuilder as any) };
+}
+
+/**
+ * Menambahkan anotasi teks dengan panah penunjuk pada kedalaman tertentu.
+ */
+export function plotTextsXpt(
+  existingLayout: Partial<Layout>,
+  dfText: XptNote[], // Menggunakan tipe data baru
+  nSeq: number
+): Partial<Layout> {
+  if (!dfText || dfText.length === 0) {
+    return existingLayout;
+  }
+
+  const newAnnotations = dfText.map(row => ({
+    x: 0.1, // Posisi x panah dimulai (10% dari kiri)
+    y: row['Depth (m)'],
+    xref: `x${nSeq}`,
+    yref: 'y',
+    xanchor: 'left',
+    yanchor: 'middle',
+    text: row['Note'].substring(0, 20), // Batasi panjang teks
+    showarrow: true,
+    font: { size: 10, color: "black" },
+    align: "left",
+    arrowhead: 0,
+    arrowsize: 1,
+    arrowwidth: 1,
+    arrowcolor: "black",
+    ax: 20, 
+    ay: 0,
+  } as Partial<Layout['annotations'][0]>));
+
+  const existingAnnotations = existingLayout.annotations || [];
+  return { 
+    ...existingLayout, 
+    annotations: [...existingAnnotations, ...newAnnotations] 
+  };
+}
+
+/**
+ * Menambahkan anotasi teks untuk puncak formasi (marker).
+ * Ini adalah versi final yang telah kita sempurnakan sebelumnya.
+ */
+export function plotTextsMarker(
+  existingLayout: Partial<Layout>,
+  dfText: MarkerData[],
+  depthBtm: number,
+  nSeq: number
+): Partial<Layout> {
+  if (!dfText || dfText.length === 0) {
+    return existingLayout;
+  }
+
+  const newAnnotations = dfText
+    .map(row => {
+      const y = row['Mean Depth'];
+      if (y >= depthBtm) return null;
+
+      return {
+        x: 0.5,
+        y: y,
+        xref: `x${nSeq} domain`,
+        yref: 'y',
+        xanchor: 'center',
+        yanchor: 'middle',
+        text: `<b>${row.Surface.substring(0, 8)}</b>`,
+        showarrow: false,
+        font: { size: 10, color: 'black' },
+        bgcolor: 'rgba(255, 255, 255, 0.7)',
+        borderpad: 2,
+      } as Partial<Layout['annotations'][0]>;
+    }).filter(
+      (ann): ann is Partial<Layout['annotations'][0]> => ann !== null
+    );
+
+  const existingAnnotations = existingLayout.annotations || [];
+  return { 
+    ...existingLayout, 
+    annotations: [...existingAnnotations, ...newAnnotations] 
+  };
+}
+
+/**
+ * Membuat sebuah track yang hanya berisi anotasi teks (misalnya untuk Marker).
+ * Fungsi ini menggunakan "dummy trace" yang tidak terlihat untuk memastikan
+ * subplot dan sumbu-x nya dibuat, lalu menambahkan teks sebagai anotasi.
+ *
+ * @param existingData - Array `data` Plotly yang sudah ada.
+ * @param existingLayout - Objek `layout` Plotly yang sudah ada.
+ * @param textData - Array data yang berisi teks dan kedalaman (menggunakan tipe MarkerData).
+ * @param depthBtm - Batas kedalaman bawah untuk filtering.
+ * @param nSeq - Nomor urutan track plot.
+ * @param options - Opsi tambahan seperti domain.
+ * @returns Objek baru yang berisi `data` dan `layout` yang telah diperbarui.
+ */
+export function plotTextValues(
+  existingData: Data[],
+  existingLayout: Partial<Layout>,
+  textData: MarkerData[],
+  depthBtm: number,
+  nSeq: number,
+  options: {
+    domain?: [number, number];
+  } = {}
+): PlotterResult {
+  const { domain } = options;
+
+  const dataBuilder = [...existingData];
+  const layoutBuilder = { ...existingLayout };
+  const mainXaxisId = `x${nSeq}`;
+
+  // Lanjutkan hanya jika ada data teks untuk diplot
+  if (textData && textData.length > 0) {
+    // --- 1. Buat "Dummy Trace" untuk Inisialisasi Sumbu ---
+    const depths = textData.map(d => d['Mean Depth']);
+    const minDepth = Math.min(...depths);
+    const maxDepth = Math.max(...depths);
+
+    dataBuilder.push({
+      type: 'scatter',
+      x: [0, 1], // Rentang x sederhana untuk membuat sumbu
+      y: [minDepth, maxDepth], // Rentang y sesuai data marker
+      mode: 'markers',
+      marker: { size: 0, color: 'rgba(0,0,0,0)' }, // Marker dibuat transparan/tak terlihat
+      showlegend: false,
+      hoverinfo: 'skip',
+      xaxis: mainXaxisId,
+      yaxis: 'y', // Selalu gunakan sumbu Y utama untuk konsistensi
+    } as Data);
+
+    // --- 2. Buat Anotasi Teks ---
+    const newAnnotations = textData
+      .map(row => {
+        const y = row['Mean Depth'];
+        const text = `<b>${row['Surface'].substring(0, 8)}</b>`;
+
+        // Filter anotasi yang berada di luar jangkauan kedalaman
+        if (y >= depthBtm) {
+          return null;
+        }
+
+        return {
+          x: 0.5, // Posisi horizontal di tengah track
+          y: y,
+          xref: `${mainXaxisId} domain`, // Anotasi relatif terhadap domain sumbu-x
+          yref: 'y', // Anotasi relatif terhadap sumbu-y utama
+          xanchor: 'center',
+          yanchor: 'middle',
+          text: text,
+          showarrow: false, // Diubah dari Python, karena ax=0 ay=0 tidak menampilkan panah
+          font: { size: 10, color: "black" },
+          align: "center",
+          bgcolor: 'rgba(255, 255, 255, 0.7)',
+          borderpad: 2,
+        } as Partial<Layout['annotations'][0]>;
+      })
+      .filter(Boolean); // Hapus semua entri null
+
+    // Gabungkan anotasi baru dengan yang sudah ada
+    const existingAnnotations = (layoutBuilder as any).annotations || [];
+    (layoutBuilder as any).annotations = [...existingAnnotations, ...newAnnotations];
+  }
+  
+  // --- 3. Atur Layout Sumbu-x ---
+  (layoutBuilder as any)[mainXaxisId] = {
+    side: 'top',
+    domain: domain,
+    showticklabels: false, // Tidak perlu menampilkan angka pada sumbu untuk track teks
+    showgrid: false,
+    zeroline: false,
+  };
+
+  return { data: dataBuilder, layout: (layoutBuilder as any) };
+}
+
+/**
+ * Membuat kolom NPHI_NORM dan RHOB_NORM untuk visualisasi crossover.
+ * Fungsi ini mengembalikan array baru (immutable).
+ *
+ * @param data - Array data log.
+ * @param log1Key - Kunci untuk kurva pertama (misalnya, 'NPHI').
+ * @param log2Key - Kunci untuk kurva kedua (misalnya, 'RHOB').
+ * @returns Array LogDataRow baru dengan tambahan kolom normalisasi.
+ */
+export function normalizeXover(
+  data: LogDataRow[],
+  log1Key: keyof LogDataRow,
+  log2Key: keyof LogDataRow
+): LogDataRow[] {
+  const logMergeKey = `${String(log1Key)}_${String(log2Key)}` as keyof typeof rangeCol;
+  const ranges = rangeCol[logMergeKey];
+
+  if (!ranges) {
+    console.error(`Rentang untuk ${logMergeKey} tidak ditemukan di 'rangeCol'.`);
+    return data;
+  }
+
+  const [log1Range, log2Range] = ranges;
+  const [minLog1, maxLog1] = log1Range;
+  const [minLog2, maxLog2] = log2Range;
+
+  const log1NormKey = `${String(log1Key)}_NORM`;
+  const log2NormKey = `${String(log2Key)}_NORM_${String(log1Key)}`;
+
+  // Gunakan .map untuk membuat array baru, menjaga immutability
+  return data.map(row => {
+    const newRow = { ...row };
+    
+    // 1. Salin nilai log_1 ke kolom _NORM-nya
+    const log1Value = row[log1Key] as number;
+    (newRow as any)[log1NormKey] = log1Value;
+
+    // 2. Lakukan interpolasi linier untuk log_2
+    const log2Value = row[log2Key] as number;
+    if (typeof log2Value === 'number' && !isNaN(log2Value)) {
+      const normalizedValue = minLog1 + (log2Value - minLog2) * (maxLog1 - minLog1) / (maxLog2 - minLog2);
+      (newRow as any)[log2NormKey] = normalizedValue;
+    } else {
+      (newRow as any)[log2NormKey] = null;
+    }
+
+    return newRow;
+  });
+}
+
+/**
+ * Versi generic untuk mengekstrak data kategorikal dari sebuah kolom,
+ * mengelompokkannya, dan menghitung rata-rata kedalamannya.
+ * Ini adalah inti logika yang mereplikasi `groupby().mean()` dari Pandas.
+ *
+ * @param data - Array data log lengkap.
+ * @param key - Nama kolom yang akan digunakan untuk pengelompokan (misalnya, 'MARKER').
+ * @returns Array objek MarkerData.
+ */
+export function extractMarkersCustomize(
+  data: LogDataRow[],
+  key: keyof LogDataRow // Menggunakan `keyof` untuk type safety
+): MarkerData[] {
+  // Jika tidak ada data, kembalikan array kosong
+  if (!data || data.length === 0) {
+    return [];
+  }
+
+  // Gunakan Map untuk mengelompokkan data: { nama_marker: { sum: total_depth, count: jumlah } }
+  const markerGroups = new Map<string, { sum: number; count: number }>();
+
+  for (const row of data) {
+    const markerValue = row[key];
+
+    // Lewati baris jika nilai marker kosong, null, atau undefined
+    if (markerValue == null || String(markerValue).trim() === '') {
+      continue;
+    }
+    
+    // FIX: Konversi nilai marker ke string untuk memastikan konsistensi.
+    // Ini setara dengan `.astype(str)` di Python untuk keamanan.
+    const markerString = String(markerValue);
+
+    // Ambil data grup yang ada atau buat baru jika belum ada
+    const group = markerGroups.get(markerString) || { sum: 0, count: 0 };
+
+    // Update sum dan count
+    group.sum += row.DEPTH;
+    group.count += 1;
+
+    // Simpan kembali ke Map
+    markerGroups.set(markerString, group);
+  }
+
+  // Olah Map yang sudah dikelompokkan untuk menghitung rata-rata
+  const result: MarkerData[] = [];
+  markerGroups.forEach((value, key) => {
+    result.push({
+      Surface: key,
+      'Mean Depth': value.sum / value.count,
+    });
+  });
+
+  return result;
+}
+
+/**
+ * Fungsi spesifik untuk mengekstrak data dari kolom 'MARKER'.
+ * Fungsi ini hanya sebuah pemanggil (wrapper) untuk versi generic-nya.
+ *
+ * @param data - Array data log lengkap.
+ * @returns Array objek MarkerData.
+ */
+export function extractMarkersWithMeanDepth(data: LogDataRow[]): MarkerData[] {
+  return extractMarkersCustomize(data, 'MARKER');
 }

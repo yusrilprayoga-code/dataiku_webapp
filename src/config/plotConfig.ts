@@ -6,6 +6,8 @@ export const DEPTH_COL = 'DEPTH';
 // Lebar garis default
 export const LINE_WIDTH = 0.9;
 
+export const NULL_VALUE = -999.25;
+
 // Dictionary Warna
 export const colorsDict: Record<string, string> = {
   blue: 'royalblue',
