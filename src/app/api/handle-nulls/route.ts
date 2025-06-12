@@ -1,7 +1,7 @@
-// app/api/handle-nulls/route.ts
 import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
+import os from 'os'; // <-- Tambahkan import ini
 
 export async function POST(request: Request) {
   try {
@@ -12,7 +12,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file content provided' }, { status: 400 });
     }
 
-    const pythonVenvPath = path.join(process.cwd(), '.venv', 'bin', 'python');
+    // --- LOGIKA FLEKSIBEL UNTUK LINTAS PLATFORM ---
+    const isWindows = os.platform() === 'win32';
+    const pythonExecutable = isWindows ? 'python.exe' : 'python';
+    const venvPathSegment = isWindows ? 'Scripts' : 'bin';
+    const pythonVenvPath = path.join(process.cwd(), '.venv', venvPathSegment, pythonExecutable);
+    // --- SELESAI ---
+
     const scriptPath = path.join(process.cwd(), 'server/module1/handle_nulls_script.py');
     
     // Execute the Python script
