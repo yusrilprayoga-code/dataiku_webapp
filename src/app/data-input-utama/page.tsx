@@ -190,7 +190,7 @@ export default function DataInputUtamaPage() {
             <FolderIcon className="w-5 h-5" /> Output
           </button>
 
-          {/* Handled (ABB pass_qc) Folder Button
+          {/* Handled (ABB pass_qc) Folder Button */}
           <button
             onClick={() => { setActiveFolder('handled'); setSelectedFileForPreview(null); setSelectedFileId(null); }}
             disabled={handledFiles.length === 0}
@@ -199,7 +199,7 @@ export default function DataInputUtamaPage() {
             } disabled:text-gray-400 disabled:cursor-not-allowed`}
           >
             <CheckCircle className="w-5 h-5 text-green-500" /> ABB (pass_qc)
-          </button> */}
+          </button>
         </nav>
 
         <div className="mt-auto pt-4 space-y-2 border-t">

@@ -62,52 +62,36 @@ const WellLogPlot: React.FC<WellLogPlotProps> = (props) => {
       // --- 4. Loop Orkestrasi Plotting (Inti dari plot_log_default) ---
       sequence.forEach((key, index) => {
         const nSeq = index + 1;
-        let result: { data: Data[], layout: Partial<Layout>, counter?: number } | undefined;
+        
+        if (key === 'MARKER') {
+          const result = plotFlag(dataBuilder, layoutBuilder, processedData, key, nSeq);
+          dataBuilder = result.data;
+          
+          const maxDepth = Math.max(...processedData.map(d => d.DEPTH));
+          layoutBuilder = plotTextsMarker(result.layout, extractedMarkers, maxDepth, nSeq);
+          
+          (layoutBuilder as any)[`xaxis${nSeq}`].domain = domains[index];
 
-        switch (key) {
-          case 'MARKER':
-            // Using functions from @/plot_function/plotters
-            const flagResult = plotFlag(dataBuilder, layoutBuilder, processedData, key, nSeq);
-            const finalLayoutForMarker = plotTextsMarker(
-              flagResult.layout,
-              extractedMarkers,
-              Math.max(...processedData.map(d => d[DEPTH_COL])),
-              nSeq
-            );
-            result = {
-              data: flagResult.data,
-              layout: finalLayoutForMarker
-            };
-            break;
-          case 'GR':
-            // Using plotLine from @/plot_function/plotters
-            result = plotLine(dataBuilder, layoutBuilder, processedData, key, nSeq, { domain: domains[index], col: 'GR', label: 'GR' });
-            break;
-          case 'RT_RHOB':
-            // Using plotXoverLogNormal from @/plot_function/plotters
-            result = plotXoverLogNormal(dataBuilder, layoutBuilder, processedData, key, nSeq, counter, nPlots, {
-              yColor: 'limegreen',
-              nColor: 'lightgray',
-              type: 1, // Sesuai kode Python
-              excludeCrossover: false,
-              domain: domains[index]
-            });
-            counter = result.counter!;
-            break;
-          case 'NPHI_RHOB':
-            // Using plotXoverLogNormal from @/plot_function/plotters
-            result = plotXoverLogNormal(dataBuilder, layoutBuilder, processedData, key, nSeq, counter, nPlots, {
-              yColor: 'rgba(0,0,0,0)', // Sesuai kode Python
-              nColor: 'yellow',
-              type: 2, // Sesuai kode Python
-              excludeCrossover: false,
-              domain: domains[index]
-            });
-            counter = result.counter!;
-            break;
-        }
+        } else if (key === 'GR') {
+          const result = plotLine(dataBuilder, layoutBuilder, processedData, key, nSeq, {
+            domain: domains[index]
+          });
+          dataBuilder = result.data;
+          layoutBuilder = result.layout;
+          
+        } else if (key === 'RT') {
+          const result = plotLine(dataBuilder, layoutBuilder, processedData, key, nSeq, {
+            type: 'log',
+            domain: domains[index]
+          });
+          dataBuilder = result.data;
+          layoutBuilder = result.layout;
 
-        if(result) {
+        } else if (key === 'NPHI_RHOB') {
+          const result = plotXoverLogNormal(dataBuilder, layoutBuilder, processedData, key, nSeq, counter, nPlots, {
+            yColor: 'yellow',
+            domain: domains[index]
+          });
           dataBuilder = result.data;
           layoutBuilder = result.layout;
           axesMap[key] = Object.keys(layoutBuilder).filter(k => k.startsWith('xaxis') || k.startsWith('yaxis'));

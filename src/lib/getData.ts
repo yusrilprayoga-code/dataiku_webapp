@@ -7,7 +7,7 @@ import Papa from 'papaparse'; // Import papaparse
 
 export async function getData(): Promise<{ logData: LogDataRow[], wellName: string }> {
   // Pastikan nama file sesuai: pass_qc.csv
-  const fileName = 'pass_qc.csv'; 
+  const fileName = 'fix_pass_qc_13k_aabb35.csv'; 
   const filePath = path.join(process.cwd(), 'public', 'data', fileName);
 
   try {
