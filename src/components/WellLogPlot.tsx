@@ -4,12 +4,16 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { type Layout, type Data } from 'plotly.js';
+import { LogDataRow } from '@/types';
 
 // Komponen Plotly diimpor secara dinamis
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 // Props komponen ini sekarang bisa sangat sederhana
-type WellLogPlotProps = object;
+interface WellLogPlotProps {
+  initialData: LogDataRow[];
+  wellName: string;
+}
 
 const WellLogPlot: React.FC<WellLogPlotProps> = () => {
   // State hanya untuk menampung `data` dan `layout` yang diterima dari Flask
