@@ -1,12 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/components/WellLogPlot.tsx (Disesuaikan dengan plot_log_default)
+// src/components/WellLogPlot.tsx (Resolved version combining features)
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { LogDataRow, MarkerData } from '@/types';
-import * as plotFns from '@/config/plotFunction';
-import * as layoutFns from '@/config/plotLayout';
-import * as plotCfgs from '@/config/plotConfig';
+
+// Prefer the new structured imports from plot_function for clarity and future maintainability
+import { extractMarkersWithMeanDepth, normalizeXover } from '@/plot_function/processData';
+import { plotLine, plotXoverLogNormal, plotFlag, plotTextsMarker } from '@/plot_function/plotters';
+import { layoutAxis, layoutDrawLines, layoutRangeAllAxis } from '@/plot_function/layout';
+
+// Configuration from config/plotConfig, using constants defined there.
+import { ratioPlots, DEPTH_COL, NULL_VALUE } from '@/config/plotConfig'; // Assuming NULL_VALUE is also in plotConfig
+
 import dynamic from 'next/dynamic';
 import { Layout, Data } from 'plotly.js';
 
@@ -31,23 +37,25 @@ const WellLogPlot: React.FC<WellLogPlotProps> = (props) => {
       setIsLoading(true);
 
       // --- 1. Persiapan Data ---
-      const sortedData = [...initialData].sort((a, b) => a[plotCfgs.DEPTH_COL] - b[plotCfgs.DEPTH_COL]);
-      const filteredData = sortedData.filter(row => row.GR !== plotCfgs.NULL_VALUE && row.RHOB !== plotCfgs.NULL_VALUE);
-      const processedData = plotFns.normalizeXover(plotFns.normalizeXover(filteredData, 'NPHI', 'RHOB'), 'RT', 'RHOB');
-      const extractedMarkers = dfMarker || plotFns.extractMarkersWithMeanDepth(initialData);
+      const sortedData = [...initialData].sort((a, b) => a[DEPTH_COL] - b[DEPTH_COL]);
+      // Use the NULL_VALUE from plotConfig. The filtering logic from 'main' is good.
+      const filteredData = sortedData.filter(row => row.GR !== NULL_VALUE && row.RHOB !== NULL_VALUE);
+      const processedData = normalizeXover(normalizeXover(filteredData, 'NPHI', 'RHOB'), 'RT', 'RHOB');
+      // Keep dfMarker optional logic from 'plot-display'
+      const extractedMarkers = dfMarker || extractMarkersWithMeanDepth(initialData);
 
       // --- 2. Mendefinisikan Urutan Plot (Sesuai Python) ---
-      // FIX #1: Menggunakan sequence yang benar
+      // FIX #1: Menggunakan sequence yang benar (from plot-display)
       const sequence = ['MARKER', 'GR', 'RT_RHOB', 'NPHI_RHOB'];
       const nPlots = sequence.length;
 
-      const ratios = sequence.map(key => plotCfgs.ratioPlots[key] || 1);
-      // FIX #2: Menggunakan spacing 0.0 sesuai `horizontal_spacing=0.0`
+      const ratios = sequence.map(key => ratioPlots[key] || 1); // Use ratioPlots from config
+      // FIX #2: Menggunakan spacing 0.0 sesuai `horizontal_spacing=0.0` from plot-display
       const domains = calculateDomains(ratios, nPlots, 0.0);
 
       // --- 3. Inisialisasi Plot Builder ---
       let dataBuilder: Data[] = [];
-      let layoutBuilder: Partial<Layout> = {}; 
+      let layoutBuilder: Partial<Layout> = {};
       let counter = 0;
       const axesMap: Record<string, string[]> = {};
 
@@ -58,12 +66,12 @@ const WellLogPlot: React.FC<WellLogPlotProps> = (props) => {
 
         switch (key) {
           case 'MARKER':
-            // Memanggil plotFlag dan plotTextsMarker
-            const flagResult = plotFns.plotFlag(dataBuilder, layoutBuilder, processedData, key, nSeq);
-            const finalLayoutForMarker = plotFns.plotTextsMarker(
-              flagResult.layout, 
-              extractedMarkers, 
-              Math.max(...processedData.map(d => d[plotCfgs.DEPTH_COL])), 
+            // Using functions from @/plot_function/plotters
+            const flagResult = plotFlag(dataBuilder, layoutBuilder, processedData, key, nSeq);
+            const finalLayoutForMarker = plotTextsMarker(
+              flagResult.layout,
+              extractedMarkers,
+              Math.max(...processedData.map(d => d[DEPTH_COL])),
               nSeq
             );
             result = {
@@ -72,10 +80,12 @@ const WellLogPlot: React.FC<WellLogPlotProps> = (props) => {
             };
             break;
           case 'GR':
-            result = plotFns.plotLine(dataBuilder, layoutBuilder, processedData, key, nSeq, { domain: domains[index], col: 'GR', label: 'GR' });
+            // Using plotLine from @/plot_function/plotters
+            result = plotLine(dataBuilder, layoutBuilder, processedData, key, nSeq, { domain: domains[index], col: 'GR', label: 'GR' });
             break;
           case 'RT_RHOB':
-            result = plotFns.plotXoverLogNormal(dataBuilder, layoutBuilder, processedData, key, nSeq, counter, nPlots, {
+            // Using plotXoverLogNormal from @/plot_function/plotters
+            result = plotXoverLogNormal(dataBuilder, layoutBuilder, processedData, key, nSeq, counter, nPlots, {
               yColor: 'limegreen',
               nColor: 'lightgray',
               type: 1, // Sesuai kode Python
@@ -85,7 +95,8 @@ const WellLogPlot: React.FC<WellLogPlotProps> = (props) => {
             counter = result.counter!;
             break;
           case 'NPHI_RHOB':
-            result = plotFns.plotXoverLogNormal(dataBuilder, layoutBuilder, processedData, key, nSeq, counter, nPlots, {
+            // Using plotXoverLogNormal from @/plot_function/plotters
+            result = plotXoverLogNormal(dataBuilder, layoutBuilder, processedData, key, nSeq, counter, nPlots, {
               yColor: 'rgba(0,0,0,0)', // Sesuai kode Python
               nColor: 'yellow',
               type: 2, // Sesuai kode Python
@@ -102,41 +113,45 @@ const WellLogPlot: React.FC<WellLogPlotProps> = (props) => {
           axesMap[key] = Object.keys(layoutBuilder).filter(k => k.startsWith('xaxis') || k.startsWith('yaxis'));
         }
       });
-      
+
       // --- 5. Finalisasi Layout ---
-      let finalLayout = layoutFns.layoutRangeAllAxis(layoutBuilder, axesMap);
-      finalLayout = layoutFns.layoutDrawLines(finalLayout, domains, processedData, 0); // xgrid_intv=0
-      finalLayout = layoutFns.layoutAxis(finalLayout, axesMap, domains);
+      // Using layout functions from @/plot_function/layout
+      let finalLayout = layoutRangeAllAxis(layoutBuilder, axesMap);
+      // Use xgrid_intv=0 from plot-display for layoutDrawLines
+      finalLayout = layoutDrawLines(finalLayout, domains, processedData, 0);
+      finalLayout = layoutAxis(finalLayout, axesMap, domains);
 
       // --- 6. Atur Properti Layout Global (Sesuai Python) ---
-      const minDepth = Math.min(...processedData.map(d => d[plotCfgs.DEPTH_COL]));
-      const maxDepth = Math.max(...processedData.map(d => d[plotCfgs.DEPTH_COL]));
-      
-      // FIX #4: Menyesuaikan properti layout global
-      finalLayout.title = { text: "Well Log ABB-036", x: 0.5 };
-      finalLayout.height = 600;
+      const minDepth = Math.min(...processedData.map(d => d[DEPTH_COL]));
+      const maxDepth = Math.max(...processedData.map(d => d[DEPTH_COL]));
+
+      // Combine title logic: use wellName from main, but retain position from plot-display if desired
+      finalLayout.title = { text: `Well Log ${wellName}`, x: 0.5 }; // Use wellName but keep x: 0.5
+      finalLayout.height = 600; // Prefer height from plot-display
       finalLayout.showlegend = false;
       finalLayout.plot_bgcolor = 'white';
-      finalLayout.paper_bgcolor = 'white';
-      finalLayout.margin = { l: 20, r: 20, t: 80, b: 20 }; // Top margin butuh sedikit ruang untuk header
+      finalLayout.paper_bgcolor = 'white'; // Added from plot-display
+      finalLayout.margin = { l: 20, r: 20, t: 80, b: 20 }; // From plot-display, good for header
       finalLayout.hovermode = 'y unified';
-      
-      finalLayout.yaxis = { 
-        ...finalLayout.yaxis, 
-        autorange: 'reversed', 
-        domain: [0, 0.8], // Domain tetap dipertahankan untuk header
-        range: [maxDepth, minDepth],
-        showspikes: true,
+
+      finalLayout.yaxis = {
+        ...finalLayout.yaxis,
+        title: { text: 'DEPTH (m)' }, // Add title from main
+        autorange: 'reversed',
+        domain: [0, 0.8], // Domain for actual plot area, leaving space for header
+        range: [maxDepth, minDepth], // Explicit range from plot-display
+        showspikes: true, // From plot-display
+        showgrid: false, // Added from main, assume grids are drawn manually
       };
 
-      // Memastikan semua trace terhubung ke y-axis utama
+      // Memastikan semua trace terhubung ke y-axis utama (from plot-display)
       dataBuilder.forEach(trace => { (trace as any).yaxis = 'y'; });
-      
+
       setPlotData(dataBuilder);
       setPlotLayout(finalLayout);
       setIsLoading(false);
     }
-  }, [initialData, wellName, dfMarker]);
+  }, [initialData, wellName, dfMarker]); // Added dfMarker to dependency array
 
   if (isLoading) return <p>Membangun Plot...</p>;
 
@@ -146,20 +161,20 @@ const WellLogPlot: React.FC<WellLogPlotProps> = (props) => {
         data={plotData}
         layout={plotLayout}
         style={{ width: '100%', height: '100%' }}
-        // FIX #5: Menyesuaikan tombol modebar
+        // FIX #5: Menyesuaikan tombol modebar (from plot-display)
         config={{ responsive: true, displaylogo: false, modeBarButtonsToRemove: ['lasso2d','select2d','autoScale2d','zoomIn2d','zoomOut2d','pan2d','zoom2d'] as any }}
       />
     </div>
   );
 };
 
-// Helper untuk menghitung domain dengan spacing yang bisa diatur
+// Helper untuk menghitung domain dengan spacing yang bisa diatur (from plot-display)
 function calculateDomains(ratios: number[], nPlots: number, spacing: number): [number, number][] {
     const totalRatio = ratios.reduce((sum, r) => sum + r, 0);
     const domains: [number, number][] = []; let currentStart = 0;
     if (nPlots <= 1) return [[0, 1]];
-    
-    const plotAreaWidth = 1 - ((nPlots - 1) * spacing);
+
+    const plotAreaWidth = 1 - ((nPlots - 1) * spacing); // Use spacing from argument
 
     for (let i = 0; i < ratios.length; i++) {
         const normalizedWidth = (ratios[i] / totalRatio) * plotAreaWidth;
