@@ -8,6 +8,11 @@ export interface LogDataRow {
   NPHI?: number | null;
   RHOB?: number | null;
   RT?: number | null;
+  GR?: number | null;
+  RHOB_NPHI?: number | null;
+  RT_RHOB?: number | null;
+  NPHI_RHOB?: number | null;
+  RHOB_NORM?: number | null;
   // Tambahkan semua kolom lain dari file CSV Anda di sini agar type-safe
   [key: string]: any; 
 
@@ -16,6 +21,11 @@ export interface LogDataRow {
   RHOB_NORM_NPHI?: number;
   RT_NORM?: number;
   RHOB_NORM_RT?: number;
+}
+
+export interface XptNote {
+  'Depth (m)': number;
+  'Note': string;
 }
 
 // Merepresentasikan data marker yang sudah diproses

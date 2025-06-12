@@ -4,11 +4,9 @@ import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 
-
-
 export async function POST(request: Request) {
   let tempDir: string | undefined;
-  console.log(`[${new Date().toISOString()}] --- QC API Route Hit ---`); // CHECKPOINT 1
+  console.log(`[${new Date().toISOString()}] --- QC API Route Hit ---`);
 
   try {
     const body = await request.json();
@@ -29,11 +27,16 @@ export async function POST(request: Request) {
       console.log(`[${new Date().toISOString()}] CHECKPOINT 4.${i + 1}: Wrote file ${safeFilename} to temp directory.`);
     }
 
-    const pythonVenvPath = path.join(process.cwd(), '.venv', 'bin', 'python');
+    // --- LOGIKA FLEKSIBEL UNTUK LINTAS PLATFORM ---
+    const isWindows = os.platform() === 'win32';
+    const pythonExecutable = isWindows ? 'python.exe' : 'python';
+    const venvPathSegment = isWindows ? 'Scripts' : 'bin';
+    const pythonVenvPath = path.join(process.cwd(), '.venv', venvPathSegment, pythonExecutable);
+    // --- SELESAI ---
+
     const scriptPath = path.join(process.cwd(), 'server/module1/run_qc_script.py');
     
     console.log(`[${new Date().toISOString()}] CHECKPOINT 5: Paths defined. Python: ${pythonVenvPath}, Script: ${scriptPath}`);
-
 
     // **Crucial Check**: Verify that the Python executable from the virtual environment exists before trying to run it
     try {
@@ -43,7 +46,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: 'Server configuration error: Python virtual environment not found.',
-          details: 'Please ensure you have created a virtual environment named ".venv" in the project root and installed the required packages (pandas, numpy, lasio) into it.'
+          details: `Please ensure you have created a virtual environment named ".venv" in the project root. The system detected you are on ${os.platform()}.`
         },
         { status: 500 }
       );
