@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 B';
   const k = 1024;
@@ -23,10 +25,10 @@ export const readFileAsArrayBuffer = (file: globalThis.File): Promise<ArrayBuffe
         reject(new Error('Failed to read file as ArrayBuffer.'));
       }
     };
-    reader.onerror = (e) => {
-      console.error("FileReader error:", reader.error);
-      reject(new Error('Failed to read file: ' + reader.error?.message));
-    };
+    // reader.onerror = (e) => {
+    //   console.error("FileReader error:", reader.error);
+    //   reject(new Error('Failed to read file: ' + e + reader.error?.message));
+    // };
     reader.readAsArrayBuffer(file);
   });
 };

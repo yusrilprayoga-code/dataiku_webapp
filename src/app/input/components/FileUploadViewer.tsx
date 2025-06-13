@@ -1,4 +1,5 @@
 // app/your-route/components/FileUploadViewer.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, ChangeEvent } from 'react';

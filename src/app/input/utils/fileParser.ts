@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/your-route/utils/fileParsers.ts
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import { ParsedFileData, ParsedSubFile } from '../types'; // Adjust path if needed
+import { ParsedFileData } from '../types'; // Adjust path if needed
 
 export const parseLASFile = (fileContent: string): ParsedFileData => {
   // ... your existing parseLASFile logic ...

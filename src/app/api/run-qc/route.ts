@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
 
     let scriptOutput = '';
-    let scriptError = '';
+    const scriptError = ''; // change when needed
 
     pythonProcess.stderr.on('data', (data) => {
       const logLine = data.toString();

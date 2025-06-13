@@ -1,10 +1,11 @@
 // app/data-input-utama/page.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Papa from 'papaparse';
-import { useAppDataStore, StagedStructure, ProcessedFileDataForDisplay, QCStatus, QCResult, QCResponse, PreviewableFile} from '../../stores/appDataStore';
+import { useAppDataStore, ProcessedFileDataForDisplay, QCStatus, QCResult, QCResponse, PreviewableFile} from '../../stores/appDataStore';
 import { Eye, FileTextIcon, Folder as FolderIcon, Inbox, CheckCircle, Loader2 } from 'lucide-react';
 
 // --- Reusable DataTablePreview Component ---

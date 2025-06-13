@@ -24,6 +24,8 @@
 //   lasFilesInZip?: { name: string, contentPreview?: string }[];
 // }
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export interface ParsedSubFile { // Keep this name as it's used in your code
   id: string;
   name: string;

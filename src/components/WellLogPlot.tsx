@@ -1,14 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/components/WellLogPlot.tsx (Resolved version combining features)
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { LogDataRow, MarkerData } from '@/types';
 
 // Prefer the new structured imports from plot_function for clarity and future maintainability
-import { extractMarkersWithMeanDepth, normalizeXover } from '@/plot_function/processData';
-import { plotLine, plotXoverLogNormal, plotFlag, plotTextsMarker } from '@/plot_function/plotters';
-import { layoutAxis, layoutDrawLines, layoutRangeAllAxis } from '@/plot_function/layout';
+import { extractMarkersWithMeanDepth, normalizeXover, plotLine, plotXoverLogNormal, plotFlag, plotTextsMarker } from '@/config/plotFunction';
+import { layoutAxis, layoutDrawLines, layoutRangeAllAxis } from '@/config/plotLayout';
 
 // Configuration from config/plotConfig, using constants defined there.
 import { ratioPlots, DEPTH_COL, NULL_VALUE } from '@/config/plotConfig'; // Assuming NULL_VALUE is also in plotConfig
@@ -56,7 +54,7 @@ const WellLogPlot: React.FC<WellLogPlotProps> = (props) => {
       // --- 3. Inisialisasi Plot Builder ---
       let dataBuilder: Data[] = [];
       let layoutBuilder: Partial<Layout> = {};
-      let counter = 0;
+      const counter = 0;
       const axesMap: Record<string, string[]> = {};
 
       // --- 4. Loop Orkestrasi Plotting (Inti dari plot_log_default) ---

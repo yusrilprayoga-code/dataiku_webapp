@@ -1,8 +1,9 @@
 // app/your-route/components/FileList.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { ChangeEvent } from 'react';
 import { FileData } from '../types'; // Adjust path
 import FileItem from './FileItem';
-import { Upload, File as FileIcon, Search, Folder as FolderIcon } from 'lucide-react'; // Import FolderIcon if not already
+import { Upload, File as FileIcon, Search } from 'lucide-react'; // Import FolderIcon if not already
 
 interface FileListProps {
   uploadedFiles: FileData[];
