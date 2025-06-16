@@ -84,7 +84,7 @@ export default function DataInputUtamaPage() {
 
     const handleContinue = () => {
     setIsNavigating(true);
-    router.push('/plot-display'); 
+    router.push('/dashboard'); 
   };
 
   const processAndHandleNulls = async (initialQcResults: QCResponse) => {

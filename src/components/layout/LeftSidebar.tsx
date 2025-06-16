@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import { useDashboard } from '@/contexts/DashboardContext';
 
 // Menentukan tipe untuk props dari komponen SidebarButton
 interface SidebarButtonProps {
@@ -21,13 +21,12 @@ const SidebarButton: React.FC<SidebarButtonProps> = ({ label, isActive, onClick 
   );
 };
 
-const LeftSidebar: React.FC = () => {
+export default function LeftSidebar() {
+  // Ambil state dan fungsi dari context
+  const { selectedWell, setSelectedWell, selectedIntervals, toggleInterval } = useDashboard();
+
   const wellData: string[] = ['ABAB-001', 'ABAB-002', 'ABAB-003', 'ABAB-004', 'ABAB-035'];
   const intervals: string[] = ['A', 'B', 'B1', 'GUF', 'TUF', 'Upper_BTS'];
-  
-  // Menentukan tipe state secara eksplisit
-  const [activeWell, setActiveWell] = useState<string>('ABAB-035');
-  const [activeInterval, setActiveInterval] = useState<string>('B1');
 
   return (
     <aside className="w-52 bg-gray-100 p-4 flex flex-col gap-6 border-r border-gray-300 overflow-y-auto">
@@ -35,7 +34,7 @@ const LeftSidebar: React.FC = () => {
         <h3 className="text-sm font-bold text-gray-800 mb-2 pb-1 border-b border-gray-300">Well Data</h3>
         <div className="flex flex-col gap-1.5">
           {wellData.map(well => (
-            <SidebarButton key={well} label={well} isActive={activeWell === well} onClick={() => setActiveWell(well)} />
+            <SidebarButton key={well} label={well} isActive={selectedWell === well} onClick={() => setSelectedWell(well)} />
           ))}
         </div>
       </div>
@@ -43,15 +42,19 @@ const LeftSidebar: React.FC = () => {
         <h3 className="text-sm font-bold text-gray-800 mb-2 pb-1 border-b border-gray-300">Interval</h3>
         <div className="flex flex-col gap-1.5">
           {intervals.map(interval => (
-            <SidebarButton key={interval} label={interval} isActive={activeInterval === interval} onClick={() => setActiveInterval(interval)} />
+            // Checkbox untuk memilih multiple intervals
+            <label key={interval} className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-200 cursor-pointer">
+              <input 
+                type="checkbox" 
+                className="h-4 w-4 rounded"
+                checked={selectedIntervals.includes(interval)}
+                onChange={() => toggleInterval(interval)}
+              />
+              <span className="text-sm">{interval}</span>
+            </label>
           ))}
         </div>
       </div>
-      <div className="mt-auto">
-         <SidebarButton label="HOME" onClick={() => { /* Logika untuk Home */ }} isActive={false} />
-      </div>
     </aside>
   );
-};
-
-export default LeftSidebar;
+}
