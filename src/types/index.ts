@@ -33,3 +33,23 @@ export interface MarkerData {
   Surface: string;
   'Mean Depth': number;
 }
+
+export type IntervalValues = {
+  [intervalName: string]: {
+    checked: boolean;
+    value: string | number;
+  };
+};
+
+export interface ParameterRow {
+  id: number;
+  location: string;
+  mode: string;
+  comment: string;
+  unit: string;
+  name: string;
+  isEnabled: boolean; 
+  values: {
+    [intervalName: string]: string | number;
+  };
+}

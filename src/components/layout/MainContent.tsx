@@ -1,22 +1,15 @@
-// src/components/layout/MainContent.tsx (Struktur Baru)
+// src/components/layout/MainContent.tsx
+'use client';
+import React from 'react';
 
-import { LogDataRow } from "@/types";
-import WellLogPlot from "@/components/WellLogPlot";
-
-interface MainContentProps {
-  initialLogData: LogDataRow[];
-  wellName: string;
-}
-
-export default function MainContent({ initialLogData, wellName }: MainContentProps) {
+// Terima `children` sebagai prop
+export default function MainContent({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex-1 overflow-auto p-4 md:p-6">
-      {/* Di sinilah komponen plot kita akan dirender */}
-      {/* Teruskan props yang diterima ke komponen plot */}
-      <WellLogPlot 
-        initialData={initialLogData} 
-        wellName={wellName} 
-      />
+    <div className="flex-1 p-6 overflow-auto">
+      <div className="bg-white h-full w-full rounded-lg shadow-lg p-4">
+        {/* Render konten apa pun yang dikirimkan */}
+        {children}
+      </div>
     </div>
   );
 }

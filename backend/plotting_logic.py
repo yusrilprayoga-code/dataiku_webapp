@@ -2573,3 +2573,101 @@ def plot_log_default(df, df_marker, df_well_marker):
 
     fig = layout_axis(fig, axes, ratio_plots_seq, plot_sequence)
     return fig
+
+
+def min_max_normalize(log_in,
+                      calib_min=40, calib_max=140,
+                      pct_min=3, pct_max=97,
+                      cutoff_min=0, cutoff_max=250):
+    """
+    Geolog-style MIN-MAX normalization using percentiles
+    """
+    log = np.array(log_in, dtype=float)
+
+    if cutoff_min is not None:
+        log[log < cutoff_min] = np.nan
+    if cutoff_max is not None:
+        log[log > cutoff_max] = np.nan
+
+    min_pnt = np.nanpercentile(log, pct_min)
+    max_pnt = np.nanpercentile(log, pct_max)
+
+    # Hindari pembagian dengan nol jika semua data sama
+    if max_pnt == min_pnt:
+        return np.full_like(log, calib_min)
+
+    m = (calib_max - calib_min) / (max_pnt - min_pnt)
+    log_out = calib_min + m * (log - min_pnt)
+
+    return log_out
+
+
+def plot_normalization(df, df_marker, df_well_marker):
+    sequence = ['MARKER', 'GR', 'GR_NORM', 'GR_DUAL']
+    plot_sequence = {i+1: v for i, v in enumerate(sequence)}
+    print(plot_sequence)
+
+    ratio_plots_seq = []
+    ratio_plots_seq.append(ratio_plots['MARKER'])
+    sequence_keys = list(plot_sequence.values())
+    for key in sequence_keys[1:]:
+        ratio_plots_seq.append(ratio_plots[key])
+
+    subplot_col = len(plot_sequence.keys())
+
+    fig = make_subplots(
+        rows=1, cols=subplot_col,
+        shared_yaxes=True,
+        column_widths=ratio_plots_seq,
+        horizontal_spacing=0.0
+    )
+
+    counter = 0
+    axes = {}
+    for i in plot_sequence.values():
+        axes[i] = []
+
+    # Plot Marker
+    fig, axes = plot_flag(df_well_marker, fig, axes,
+                          "MARKER", 1)  # n_seq=1 for marker
+    fig, axes = plot_texts_marker(
+        df_marker, df_well_marker['DEPTH'].max(), fig, axes, "MARKER", 1)
+
+    # Plot GR - start from n_seq=2 which is 'GR' in your sequence
+    for n_seq, col in plot_sequence.items():
+        if n_seq > 1:
+            if col == 'GR':  # Skip n_seq=1 which is 'MARKER'
+                fig, axes = plot_line(
+                    df, fig, axes, base_key=col, n_seq=n_seq, col=col, label=col)
+            elif col == 'GR_NORM':  # Skip n_seq=1 which is 'MARKER'
+                fig, axes = plot_line(
+                    df, fig, axes, base_key=col, n_seq=n_seq, col=col, label=col)
+            elif col == 'GR_DUAL':
+                fig, axes, counter = plot_dual_gr(
+                    df, fig, axes, col, n_seq, counter, subplot_col)
+
+    fig = layout_range_all_axis(fig, axes, plot_sequence)
+
+    fig.update_layout(
+        margin=dict(l=20, r=20, t=40, b=20), height=600,
+        paper_bgcolor='white',
+        plot_bgcolor='white',
+        showlegend=False,
+        hovermode='y unified', hoverdistance=-1,
+        title_text="Normalization",
+        title_x=0.5,
+        modebar_remove=['lasso', 'autoscale', 'zoom',
+                        'zoomin', 'zoomout', 'pan', 'select']
+    )
+
+    fig.update_yaxes(showspikes=True,
+                     range=[df[depth].max(), df[depth].min()])
+    fig.update_traces(yaxis='y')
+
+    fig = layout_draw_lines(fig, ratio_plots_seq, df, xgrid_intv=0)
+
+    fig = layout_axis(fig, axes, ratio_plots_seq, plot_sequence)
+
+    print(axes)
+
+    return fig
