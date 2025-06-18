@@ -4,10 +4,7 @@ import json
 import lasio
 import pandas as pd
 import numpy as np
-import io # Use io for in-memory file handling
-
-# Helper functions (add_markers_to_df, check_extreme_values) are moved here.
-# They are modified to accept a logger for logging instead of printing to stderr.
+import io 
 
 def add_markers_to_df(df, well_name, all_markers_df, logger):
     """Adds markers to the DataFrame, logging progress."""
