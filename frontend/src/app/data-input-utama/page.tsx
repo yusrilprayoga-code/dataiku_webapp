@@ -47,7 +47,7 @@ export default function DataInputUtamaPage() {
 
   useEffect(() => {
     if (!stagedStructure) {
-      router.replace('/input');
+      router.replace('/');
     }
   }, [stagedStructure, router]);
 
@@ -219,7 +219,7 @@ export default function DataInputUtamaPage() {
             ) : ( "Continue" )}
           </button>
           
-          <button onClick={() => { clearAllData(); router.push('/input'); }} className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+          <button onClick={() => { clearAllData(); router.push('/'); }} className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
             Start New Session
           </button>
         </div>
