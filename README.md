@@ -25,3 +25,36 @@ This project is configured for continuous deployment on Vercel from the `main` b
 ## 📂 Project Structure
 
 This project follows a **monorepo** structure, keeping the frontend and backend code in a single repository for easier management and atomic commits.
+
+├── frontend/
+│   ├── src/
+│   │   ├── app/                # Next.js App Router
+│   │   │   ├── (pages)/        # Route Group for main pages
+│   │   │   │   ├── dashboard/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── ...
+│   │   │   ├── api/            # For Next.js API routes (client-side tasks only)
+│   │   │   ├── layout.tsx      # Root layout
+│   │   │   └── page.tsx        # Homepage
+│   │   │
+│   │   ├── components/         # Shared, reusable React components
+│   │   │   ├── ui/             # Simple UI elements (Button.tsx, Card.tsx)
+│   │   │   └── charts/         # Chart components (e.g., PlotlyWrapper.tsx)
+│   │   │
+│   │   └── lib/                # Helper functions, hooks, utils
+│   │
+│   ├── public/               # Static assets (images, fonts, etc.)
+│   ├── package.json          # Frontend dependencies and scripts
+│   └── ...                   # Other Next.js config files
+│
+├── api/
+│   ├── venv/                 # Python virtual environment (.gitignore'd)
+│   ├── index.py              # Main Flask app: defines all API routes
+│   ├── my_modules/           # Custom Python modules for business logic
+│   │   ├── __init__.py
+│   │   └── qc_module.py      # Example: The actual QC logic lives here
+│   │
+│   └── requirements.txt      # Python dependencies (Flask, Pandas, etc.)
+│
+├── .gitignore                # Specifies intentionally untracked files
+└── vercel.json               # Vercel build and routing configuration
