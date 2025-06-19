@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-// Impor komponen form baru Anda
 import NormalizationParams from '@/components/forms/NormalizationParams';
 
 const SmoothingParams = () => <div className="p-4"><h2>Smoothing Parameters</h2><p>Form untuk smoothing...</p></div>;
