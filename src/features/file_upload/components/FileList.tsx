@@ -121,7 +121,7 @@ const FileList: React.FC<FileListProps> = ({
           <div className="p-8 text-center text-gray-500">
             {/* Use FolderIcon or FileIcon appropriately based on context if desired */}
             <FileIcon className="mx-auto w-12 h-12 text-gray-300 mb-3" />
-            <p>No items uploaded yet</p>
+            <p>No items uploaded</p>
             <p className="text-sm">Upload files or ZIP archives with structures to get started</p>
           </div>
         )}
