@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Papa from 'papaparse';
-import { useAppDataStore, ProcessedFileDataForDisplay, QCStatus, QCResult, QCResponse, PreviewableFile} from '../../stores/appDataStore';
+import { useAppDataStore, ProcessedFileDataForDisplay, QCStatus, QCResult, QCResponse, PreviewableFile, StagedStructure} from '../../stores/appDataStore';
 import { Eye, FileTextIcon, Folder as FolderIcon, Inbox, CheckCircle, Loader2 } from 'lucide-react';
 
 // --- Reusable DataTablePreview Component ---
@@ -36,20 +36,43 @@ const DataTablePreview: React.FC<{ file: PreviewableFile | null }> = ({ file }) 
 // --- Main Page Component ---
 export default function DataInputUtamaPage() {
   const router = useRouter();
-  // Get ALL state and actions from the global store
-  const { stagedStructure, qcResults, handledFiles, setQcResults, addHandledFile, clearAllData, clearQcResults } = useAppDataStore();
+  const { stagedStructure, qcResults, handledFiles, setStagedStructure, setQcResults, addHandledFile, clearAllData, clearQcResults } = useAppDataStore();
   const [isNavigating, setIsNavigating] = useState(false);
   const [activeFolder, setActiveFolder] = useState<'input' | 'output' | 'handled'>('input');
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [selectedFileForPreview, setSelectedFileForPreview] = useState<PreviewableFile | null>(null);
   const [isQcRunning, setIsQcRunning] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
   const [qcStatusMessage, setQcStatusMessage] = useState('');
 
   useEffect(() => {
-    if (!stagedStructure) {
+    // This code only runs in the browser after the page loads
+    const stagedDataString = sessionStorage.getItem('stagedStructure');
+
+    if (stagedDataString) {
+      // If we find data in sessionStorage, parse it
+      const parsedData: StagedStructure = JSON.parse(stagedDataString);
+      
+      // Put the data into our Zustand store so the rest of the app can use it
+      setStagedStructure(parsedData); 
+      
+      // Optional but recommended: remove the item so it's not accidentally reused
+      sessionStorage.removeItem('stagedStructure');
+
+      // We are done loading
+      setIsLoading(false);
+
+    } else if (!stagedStructure) {
+      // If there's no data in storage AND no data already in the store,
+      // then the user landed here by mistake. Redirect them.
+      console.warn("No staged data found. Redirecting to home.");
       router.replace('/');
+    } else {
+      // If data was already in the store (e.g., from a soft client-side navigation),
+      // we don't need to do anything.
+      setIsLoading(false);
     }
-  }, [stagedStructure, router]);
+  }, [router, setStagedStructure, stagedStructure]);
 
   const handleRunQcWorkflow = async () => {
     if (!stagedStructure) return;
