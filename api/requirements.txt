@@ -1,4 +1,4 @@
-apparmor==4.1.0
+apparmor
 attrs==24.1.0
 autocommand==2.2.2
 certifi==2025.4.26
