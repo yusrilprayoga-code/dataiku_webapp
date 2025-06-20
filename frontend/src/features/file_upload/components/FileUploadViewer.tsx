@@ -85,7 +85,7 @@ const filesForNextPage: ProcessedFileDataForDisplay[] = [];
            type: fileType,
            content: fileData.content || [],
            headers: fileData.headers || [],
-           rawContentString: fileData.rawFileContent, // <-- FIX: Copy the raw content over
+           rawContentString: fileData.rawFileContent,
         });
       }
     }
@@ -103,7 +103,15 @@ const filesForNextPage: ProcessedFileDataForDisplay[] = [];
     files: filesForNextPage,
   };
 
-  setStagedStructure(newStructureForNextPage);
+  try {
+    // Convert the complex object to a JSON string and save it
+    sessionStorage.setItem('stagedStructure', JSON.stringify(newStructureForNextPage));
+  } catch (error) {
+    console.error("Could not save to sessionStorage:", error);
+    setMessage("Error: Could not prepare data for the next step.");
+    return;
+  }
+
   setMessage('');
   router.push('/data-input-utama');
 };
@@ -119,7 +127,6 @@ const filesForNextPage: ProcessedFileDataForDisplay[] = [];
     zip.forEach((relativePath, zipEntry) => {
       if (zipEntry.dir) return;
       const pathParts = relativePath.split('/');
-      // Determine structureName (e.g., top-level folder or a default for root files)
       const structureName = pathParts.length > 1 ? pathParts[0] : "_ROOT_FILES_IN_ZIP_";
       const fileNameInStructure = pathParts.length > 1 ? pathParts.slice(1).join('/') : relativePath;
 
@@ -232,7 +239,7 @@ const filesForNextPage: ProcessedFileDataForDisplay[] = [];
             isStructureFromZip: false,
             content: parsedData.data.slice(0, 1000),
             headers: parsedData.headers,
-            rawFileContent: rawFileContentForSingleFile, // <-- Store raw content for single files
+            rawFileContent: rawFileContentForSingleFile, 
           });
         }
       } catch (error) {
