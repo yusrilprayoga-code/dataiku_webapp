@@ -3,22 +3,21 @@
   "builds": [
     {
       "src": "frontend/package.json",
-      "use": "@vercel/next",
-      "config": { "distDir": "out" }
+      "use": "@vercel/next"
     },
     {
       "src": "api/app.py",
       "use": "@vercel/python"
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/app.py"
+      "src": "/api/(.*)",
+      "dest": "/api/app.py"
     },
     {
-      "source": "/(.*)",
-      "destination": "/frontend/$1"
+      "src": "/(.*)",
+      "dest": "/frontend/$1"
     }
   ]
 }
