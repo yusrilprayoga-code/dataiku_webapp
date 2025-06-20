@@ -1,4 +1,4 @@
-# WebApp Quality Control Geologi
+# Webapp Dataiku
 
 ![Vercel Deployment](https://therealsujitk-vercel-badge.vercel.app/?app=dataiku-webapp&style=for-the-badge)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
@@ -7,9 +7,10 @@
 
 ## Deskripsi Singkat
 
-Sebuah aplikasi web full-stack yang dirancang untuk menjalankan proses _Quality Control_ (QC) pada file data sumur (well log). Frontend dibangun dengan Next.js untuk antarmuka yang modern dan interaktif, sementara backend menggunakan Flask (Python) untuk memproses data dan menjalankan kalkulasi yang kompleks.
+Sebuah aplikasi web full-stack yang dirancang untuk menjalankan serangkaian proses visualisasi dan operasi pada file data sumur (well log). Frontend dibangun dengan Next.js untuk antarmuka yang modern dan interaktif, sementara backend menggunakan Flask (Python) untuk memproses data dan menjalankan kalkulasi yang kompleks.
 
 Proyek ini terkonfigurasi untuk _continuous deployment_ di Vercel dari branch `main`.
+
 **Link Deployment:** [https://dataiku-webapp.vercel.app/](https://dataiku-webapp.vercel.app/)
 
 ## ✨ Fitur Utama
