@@ -1,12 +1,10 @@
+// src/components/layout/RightSidebar.tsx
+
 'use client';
 
 import React from 'react';
-import Link from 'next/link'; // Impor komponen Link
-
-interface RightSidebarProps {
-  activeButton: string | null;
-  onButtonClick: (buttonName: string) => void;
-}
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface ModuleSectionProps {
   title?: string;
@@ -19,12 +17,11 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
     {title && <h4 className="text-xs font-bold text-gray-700 mb-3 pb-1.5 border-b border-gray-300">{title}</h4>}
     <div className="flex flex-col gap-2">
       {buttons.map(btn => {
-        const isActive = activeButton === btn;
-        // Buat href URL-friendly (huruf kecil, ganti spasi dengan strip)
-        const href = `/dashboard/${btn.toLowerCase().replace(/\s+/g, '-')}`;
+        const urlFriendlyBtn = btn.toLowerCase().replace(/\s+/g, '-');
+        const href = `/dashboard/modules/${urlFriendlyBtn}`;
+        const isActive = activeButton === urlFriendlyBtn;
         
         return (
-          // FIX: Gunakan komponen <Link> sebagai pembungkus
           <Link href={href} key={btn}>
             <button
               className={`w-full text-sm font-semibold text-left p-3 rounded border transition-colors duration-200 ${
@@ -42,7 +39,10 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
   </div>
 );
 
-const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
+export default function RightSidebar() {
+  const pathname = usePathname();
+  const activeModule = pathname.split('/').pop() || null;
+
   const module1Buttons: string[] = ['ADD PLOT', 'OPEN CROSS PLOT', 'TRIM DATA'];
   const qualityControlButtons: string[] = ['FILL MISSING', 'SMOOTHING', 'NORMALIZATION'];
   const logInterpretationButtons: string[] = ['VSH CALCULATION', 'POROSITY CALCULATION', 'SW CALCULATION', 'WATER RESISTIVITY CALCULATION'];
@@ -52,15 +52,12 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
     <aside className="w-72 bg-gray-100 p-4 border-l border-gray-300 overflow-y-auto">
       <h3 className="text-sm font-bold text-gray-800 mb-4">Module Configuration</h3>
       <div className="flex flex-col gap-4">
-        {/* Tidak perlu lagi mengirim onButtonClick, karena Link yang menangani navigasi */}
-        <ModuleSection buttons={['RENAME']} activeButton={activeButton} />
-        <ModuleSection buttons={module1Buttons} activeButton={activeButton} />
-        <ModuleSection title="Module 1 - Quality Control" buttons={qualityControlButtons} activeButton={activeButton} />
-        <ModuleSection title="Module 2 - Log Interpretation" buttons={logInterpretationButtons} activeButton={activeButton} />
-        <ModuleSection title="Module 3 - Gas Oil Water Scanner (GOWS)" buttons={gowsButtons} activeButton={activeButton} />
+        <ModuleSection buttons={['RENAME']} activeButton={activeModule} />
+        <ModuleSection buttons={module1Buttons} activeButton={activeModule} />
+        <ModuleSection title="Module 1 - Quality Control" buttons={qualityControlButtons} activeButton={activeModule} />
+        <ModuleSection title="Module 2 - Log Interpretation" buttons={logInterpretationButtons} activeButton={activeModule} />
+        <ModuleSection title="Module 3 - Gas Oil Water Scanner (GOWS)" buttons={gowsButtons} activeButton={activeModule} />
       </div>
     </aside>
   );
 };
-
-export default RightSidebar;

@@ -1,8 +1,9 @@
+// src/components/layout/LeftSidebar.tsx
+
 "use client";
 
-import { useDashboard } from '@/contexts/DashboardContext';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
-// Menentukan tipe untuk props dari komponen SidebarButton
 interface SidebarButtonProps {
   label: string;
   isActive: boolean;
@@ -22,8 +23,8 @@ const SidebarButton: React.FC<SidebarButtonProps> = ({ label, isActive, onClick 
 };
 
 export default function LeftSidebar() {
-  // Ambil state dan fungsi dari context
-  const { selectedWell, setSelectedWell, selectedIntervals, toggleInterval } = useDashboard();
+  // FIX: Get state and functions from the Zustand store.
+  const { selectedWell, setSelectedWell, selectedIntervals, toggleInterval } = useAppDataStore();
 
   const wellData: string[] = ['ABAB-001', 'ABAB-002', 'ABAB-003', 'ABAB-004', 'ABAB-035'];
   const intervals: string[] = ['A', 'B', 'B1', 'GUF', 'TUF', 'Upper_BTS'];
@@ -42,7 +43,6 @@ export default function LeftSidebar() {
         <h3 className="text-sm font-bold text-gray-800 mb-2 pb-1 border-b border-gray-300">Interval</h3>
         <div className="flex flex-col gap-1.5">
           {intervals.map(interval => (
-            // Checkbox untuk memilih multiple intervals
             <label key={interval} className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-200 cursor-pointer">
               <input 
                 type="checkbox" 
