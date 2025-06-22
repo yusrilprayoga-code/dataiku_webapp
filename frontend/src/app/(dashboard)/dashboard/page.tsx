@@ -21,7 +21,7 @@ export default function DashboardHomePage() {
     if (selectedWell) {
       fetchPlotData(selectedWell);
     }
-  }, []); // Runs only once on mount
+  }, [fetchPlotData, selectedWell]);
 
   if (isLoadingPlot) {
     return <p>Loading Plot for {selectedWell}...</p>;

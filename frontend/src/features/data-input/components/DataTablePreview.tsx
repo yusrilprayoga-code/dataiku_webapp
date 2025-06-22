@@ -1,5 +1,4 @@
-
-// FILE: src/features/data-input/components/DataTablePreview.tsx
+// src/features/data-input/components/DataTablePreview.tsx
 "use client";
 import React from 'react';
 import { PreviewableFile } from '@/types';
