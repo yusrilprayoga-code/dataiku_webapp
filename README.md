@@ -3,11 +3,19 @@
 ![Vercel Deployment](https://therealsujitk-vercel-badge.vercel.app/?app=dataiku-webapp&style=for-the-badge)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
 
-> _Update Terakhir: 20 Juni 2025_
+> _Update Terakhir: 22 Juni 2025_
 
 ## Deskripsi Singkat
 
 Sebuah aplikasi web full-stack yang dirancang untuk meniru fungsionalitas aplikasi geologi seperti Geolog, dengan fokus pada proses _Quality Control_ (QC) untuk data sumur (well log). Frontend dibangun dengan Next.js untuk antarmuka yang modern dan interaktif, sementara backend menggunakan Flask (Python) untuk memproses data dan menjalankan kalkulasi yang kompleks.
+
+---
+
+## 📍 Quick Navigation dengan Link
+
+[Fitur Utama](#-fitur-utama) | [Roadmap](#️-roadmap-proyek) | [Struktur Proyek](#-struktur-proyek--konvensi-developer) | [Setup Lokal](#-panduan-setup-lokal-getting-started) | [Alur Kerja Git](#-alur-kerja-git--kolaborasi) | [Tim Pengembang](#️-tim-pengembang)
+
+---
 
 ## ✨ Fitur Utama
 
@@ -18,15 +26,12 @@ Sebuah aplikasi web full-stack yang dirancang untuk meniru fungsionalitas aplika
 
 ## 🗺️ Roadmap Proyek
 
-Proyek ini sedang dalam tahap pengembangan aktif. Berikut adalah beberapa fitur dan perbaikan yang direncanakan:
+<!-- Perubahan: Mengganti daftar statis dengan tautan ke GitHub Projects -->
+Perencanaan dan status pengembangan proyek ini dikelola secara aktif menggunakan **GitHub Projects**. Anda dapat melihat tugas-tugas yang sedang dikerjakan, yang akan datang, dan yang sudah selesai secara transparan.
 
--   [x] Integrasi skrip QC dasar dengan fungsionalitas upload file.
--   [x] Visualisasi data log menggunakan Plotly.
--   [x] Implementasi arsitektur Monorepo yang bersih untuk Frontend & Backend.
--   [ ] Sistem autentikasi pengguna (misalnya menggunakan NextAuth.js).
--   [ ] Integrasi database (seperti Vercel Postgres) untuk menyimpan hasil QC dan data pengguna.
--   [ ] Penambahan unit test dan integration test untuk backend Python.
--   [ ] Pengembangan dasbor pengguna untuk melihat riwayat proses QC.
+➡️ **[Lihat Papan Proyek Roadmap di GitHub](https://github.com/MichelPT/dataiku_webapp/projects)**
+
+_Silakan kunjungi papan proyek untuk detail terbaru mengenai fitur dan perbaikan yang direncanakan._
 
 ## 🛠️ Teknologi yang Digunakan
 
@@ -93,36 +98,105 @@ Proyek ini menggunakan struktur **Monorepo**. Ini berarti kode frontend dan back
 
 -   `/` (Direktori Utama Proyek)
     -   **`api/` — Backend (Flask). Semua logika Python ada di sini.**
-        -   `venv/` — *Virtual Environment* Python (diabaikan oleh Git).
-        -   **`app.py`**:
-            > **Entrypoint Flask.** File ini hanya berisi definisi *routing* API (contoh: `/api/run-qc`). Ia tidak boleh berisi logika bisnis yang kompleks. Tugasnya hanya menerima permintaan dan memanggil *service* yang sesuai dari `modules/`.
-        -   **`modules/`**:
-            > **"Otak" dari backend.** Semua logika bisnis, kalkulasi, dan pemrosesan data diletakkan di sini dalam bentuk *service* yang terpisah per fungsinya (misal: `qc_service.py`, `plotting_service.py`).
-        -   `requirements.txt` — Daftar semua *package* Python yang dibutuhkan oleh backend.
     -   **`frontend/` — Frontend (Next.js). Semua yang dilihat pengguna ada di sini.**
-        -   **`src/`**: Folder utama untuk semua kode sumber frontend.
-            -   **`app/`**:
-                > **Mendefinisikan Rute (URL).** Folder ini mengontrol semua halaman yang dapat diakses pengguna. File `page.tsx` di dalamnya harus sesederhana mungkin, biasanya hanya untuk mengimpor komponen "View" utama dari direktori `features/`.
-            -   **`components/`**:
-                > **Komponen UI Bersama.** Berisi komponen UI yang sangat generik, "dumb", dan dapat digunakan kembali di seluruh aplikasi (contoh: `Button.tsx`, `Modal.tsx`, `Sidebar.tsx`).
-            -   **`features/`**:
-                > **"Otak" Aplikasi (Tempat Utama untuk Bekerja).** Semua logika dan UI untuk fitur spesifik (misal: `file-upload`, `results-display`) dikelompokkan di sini agar mandiri dan mudah dikelola.
-            -   `stores/` — Mengelola *state* global aplikasi menggunakan Zustand.
-            -   `types/` — Berisi semua definisi tipe TypeScript global.
-            -   `lib/` — Berisi utilitas umum seperti klien API terpusat.
-        -   `public/` — Tempat untuk aset statis seperti gambar dan ikon.
-        -   `package.json` — Daftar dependensi dan skrip untuk frontend.
     -   `.gitignore` — Daftar file/folder yang diabaikan oleh Git.
     -   `vercel.json` — Konfigurasi *build* & *deployment* untuk Vercel.
 
----
+## 🔎 Penjelasan Rinci Struktur Proyek
 
+Bagian ini menjelaskan peran dari setiap direktori dan file penting.
 
-> **Aturan Emas untuk Developer:**
-> 1.  **Pemisahan yang Jelas:** `frontend` hanya mengurus tampilan dan interaksi pengguna. `api` mengurus semua proses data. Keduanya hanya "berbicara" melalui API call.
-> 2.  **Satu Fitur, Satu Branch:** Jika sebuah fitur membutuhkan perubahan di frontend dan backend, kerjakan keduanya di dalam **satu branch Git yang sama**.
-> 3.  **Backend Modular:** Jaga `api/app.py` tetap bersih (hanya routing). Pindahkan semua logika kompleks ke dalam folder `api/modules/`.
-> 4.  **Frontend Berbasis Fitur:** Kelompokkan komponen, hooks, dan utilitas yang berhubungan dengan satu fitur ke dalam satu folder di `frontend/src/features/`.
+### Direktori Level Atas
+
+* **`api/`**
+
+  > **Apa itu?** Folder ini berisi seluruh aplikasi backend yang ditulis dalam Python menggunakan framework Flask. Tugasnya adalah menyediakan data, menjalankan kalkulasi, dan berinteraksi dengan database atau file.
+
+* **`frontend/`**
+
+  > **Apa itu?** Folder ini berisi seluruh aplikasi frontend yang ditulis menggunakan Next.js (React). Semua yang berhubungan dengan tampilan, interaksi pengguna, dan visualisasi data berada di sini.
+
+* **`.gitignore`**
+
+  > **Apa itu?** File konfigurasi standar Git untuk menginstruksikan file atau folder mana yang tidak perlu dilacak, seperti `venv/` atau `node_modules/`.
+
+* **`vercel.json`**
+
+  > **Apa itu?** File konfigurasi untuk Vercel, platform hosting kita. File ini sangat penting karena ia memberi tahu Vercel bagaimana cara membangun (`build`) frontend dan backend, serta bagaimana mengarahkan permintaan (`routing`) dari pengguna ke layanan yang benar.
+
+### Di Dalam `api/` (Backend)
+
+* **`app.py`**
+
+  > **Apa itu?** Entrypoint atau file utama server Flask.
+  > **Apa isinya?** Hanya definisi rute-rute API (misalnya `@app.route('/api/run-qc')`).
+  > **Kapan saya harus mengubahnya?** Ubah file ini **hanya** saat Anda perlu membuat *endpoint* API baru. Logika bisnis yang kompleks **tidak boleh** diletakkan di sini.
+
+* **`modules/`**
+
+  > **Apa itu?** "Otak" dari backend. Direktori ini berisi semua logika bisnis yang sebenarnya.
+  > **Apa isinya?** Kumpulan file Python yang masing-masing berfungsi sebagai "service" untuk tugas tertentu. Contoh: `qc_service.py` untuk semua fungsi terkait Quality Control, `plotting_service.py` untuk menyiapkan data plot.
+  > **Kapan saya harus mengubahnya?** Saat Anda perlu menulis atau memodifikasi fungsi untuk kalkulasi, pemrosesan data, atau logika bisnis lainnya. Inilah tempat utama Anda bekerja di backend.
+
+* **`requirements.txt`**
+
+  > **Apa itu?** Daftar semua *package* atau pustaka Python yang dibutuhkan oleh backend.
+  > **Kapan saya harus mengubahnya?** Setiap kali Anda menginstal *package* baru (`pip install pandas`), Anda harus memperbarui file ini dengan menjalankan `pip freeze > requirements.txt` agar developer lain memiliki dependensi yang sama.
+
+### Di Dalam `frontend/src/` (Frontend)
+
+* **`app/`**
+
+  > **Apa itu?** Direktori utama untuk routing di Next.js.
+  > **Apa isinya?** Folder-folder yang namanya akan menjadi path URL. Di dalamnya ada file `page.tsx` yang akan dirender untuk URL tersebut.
+  > **Kapan saya harus mengubahnya?** Saat Anda ingin membuat halaman baru. Ingat, file `page.tsx` di sini harus tetap "bodoh". Tugasnya hanya mengimpor komponen "View" dari `features/`. Contoh: `app/data-input/page.tsx` hanya akan me-render `<DataInputView />`.
+
+* **`features/`**
+
+  > **Apa itu?** **Ini adalah tempat utama Anda bekerja di frontend.** Setiap fitur aplikasi (misal: upload file, tampilan dashboard, QC) memiliki foldernya sendiri di sini.
+  > **Apa isinya?** Folder per fitur, yang masing-masing berisi `components/` dan `hooks/`-nya sendiri. Ini membuat setiap fitur mandiri dan mudah dikelola.
+  > **Kapan saya harus mengubahnya?** Hampir setiap saat. Saat Anda membangun fitur baru atau memodifikasi fitur yang ada, Anda akan bekerja di dalam salah satu folder di sini.
+
+* **`components/`**
+
+  > **Apa itu?** Perpustakaan komponen UI yang sangat generik, dapat digunakan kembali di seluruh aplikasi.
+  > **Apa isinya?** Komponen "dumb" seperti `Button.tsx`, `Input.tsx`, `Modal.tsx`. Komponen-komponen ini tidak tahu apa-apa tentang data atau logika bisnis.
+  > **Kapan saya harus mengubahnya?** Saat Anda perlu membuat atau memodifikasi elemen UI dasar yang akan dipakai di banyak tempat.
+
+* **`stores/`**
+
+  > **Apa itu?** Tempat untuk state management global menggunakan Zustand.
+  > **Apa isinya?** `useAppDataStore.ts`, yang merupakan **Single Source of Truth** (satu-satunya sumber kebenaran) untuk semua data yang perlu dibagikan antar halaman atau fitur (seperti data QC, data plot, atau sumur yang sedang dipilih).
+  > **Kapan saya harus mengubahnya?** Saat Anda perlu menambah atau mengubah data yang bersifat global.
+
+* **`lib/`**
+
+  > **Apa itu?** Direktori untuk utilitas dan fungsi pembantu umum.
+  > **Apa isinya?** `api.ts` (klien terpusat untuk semua panggilan ke backend Flask) dan `utils.ts` (fungsi-fungsi umum seperti format tanggal, kalkulasi sederhana, dll).
+  > **Kapan saya harus mengubahnya?** Saat Anda perlu membuat fungsi pembantu yang dapat digunakan kembali di berbagai fitur.
+
+* **`types/`**
+
+  > **Apa itu?** Kamus tipe data untuk seluruh aplikasi.
+  > **Apa isinya?** File `index.ts` yang berisi semua `interface` dan `type` TypeScript global (misalnya `PlotData`, `QCResult`, `StagedStructure`).
+  > **Kapan saya harus mengubahnya?** Saat Anda perlu mendefinisikan bentuk (shape) dari sebuah objek data yang akan digunakan di banyak tempat.
+
+## 💡 Alur Kerja Developer (Contoh)
+
+Misalkan Anda ingin menambahkan fitur **"Kalkulasi Porositas"**:
+
+1.  **Backend:** Buat `porosity_service.py` di `api/modules/`. Tambahkan endpoint `/api/calculate-porosity` di `api/app.py` yang memanggil fungsi dari service tersebut.
+
+2.  **Frontend (State):** Tambahkan `porosityResults` ke dalam `useAppDataStore` jika hasilnya perlu global.
+
+3.  **Frontend (Fitur):**
+    * Buat folder `frontend/src/features/porosity-calculation/`.
+    * Di dalamnya, buat `components/PorosityView.tsx` yang berisi UI (form, tombol, dll).
+    * (Opsional) Buat *hook* `usePorosity.ts` di dalamnya untuk menangani logika panggilan API ke `/api/calculate-porosity`.
+
+4.  **Frontend (Rute):** Buat file di `app/dashboard/modules/porosity-calculation/page.tsx` yang isinya hanya me-render `<PorosityView />`.
+
+Dengan mengikuti alur ini, kode Anda akan selalu terorganisir, mudah ditemukan, dan tidak saling mengganggu antar fitur.
 
 ## 🌊 Alur Kerja Git & Kolaborasi
 
@@ -151,7 +225,7 @@ Proyek ini terhubung dengan Vercel untuk _Continuous Deployment_:
 
 ## ✍️ Tim Pengembang
 
-Dikembangkan oleh iza sani michel dio. yap berempat kami power ranger. 
+Dikembangkan oleh Iza, Sani, Michel, dan Dio. Yap, berempat kami Power Ranger.
 
 ## 📜 Lisensi
 
