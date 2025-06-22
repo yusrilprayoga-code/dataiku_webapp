@@ -24,14 +24,14 @@ Sebuah aplikasi web full-stack yang dirancang untuk meniru fungsionalitas aplika
 -   **Visualisasi Interaktif:** Menampilkan hasil data log dan markah dalam bentuk plot interaktif menggunakan Plotly.
 -   **Arsitektur Serverless:** Dideploy di Vercel, memanfaatkan _serverless functions_ untuk backend yang skalabel dan efisien.
 
-## 🗺️ Roadmap Proyek
+## 🗺️ Roadmap Proyek & Desain
 
-<!-- Perubahan: Mengganti daftar statis dengan tautan ke GitHub Projects -->
-Perencanaan dan status pengembangan proyek ini dikelola secara aktif menggunakan **GitHub Projects**. Anda dapat melihat tugas-tugas yang sedang dikerjakan, yang akan datang, dan yang sudah selesai secara transparan.
+Perencanaan dan pengembangan fitur dilacak secara visual menggunakan beberapa platform berikut:
 
-➡️ **[Lihat Papan Proyek Roadmap di GitHub](https://github.com/MichelPT/dataiku_webapp/projects)**
+-   **Peta Jalan & Arsitektur Sistem:** [Lihat Papan Figma](https://www.figma.com/board/TaQF2Vgx8wQN1WjkmIlpga/System-Design-geolog-wannabe?node-id=0-1&p=f&t=1Aey8uloq7vTRmfC-0) untuk arsitektur sistem dan rencana pengembangan jangka panjang.
+-   **Desain UI/UX:** [Lihat Desain Figma](https://www.figma.com/design/eyPxoYTxXwey0rOVZzYvZz/UI-UX-geolog-wannabe?node-id=10-15&t=ddCZAXv3vKNkqxuH-0) untuk desain antarmuka, komponen, dan alur pengalaman pengguna.
+-   **Alur & Progres Proyek:** [Lihat Papan Proyek GitHub](https://github.com/users/MichelPT/projects/1) untuk melacak status tugas (To Do, In Progress, Done) secara transparan.
 
-_Silakan kunjungi papan proyek untuk detail terbaru mengenai fitur dan perbaikan yang direncanakan._
 
 ## 🛠️ Teknologi yang Digunakan
 
