@@ -87,27 +87,35 @@ Panduan ini untuk developer yang ingin menjalankan proyek ini di komputernya.
     ```
     Aplikasi frontend akan berjalan di `http://localhost:3000` dan backend di `http://localhost:5001`.
 
-## 📂 Struktur Proyek & Konvensi Developer (TIDI)
+## 📂 Struktur Proyek & Konvensi Developer
 
-Proyek ini menggunakan struktur **Monorepo**. Ini berarti kode frontend dan backend berada dalam satu repository untuk memudahkan pengembangan fitur secara bersamaan.
+Proyek ini menggunakan struktur **Monorepo**. Ini berarti kode frontend dan backend berada dalam satu *repository* untuk memudahkan pengembangan fitur secara bersamaan.
 
-/ (Project Root)
-├── api/                # Backend (Flask). Semua logika Python ada di sini.
-│   ├── venv/           # Virtual Environment (diabaikan oleh Git)
-│   ├── app.py          # Entrypoint Flask, hanya berisi routing API.
-│   ├── modules/        # "Otak" dari backend, semua logika bisnis ada di sini.
-│   └── requirements.txt
-│
-├── frontend/           # Frontend (Next.js). Semua yang dilihat pengguna ada di sini.
-│   ├── src/
-│   │   ├── app/        # Halaman dan layout (App Router).
-│   │   ├── components/ # Komponen UI kecil yang bisa dipakai ulang.
-│   │   └── features/   # Komponen & logic untuk fitur spesifik (mis: file-upload).
-│   ├── public/
-│   └── package.json
-│
-├── .gitignore          # Daftar file/folder yang diabaikan Git.
-└── vercel.json         # Konfigurasi build & deployment untuk Vercel.
+-   `/` (Direktori Utama Proyek)
+    -   **`api/` — Backend (Flask). Semua logika Python ada di sini.**
+        -   `venv/` — *Virtual Environment* Python (diabaikan oleh Git).
+        -   **`app.py`**:
+            > **Entrypoint Flask.** File ini hanya berisi definisi *routing* API (contoh: `/api/run-qc`). Ia tidak boleh berisi logika bisnis yang kompleks. Tugasnya hanya menerima permintaan dan memanggil *service* yang sesuai dari `modules/`.
+        -   **`modules/`**:
+            > **"Otak" dari backend.** Semua logika bisnis, kalkulasi, dan pemrosesan data diletakkan di sini dalam bentuk *service* yang terpisah per fungsinya (misal: `qc_service.py`, `plotting_service.py`).
+        -   `requirements.txt` — Daftar semua *package* Python yang dibutuhkan oleh backend.
+    -   **`frontend/` — Frontend (Next.js). Semua yang dilihat pengguna ada di sini.**
+        -   **`src/`**: Folder utama untuk semua kode sumber frontend.
+            -   **`app/`**:
+                > **Mendefinisikan Rute (URL).** Folder ini mengontrol semua halaman yang dapat diakses pengguna. File `page.tsx` di dalamnya harus sesederhana mungkin, biasanya hanya untuk mengimpor komponen "View" utama dari direktori `features/`.
+            -   **`components/`**:
+                > **Komponen UI Bersama.** Berisi komponen UI yang sangat generik, "dumb", dan dapat digunakan kembali di seluruh aplikasi (contoh: `Button.tsx`, `Modal.tsx`, `Sidebar.tsx`).
+            -   **`features/`**:
+                > **"Otak" Aplikasi (Tempat Utama untuk Bekerja).** Semua logika dan UI untuk fitur spesifik (misal: `file-upload`, `results-display`) dikelompokkan di sini agar mandiri dan mudah dikelola.
+            -   `stores/` — Mengelola *state* global aplikasi menggunakan Zustand.
+            -   `types/` — Berisi semua definisi tipe TypeScript global.
+            -   `lib/` — Berisi utilitas umum seperti klien API terpusat.
+        -   `public/` — Tempat untuk aset statis seperti gambar dan ikon.
+        -   `package.json` — Daftar dependensi dan skrip untuk frontend.
+    -   `.gitignore` — Daftar file/folder yang diabaikan oleh Git.
+    -   `vercel.json` — Konfigurasi *build* & *deployment* untuk Vercel.
+
+---
 
 
 > **Aturan Emas untuk Developer:**
@@ -143,8 +151,7 @@ Proyek ini terhubung dengan Vercel untuk _Continuous Deployment_:
 
 ## ✍️ Tim Pengembang
 
--   **MichelPT** - *Initial Work & Development* - [GitHub Profile](https://github.com/MichelPT)
--   **[Nama Kolaborator]** - *Development* - [Link GitHub]
+Dikembangkan oleh iza sani michel dio. yap berempat kami power ranger. 
 
 ## 📜 Lisensi
 
