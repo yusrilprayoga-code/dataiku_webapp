@@ -11,9 +11,27 @@ Sebuah aplikasi web full-stack yang dirancang untuk meniru fungsionalitas aplika
 
 ---
 
-## 📍 Quick Navigation dengan Link
+## 📍 Quick Navigation
 
-[Fitur Utama](#-fitur-utama) | [Roadmap](#️-roadmap-proyek) | [Struktur Proyek](#-struktur-proyek--konvensi-developer) | [Setup Lokal](#-panduan-setup-lokal-getting-started) | [Alur Kerja Git](#-alur-kerja-git--kolaborasi) | [Tim Pengembang](#️-tim-pengembang)
+-   [**Deskripsi & Fitur**](#-deskripsi-singkat)
+    -   [Fitur Utama](#-fitur-utama)
+    -   [Roadmap Proyek & Desain](#-roadmap-proyek--desain)
+    -   [Teknologi yang Digunakan](#️-teknologi-yang-digunakan)
+-   [**Panduan Developer**](#-panduan-setup-lokal-getting-started)
+    -   [Setup Lokal (Getting Started)](#-panduan-setup-lokal-getting-started)
+    -   [Struktur Proyek & Konvensi](#-struktur-proyek--konvensi-developer)
+    -   [Penjelasan Rinci Struktur Proyek](#-penjelasan-rinci-struktur-proyek)
+        -   [Direktori Level Atas](#direktori-level-atas)
+        -   [Struktur Backend `api/`](#di-dalam-api-backend)
+        -   [Struktur Frontend `frontend/src/`](#di-dalam-frontendsrc-frontend)
+    -   [Contoh Alur Kerja Developer](#-alur-kerja-developer-contoh)
+-   [**Kolaborasi & Deployment**](#-alur-kerja-git--kolaborasi)
+    -   [Alur Kerja Git & Kolaborasi](#-alur-kerja-git--kolaborasi)
+    -   [Deployment](#-deployment)
+    -   [Troubleshooting Umum](#-troubleshooting-umum)
+-   [**Info Lainnya**](#️-tim-pengembang)
+    -   [Tim Pengembang](#️-tim-pengembang)
+    -   [Lisensi](#-lisensi)
 
 ---
 
