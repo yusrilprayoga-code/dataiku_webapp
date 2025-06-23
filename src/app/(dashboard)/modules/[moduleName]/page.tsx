@@ -8,9 +8,6 @@ import NormalizationParamsForm from '@/components/forms/NormalizationParams';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { type ParameterRow } from '@/types';
 
-// frontend/src/app/(dashboard)/modules/[moduleName]/page.tsx
-'use client';
-
 // KODE INI SENGAJA DIBUAT SANGAT SEDERHANA UNTUK TUJUAN DEBUGGING
 // Tidak ada state, tidak ada effect, tidak ada fetch, tidak ada apa-apa.
 
