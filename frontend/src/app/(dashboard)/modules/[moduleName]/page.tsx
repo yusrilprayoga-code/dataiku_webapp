@@ -8,14 +8,16 @@ import NormalizationParamsForm from '@/components/forms/NormalizationParams';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { type ParameterRow } from '@/types';
 
-// Define a dedicated interface for the page's props.
-// This provides better type safety and can resolve subtle type-checking
-// errors during the Next.js build process.
-interface ModulePageProps {
+// Define a more robust props type for the page component.
+// This structure, including the optional `searchParams`, aligns more
+// closely with Next.js's internal PageProps, which can resolve
+// confusing build-time type errors.
+type ModulePageProps = {
   params: {
     moduleName: string;
   };
-}
+  searchParams?: { [key: string]: string | string[] | undefined };
+};
 
 // Placeholder component for demonstration purposes
 const SmoothingParamsForm = () => (
@@ -68,8 +70,6 @@ export default function ModulePage({ params }: ModulePageProps) {
       // IMPORTANT: Set loading back to false on error, so the user can try again.
       setIsLoading(false);
     }
-    // A 'finally' block is not needed here. If navigation succeeds, the component
-    // unmounts. If it fails, the catch block already handles the state reset.
   };
 
   // This function conditionally renders the correct form based on the URL parameter.
