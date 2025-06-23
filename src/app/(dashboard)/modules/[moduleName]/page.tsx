@@ -8,20 +8,34 @@ import NormalizationParamsForm from '@/components/forms/NormalizationParams';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { type ParameterRow } from '@/types';
 
-// Komponen placeholder untuk contoh
-const SmoothingParamsForm = () => <div className="p-4"><h2>Smoothing Parameters</h2><p>Form for smoothing...</p></div>;
+// Define a dedicated interface for the page's props.
+// This provides better type safety and can resolve subtle type-checking
+// errors during the Next.js build process.
+interface ModulePageProps {
+  params: {
+    moduleName: string;
+  };
+}
+
+// Placeholder component for demonstration purposes
+const SmoothingParamsForm = () => (
+  <div className="p-4 border rounded-lg bg-white shadow-sm">
+    <h2 className="text-lg font-semibold">Smoothing Parameters</h2>
+    <p className="text-gray-600 mt-2">This is a placeholder for the smoothing parameters form.</p>
+  </div>
+);
 
 // ========================================================================
-// === PASTIKAN TIDAK ADA KATA KUNCI 'async' PADA BARIS DI BAWAH INI ===
+// === The component function itself must NOT be async to use React Hooks ===
 // ========================================================================
-export default function ModulePage({ params }: { params: { moduleName: string } }) {
-  // Semua hooks ini harus berada di dalam fungsi yang BUKAN async
+export default function ModulePage({ params }: ModulePageProps) {
+  // All these hooks must be called at the top level of a non-async function component.
   const router = useRouter();
   const { addNormalizationResult } = useAppDataStore();
   const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState(null); // 'results' tidak dipakai, tapi kita biarkan dulu
+  const [results, setResults] = useState(null); // 'results' is unused, kept for potential future use.
 
-  // Fungsi handler ini BOLEH dan HARUS async karena ia melakukan fetch
+  // This event handler CAN and SHOULD be async because it performs an API call.
   const handleNormalizationSubmit = async (activeParameters: ParameterRow[]) => {
     setIsLoading(true);
 
@@ -33,26 +47,32 @@ export default function ModulePage({ params }: { params: { moduleName: string } 
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Server returned non-JSON response' }));
-        throw new Error(errorData.error || 'Server error occurred');
+        // Try to parse a JSON error response from the server, with a fallback.
+        const errorData = await response.json().catch(() => ({ error: 'Server returned a non-JSON response' }));
+        throw new Error(errorData.error || `Server error: ${response.status}`);
       }
 
       const plotObject = await response.json();
       const resultId = `norm-${Date.now()}`;
 
+      // Add the successful result to the Zustand store.
       addNormalizationResult(resultId, plotObject);
 
+      // Navigate to the new results page upon success.
       router.push(`/dashboard/results/${resultId}`);
 
     } catch (error) {
-      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      // Jika terjadi error, set loading kembali ke false agar tombol bisa diklik lagi
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      console.error('Submission Error:', errorMessage);
+      alert(`Error: ${errorMessage}`);
+      // IMPORTANT: Set loading back to false on error, so the user can try again.
       setIsLoading(false);
     }
-    // 'finally' block tidak diperlukan di sini
+    // A 'finally' block is not needed here. If navigation succeeds, the component
+    // unmounts. If it fails, the catch block already handles the state reset.
   };
 
-  // Fungsi render ini adalah bagian dari komponen sinkron
+  // This function conditionally renders the correct form based on the URL parameter.
   const renderParameterForm = () => {
     switch (params.moduleName) {
       case 'normalization':
@@ -60,14 +80,18 @@ export default function ModulePage({ params }: { params: { moduleName: string } 
       case 'smoothing':
         return <SmoothingParamsForm />;
       default:
-        return <div>Parameter form untuk &apos;{params.moduleName}&apos; tidak ditemukan.</div>;
+        return (
+          <div className="p-4 border rounded-lg bg-red-50 text-red-700">
+            Parameter form for &apos;{params.moduleName}&apos; not found.
+          </div>
+        );
     }
   };
 
-  // Return JSX adalah bagian dari komponen sinkron
+  // The returned JSX is part of the synchronous component render cycle.
   return (
-    <div className="h-full p-4 bg-gray-50">
-      <h1 className="text-2xl font-bold mb-4 capitalize">{params.moduleName} Module</h1>
+    <div className="h-full p-4 md:p-6 bg-gray-50">
+      <h1 className="text-2xl font-bold mb-4 capitalize text-gray-800">{params.moduleName} Module</h1>
       {renderParameterForm()}
     </div>
   );
