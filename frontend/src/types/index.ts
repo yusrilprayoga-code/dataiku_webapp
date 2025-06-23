@@ -41,7 +41,7 @@ export interface QCResponse {
 
 export interface PreviewableFile {
   id: string;
-  name:string;
+  name: string;
   content: any[];
   headers: string[];
 }
@@ -53,4 +53,19 @@ export interface LogDataRow {
   NPHI?: number | null;
   RHOB?: number | null;
   [key: string]: any;
+}
+
+export interface ParameterRow {
+  id: number;
+  location: 'Parameter' | 'Interval' | 'Constant' | 'Log' | 'Output';
+  mode: 'Input' | 'Output';
+  comment: string;
+  unit: string;
+  name: string;
+  isEnabled: boolean;
+  // `values` adalah sebuah objek di mana setiap key adalah nama interval (string)
+  // dan value-nya adalah nilai dari input (bisa string atau number).
+  values: {
+    [intervalKey: string]: string | number;
+  };
 }
