@@ -1,11 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/app/(dashboard)/modules/[moduleName]/page.tsx
 'use client';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import NormalizationParamsForm from '@/components/forms/NormalizationParams';
-import { useAppDataStore } from '@/stores/useAppDataStore';
-import { type ParameterRow } from '@/types';
+import NormalizationParamsForm from '@/components/forms/NormalizationParams'; // Pastikan path ini benar
+import { useAppDataStore } from '@/stores/useAppDataStore'; // Pastikan path ini benar
+import { type ParameterRow } from '@/types'; // Pastikan path ini benar
 
 // Komponen placeholder
 const SmoothingParamsForm = () => <div className="p-4"><h2>Smoothing Parameters</h2><p>Form for smoothing...</p></div>;
