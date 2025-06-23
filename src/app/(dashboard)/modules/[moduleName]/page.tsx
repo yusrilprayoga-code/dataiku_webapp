@@ -4,14 +4,14 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import NormalizationParamsForm from '@/components/forms/NormalizationParams'; // Pastikan path ini benar
-import { useAppDataStore } from '@/stores/useAppDataStore'; // Pastikan path ini benar
-import { type ParameterRow } from '@/types'; // Pastikan path ini benar
+import NormalizationParamsForm from '@/components/forms/NormalizationParams';
+import { useAppDataStore } from '@/stores/useAppDataStore';
+import { type ParameterRow } from '@/types';
 
 // Komponen placeholder
 const SmoothingParamsForm = () => <div className="p-4"><h2>Smoothing Parameters</h2><p>Form for smoothing...</p></div>;
 
-export default function ModulePage({ params }: { params: { moduleName: string } }) {
+export default async function ModulePage({ params }: { params: { moduleName: string } }) {
   const router = useRouter();
   const { addNormalizationResult } = useAppDataStore(); // Ambil action dari store
   const [isLoading, setIsLoading] = useState(false);
