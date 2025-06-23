@@ -9,6 +9,22 @@ export interface PlotData {
   layout: Partial<Layout>;
 }
 
+export interface ParsedFileData {
+  headers: string[];
+  data: any[];
+}
+
+export interface MarkerData {
+  Surface: string;
+  'Mean Depth': number;
+}
+
+export interface XptNote {
+  'Depth (m)': number;
+  'Note': string;
+}
+
+
 // --- Types from your original code ---
 export interface ProcessedFileDataForDisplay {
   id: string;

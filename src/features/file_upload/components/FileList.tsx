@@ -1,5 +1,4 @@
 // app/your-route/components/FileList.tsx
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { ChangeEvent } from 'react';
 import { FileData } from '../types'; // Adjust path
 import FileItem from './FileItem';
@@ -55,9 +54,8 @@ const FileList: React.FC<FileListProps> = ({
       {/* Upload Area */}
       <div className="p-4 border-b border-gray-200">
         <label
-          className={`block w-full p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-            isUploading ? 'border-gray-300 bg-gray-50 animate-pulse' : 'border-blue-300 hover:border-blue-400 hover:bg-blue-50'
-          }`}
+          className={`block w-full p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isUploading ? 'border-gray-300 bg-gray-50 animate-pulse' : 'border-blue-300 hover:border-blue-400 hover:bg-blue-50'
+            }`}
         >
           <div className="text-center">
             <Upload className="mx-auto w-8 h-8 text-blue-500 mb-2" />
@@ -80,11 +78,10 @@ const FileList: React.FC<FileListProps> = ({
         </label>
         {message && (
           <div
-            className={`mt-2 p-2 border rounded text-sm ${
-              message.startsWith('Error') ? 'bg-red-50 border-red-200 text-red-700' :
+            className={`mt-2 p-2 border rounded text-sm ${message.startsWith('Error') ? 'bg-red-50 border-red-200 text-red-700' :
               message.startsWith('Warning') ? 'bg-yellow-50 border-yellow-200 text-yellow-700' :
-              'bg-blue-50 border-blue-200 text-blue-700'
-            }`}
+                'bg-blue-50 border-blue-200 text-blue-700'
+              }`}
             role="alert"
           >
             {message}
