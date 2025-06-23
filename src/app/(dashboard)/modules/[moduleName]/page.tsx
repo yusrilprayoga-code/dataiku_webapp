@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// src/app/(dashboard)/modules/[moduleName]/page.tsx
+// frontend/src/app/(dashboard)/modules/[moduleName]/page.tsx
 'use client';
 
 import React, { useState } from 'react';
@@ -8,21 +8,24 @@ import NormalizationParamsForm from '@/components/forms/NormalizationParams';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { type ParameterRow } from '@/types';
 
-// Komponen placeholder
+// Komponen placeholder untuk contoh
 const SmoothingParamsForm = () => <div className="p-4"><h2>Smoothing Parameters</h2><p>Form for smoothing...</p></div>;
 
-export default async function ModulePage({ params }: { params: { moduleName: string } }) {
+// ========================================================================
+// === PASTIKAN TIDAK ADA KATA KUNCI 'async' PADA BARIS DI BAWAH INI ===
+// ========================================================================
+export default function ModulePage({ params }: { params: { moduleName: string } }) {
+  // Semua hooks ini harus berada di dalam fungsi yang BUKAN async
   const router = useRouter();
-  const { addNormalizationResult } = useAppDataStore(); // Ambil action dari store
+  const { addNormalizationResult } = useAppDataStore();
   const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState(null);
+  const [results, setResults] = useState(null); // 'results' tidak dipakai, tapi kita biarkan dulu
 
-  // Fungsi ini sekarang menjadi "otak" yang menangani logika submit
+  // Fungsi handler ini BOLEH dan HARUS async karena ia melakukan fetch
   const handleNormalizationSubmit = async (activeParameters: ParameterRow[]) => {
     setIsLoading(true);
 
     try {
-      // FIX PENTING: Gunakan path relatif, bukan URL hardcode!
       const response = await fetch('/api/get-normalization-plot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -34,36 +37,34 @@ export default async function ModulePage({ params }: { params: { moduleName: str
         throw new Error(errorData.error || 'Server error occurred');
       }
 
-      // Vercel/Flask akan return JSON, jadi kita parse sekali saja.
       const plotObject = await response.json();
       const resultId = `norm-${Date.now()}`;
 
-      addNormalizationResult(resultId, plotObject); // Simpan hasil ke global store
+      addNormalizationResult(resultId, plotObject);
 
-      // Arahkan ke halaman hasil
       router.push(`/dashboard/results/${resultId}`);
 
     } catch (error) {
       alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      // Jangan set isLoading ke false di sini jika navigasi berhasil
-    } finally {
-      // Set isLoading ke false hanya jika terjadi error, agar tombol bisa diklik lagi
-      // Jika sukses, kita akan pindah halaman jadi tidak perlu di-set.
-      if (!router) setIsLoading(false);
+      // Jika terjadi error, set loading kembali ke false agar tombol bisa diklik lagi
+      setIsLoading(false);
     }
+    // 'finally' block tidak diperlukan di sini
   };
 
+  // Fungsi render ini adalah bagian dari komponen sinkron
   const renderParameterForm = () => {
     switch (params.moduleName) {
       case 'normalization':
         return <NormalizationParamsForm onSubmit={handleNormalizationSubmit} isLoading={isLoading} />;
       case 'smoothing':
-        return <SmoothingParamsForm />; // Anda bisa membuat handler terpisah untuk ini
+        return <SmoothingParamsForm />;
       default:
         return <div>Parameter form untuk &apos;{params.moduleName}&apos; tidak ditemukan.</div>;
     }
   };
 
+  // Return JSX adalah bagian dari komponen sinkron
   return (
     <div className="h-full p-4 bg-gray-50">
       <h1 className="text-2xl font-bold mb-4 capitalize">{params.moduleName} Module</h1>
