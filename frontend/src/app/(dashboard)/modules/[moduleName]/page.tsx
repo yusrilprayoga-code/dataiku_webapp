@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any*/
 // frontend/src/app/(dashboard)/modules/[moduleName]/page.tsx
 'use client';
 
@@ -8,17 +9,6 @@ import NormalizationParamsForm from '@/components/forms/NormalizationParams';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { type ParameterRow } from '@/types';
 
-// Define a more robust props type for the page component.
-// This structure, including the optional `searchParams`, aligns more
-// closely with Next.js's internal PageProps, which can resolve
-// confusing build-time type errors.
-type ModulePageProps = {
-  params: {
-    moduleName: string;
-  };
-  searchParams?: { [key: string]: string | string[] | undefined };
-};
-
 // Placeholder component for demonstration purposes
 const SmoothingParamsForm = () => (
   <div className="p-4 border rounded-lg bg-white shadow-sm">
@@ -27,17 +17,13 @@ const SmoothingParamsForm = () => (
   </div>
 );
 
-// ========================================================================
-// === The component function itself must NOT be async to use React Hooks ===
-// ========================================================================
-export default function ModulePage({ params }: ModulePageProps) {
-  // All these hooks must be called at the top level of a non-async function component.
+export default function ModulePage(props: any) {
+  const { moduleName } = props.params;
   const router = useRouter();
   const { addNormalizationResult } = useAppDataStore();
   const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState(null); // 'results' is unused, kept for potential future use.
+  const [results, setResults] = useState(null);
 
-  // This event handler CAN and SHOULD be async because it performs an API call.
   const handleNormalizationSubmit = async (activeParameters: ParameterRow[]) => {
     setIsLoading(true);
 
@@ -49,7 +35,6 @@ export default function ModulePage({ params }: ModulePageProps) {
       });
 
       if (!response.ok) {
-        // Try to parse a JSON error response from the server, with a fallback.
         const errorData = await response.json().catch(() => ({ error: 'Server returned a non-JSON response' }));
         throw new Error(errorData.error || `Server error: ${response.status}`);
       }
@@ -57,24 +42,19 @@ export default function ModulePage({ params }: ModulePageProps) {
       const plotObject = await response.json();
       const resultId = `norm-${Date.now()}`;
 
-      // Add the successful result to the Zustand store.
       addNormalizationResult(resultId, plotObject);
-
-      // Navigate to the new results page upon success.
       router.push(`/dashboard/results/${resultId}`);
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       console.error('Submission Error:', errorMessage);
       alert(`Error: ${errorMessage}`);
-      // IMPORTANT: Set loading back to false on error, so the user can try again.
       setIsLoading(false);
     }
   };
 
-  // This function conditionally renders the correct form based on the URL parameter.
   const renderParameterForm = () => {
-    switch (params.moduleName) {
+    switch (moduleName) {
       case 'normalization':
         return <NormalizationParamsForm onSubmit={handleNormalizationSubmit} isLoading={isLoading} />;
       case 'smoothing':
@@ -82,16 +62,15 @@ export default function ModulePage({ params }: ModulePageProps) {
       default:
         return (
           <div className="p-4 border rounded-lg bg-red-50 text-red-700">
-            Parameter form for &apos;{params.moduleName}&apos; not found.
+            Parameter form for &apos;{moduleName}&apos; not found.
           </div>
         );
     }
   };
 
-  // The returned JSX is part of the synchronous component render cycle.
   return (
     <div className="h-full p-4 md:p-6 bg-gray-50">
-      <h1 className="text-2xl font-bold mb-4 capitalize text-gray-800">{params.moduleName} Module</h1>
+      <h1 className="text-2xl font-bold mb-4 capitalize text-gray-800">{moduleName} Module</h1>
       {renderParameterForm()}
     </div>
   );
