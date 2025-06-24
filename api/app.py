@@ -1,19 +1,18 @@
 # /api/app.py
 from flask import Flask, request, jsonify, Response
-from qc_service import run_quality_control
-from data_processing import handle_null_values
+from app.services.qc_service import run_quality_control
+from app.services.data_processing import handle_null_values, min_max_normalize
 import logging
 import os
 from flask_cors import CORS
 import pandas as pd
 import numpy as np
-from plotting_service import (
+from app.services.plotting_service import (
     extract_markers_with_mean_depth,
     normalize_xover,
     plot_log_default,
     plot_normalization
 )
-from data_processing import min_max_normalize
 
 app = Flask(__name__)
 
@@ -88,7 +87,9 @@ def handle_nulls_route():
 # Tentukan path ke file data secara andal
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(SCRIPT_DIR, 'sample_data', 'pass_qc.csv')
-PROCESSED_WELLS_DIR = os.path.join(SCRIPT_DIR, 'sample_data', 'wells')
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+WELLS_DIR = os.path.join(PROJECT_ROOT, 'sample_data', 'wells')
+print(f"INFO: Flask akan mencari file sumur di direktori: {WELLS_DIR}")
 
 
 @app.route('/api/get-plot', methods=['POST'])
@@ -105,7 +106,7 @@ def get_plot():
 
         list_of_dataframes = []
         for well_name in selected_wells:
-            file_path = os.path.join(PROCESSED_WELLS_DIR, f"{well_name}.csv")
+            file_path = os.path.join(WELLS_DIR, f"{well_name}.csv")
             if os.path.exists(file_path):
                 list_of_dataframes.append(pd.read_csv(file_path))
 
@@ -155,7 +156,7 @@ def get_normalization_plot():
             df_list = []
             for well_name in selected_wells:
                 file_path = os.path.join(
-                    PROCESSED_WELLS_DIR, f"{well_name}.csv")
+                    WELLS_DIR, f"{well_name}.csv")
                 if os.path.exists(file_path):
                     df_list.append(pd.read_csv(file_path))
 
@@ -194,12 +195,12 @@ def get_normalization_plot():
 @app.route('/api/list-wells', methods=['GET'])
 def list_wells():
     try:
-        if not os.path.exists(PROCESSED_WELLS_DIR):
-            return jsonify({"error": "Folder 'processed_wells' tidak ditemukan."}), 404
+        if not os.path.exists(WELLS_DIR):
+            return jsonify({"error": "Folder 'wells' tidak ditemukan."}), 404
 
         # Ambil semua file .csv, hapus ekstensinya
         well_files = [f.replace('.csv', '') for f in os.listdir(
-            PROCESSED_WELLS_DIR) if f.endswith('.csv')]
+            WELLS_DIR) if f.endswith('.csv')]
         well_files.sort()  # Urutkan nama sumur
 
         return jsonify(well_files)
@@ -241,7 +242,7 @@ def run_interval_normalization():
 
         # 2. LOOPING PERTAMA: Iterasi untuk setiap sumur yang dipilih
         for well_name in selected_wells:
-            file_path = os.path.join(PROCESSED_WELLS_DIR, f"{well_name}.csv")
+            file_path = os.path.join(WELLS_DIR, f"{well_name}.csv")
             if not os.path.exists(file_path):
                 print(
                     f"Peringatan: Melewatkan sumur {well_name}, file tidak ditemukan.")
