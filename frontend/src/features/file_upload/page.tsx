@@ -1,4 +1,4 @@
-// src/features/file_upload/components/FileUploadViewer.tsx
+// src/features/file_upload/components/page.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
@@ -6,11 +6,11 @@
 import React, { useState, ChangeEvent } from 'react';
 import JSZip from 'jszip';
 
-import { ParsedSubFile, FileData, ProcessedFileDataForDisplay, StagedStructure } from '../types';
-import { readFileContent, readFileAsArrayBuffer } from '../utils/fileUtils';
-import { parseLASFile, parseCSVFile, parseXLSXFileWithSheetJS } from '../utils/fileParser';
-import FileList from './FileList';
-import FilePreview from './FilePreview';
+import { ParsedSubFile, FileData, ProcessedFileDataForDisplay, StagedStructure } from './types';
+import { readFileContent, readFileAsArrayBuffer } from './utils/fileUtils';
+import { parseLASFile, parseCSVFile, parseXLSXFileWithSheetJS } from './utils/fileParser';
+import FileList from './components/FileList';
+import FilePreview from './components/FilePreview';
 import { useRouter } from 'next/navigation'; // For navigation
 import { useAppDataStore } from '@/stores/useAppDataStore'; // Correct path to your store
 import { DownloadCloud, Plus, UploadCloud } from 'lucide-react';
