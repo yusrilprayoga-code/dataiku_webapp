@@ -13,6 +13,7 @@ from app.services.plotting_service import (
     plot_log_default,
     plot_normalization
 )
+from app.services.depth_matching import depth_matching, plot_depth_matching_results
 
 app = Flask(__name__)
 
@@ -89,7 +90,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(SCRIPT_DIR, 'sample_data', 'pass_qc.csv')
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 WELLS_DIR = os.path.join(PROJECT_ROOT, 'sample_data', 'wells')
-print(f"INFO: Flask akan mencari file sumur di direktori: {WELLS_DIR}")
+LAS_DIR = os.path.join(PROJECT_ROOT, 'sample_data', 'depth-matching')
 
 
 @app.route('/api/get-plot', methods=['POST'])
@@ -306,6 +307,47 @@ def run_interval_normalization():
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/run-depth-matching', methods=['POST', 'OPTIONS'])
+def run_depth_matching_endpoint():
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+
+    if request.method == 'POST':
+        try:
+            ref_las_path = os.path.join(LAS_DIR, 'ref.las')
+            lwd_las_path = os.path.join(LAS_DIR, 'lwd.las')
+
+            if not os.path.exists(ref_las_path):
+                return jsonify({"error": f"File tidak ditemukan: {ref_las_path}"}), 404
+            if not os.path.exists(lwd_las_path):
+                return jsonify({"error": f"File tidak ditemukan: {lwd_las_path}"}), 404
+
+            # 1. Panggil fungsi logika untuk mendapatkan data
+            ref_data, lwd_data, aligned_data = depth_matching(
+                ref_las_path=ref_las_path,
+                lwd_las_path=lwd_las_path,
+                num_chunks=8
+            )
+
+            if aligned_data is None:
+                raise ValueError("Proses komputasi Depth Matching gagal.")
+
+            # 2. Panggil fungsi plotting dengan data yang sudah diolah
+            fig_result = plot_depth_matching_results(
+                ref_df=ref_data,
+                lwd_df=lwd_data,
+                final_df=aligned_data
+            )
+
+            # 3. Kirim plot yang sudah jadi sebagai JSON
+            return jsonify(fig_result.to_json())
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
 
 
 # This is for local development testing, Vercel will use its own server

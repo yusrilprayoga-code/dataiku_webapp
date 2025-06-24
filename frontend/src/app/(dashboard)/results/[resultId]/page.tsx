@@ -40,14 +40,13 @@ export default function ResultPage() {
           Back
         </button>
       </div>
-      <div className="flex-grow min-h-0 border rounded-lg shadow-md bg-white">
         <Plot
           data={plot.data}
           layout={plot.layout}
           style={{ width: '100%', height: '100%' }}
           config={{ responsive: true }}
+          useResizeHandler={true}
         />
-      </div>
     </div>
   );
 }

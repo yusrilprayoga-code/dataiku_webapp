@@ -2554,7 +2554,7 @@ def plot_log_default(df, df_marker, df_well_marker):
     fig = layout_range_all_axis(fig, axes, plot_sequence)
 
     fig.update_layout(
-        margin=dict(l=20, r=20, t=40, b=20), height=600,
+        margin=dict(l=20, r=20, t=40, b=20), height=1500,
         paper_bgcolor='white',
         plot_bgcolor='white',
         showlegend=False,
@@ -2622,7 +2622,7 @@ def plot_normalization(df, df_marker, df_well_marker):
     fig = layout_range_all_axis(fig, axes, plot_sequence)
 
     fig.update_layout(
-        margin=dict(l=20, r=20, t=40, b=20), height=600,
+        margin=dict(l=20, r=20, t=40, b=20), height=1500,
         paper_bgcolor='white',
         plot_bgcolor='white',
         showlegend=False,
