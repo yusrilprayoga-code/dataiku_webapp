@@ -56,7 +56,7 @@ export default function ModulePage(props: any) {
   const renderParameterForm = () => {
     switch (moduleName) {
       case 'normalization':
-        return <NormalizationParamsForm onSubmit={handleNormalizationSubmit} isLoading={isLoading} />;
+        return <NormalizationParamsForm/>;
       case 'smoothing':
         return <SmoothingParamsForm />;
       default:

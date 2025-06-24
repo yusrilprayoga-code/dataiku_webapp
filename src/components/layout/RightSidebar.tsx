@@ -4,7 +4,10 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+
+interface RightSidebarProps {
+  activeButton: string | null;
+}
 
 interface ModuleSectionProps {
   title?: string;
@@ -39,9 +42,7 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
   </div>
 );
 
-export default function RightSidebar() {
-  const pathname = usePathname();
-  const activeModule = pathname.split('/').pop() || null;
+const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
 
   const module1Buttons: string[] = ['ADD PLOT', 'OPEN CROSS PLOT', 'TRIM DATA'];
   const qualityControlButtons: string[] = ['FILL MISSING', 'SMOOTHING', 'NORMALIZATION'];
@@ -52,12 +53,15 @@ export default function RightSidebar() {
     <aside className="w-72 bg-gray-100 p-4 border-l border-gray-300 overflow-y-auto">
       <h3 className="text-sm font-bold text-gray-800 mb-4">Module Configuration</h3>
       <div className="flex flex-col gap-4">
-        <ModuleSection buttons={['RENAME']} activeButton={activeModule} />
-        <ModuleSection buttons={module1Buttons} activeButton={activeModule} />
-        <ModuleSection title="Module 1 - Quality Control" buttons={qualityControlButtons} activeButton={activeModule} />
-        <ModuleSection title="Module 2 - Log Interpretation" buttons={logInterpretationButtons} activeButton={activeModule} />
-        <ModuleSection title="Module 3 - Gas Oil Water Scanner (GOWS)" buttons={gowsButtons} activeButton={activeModule} />
+        <ModuleSection buttons={['RENAME']} activeButton={activeButton} />
+        <ModuleSection buttons={module1Buttons} activeButton={activeButton} />
+        <ModuleSection title="Module 1 - Quality Control" buttons={qualityControlButtons} activeButton={activeButton} />
+        <ModuleSection title="Module 2 - Log Interpretation" buttons={logInterpretationButtons} activeButton={activeButton} />
+        <ModuleSection title="Module 3 - Gas Oil Water Scanner (GOWS)" buttons={gowsButtons} activeButton={activeButton} />
       </div>
     </aside>
   );
 };
+
+export default RightSidebar;
+
