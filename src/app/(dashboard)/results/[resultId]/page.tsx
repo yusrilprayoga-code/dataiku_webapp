@@ -13,7 +13,6 @@ const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 export default function ResultPage() {
   const router = useRouter();
   const params = useParams();
-  // FIX: Select the specific piece of state needed.
   const normalizationResults = useAppDataStore((state) => state.normalizationResults);
   
   const resultId = params.resultId as string;

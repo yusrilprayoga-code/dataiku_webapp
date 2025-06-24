@@ -10,7 +10,6 @@ export default function DashboardHomePage() {
   const {
     selectedWell,
     plotData,
-    plotLayout,
     isLoadingPlot,
     plotError,
     fetchPlotData,
@@ -35,5 +34,5 @@ export default function DashboardHomePage() {
     return <p>No plot data available. Please select a well.</p>;
   }
 
-  return <WellLogPlot data={plotData} layout={plotLayout} />;
+  return <WellLogPlot />;
 }

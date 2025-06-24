@@ -1,23 +1,51 @@
-// src/contexts/DashboardContext.tsx
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 
-'use client';
-
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+export type PlotType = 'default' | 'normalization';
 
 interface DashboardContextType {
-  selectedWell: string | null;
-  setSelectedWell: (well: string) => void;
+  availableWells: string[];
+  selectedWells: string[];  
+  toggleWellSelection: (well: string) => void; 
   selectedIntervals: string[];
   toggleInterval: (interval: string) => void;
+  plotType: PlotType;
+  setPlotType: (type: PlotType) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
-  const [selectedWell, setSelectedWell] = useState<string>('ABAB-035');
+  const [availableWells, setAvailableWells] = useState<string[]>([]);
+  const [selectedWells, setSelectedWells] = useState<string[]>(['ABB-035']);
   const [selectedIntervals, setSelectedIntervals] = useState<string[]>(['B1', 'GUF']);
+  const [plotType, setPlotType] = useState<PlotType>('default');
 
-  // Fungsi untuk menambah/menghapus interval dari daftar yang dipilih
+    useEffect(() => {
+    const fetchWells = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/api/list-wells');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setAvailableWells(data);
+          // Secara otomatis pilih sumur pertama sebagai default jika ada
+          if (data.length > 0 && selectedWells.length === 0) {
+            setSelectedWells([data[0]]);
+          }
+        }
+      } catch (error) {
+        console.error("Gagal mengambil daftar sumur:", error);
+      }
+    };
+    fetchWells();
+  }, [selectedWells.length]);
+
+  const toggleWellSelection = (well: string) => {
+    setSelectedWells(prev =>
+      prev.includes(well) ? prev.filter(w => w !== well) : [...prev, well]
+    );
+  };
+  
   const toggleInterval = (interval: string) => {
     setSelectedIntervals(prev =>
       prev.includes(interval)
@@ -26,7 +54,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  const value = { selectedWell, setSelectedWell, selectedIntervals, toggleInterval };
+  const value = { availableWells, selectedWells, toggleWellSelection, selectedIntervals, toggleInterval, plotType, setPlotType };
 
   return (
     <DashboardContext.Provider value={value}>
