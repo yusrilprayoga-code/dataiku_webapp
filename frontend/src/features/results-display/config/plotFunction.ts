@@ -761,8 +761,13 @@ export function plotFourFeaturesSimple(
 ): PlotterResult & { counter: number } {
   const { logScale = false, domain } = options;
 
+<<<<<<< HEAD:src/config/plotFunction.ts
+  const dataBuilder = [...existingData]; // Use const
+  const layoutBuilder = { ...existingLayout }; // Use const
+=======
   const dataBuilder = [...existingData];
   const layoutBuilder = { ...existingLayout };
+>>>>>>> ce5384eda6d70379fb3ae23a31bd3e9391833c32:frontend/src/features/results-display/config/plotFunction.ts
 
   // Loop untuk membuat 4 trace dan 4 axis layout
   for (let i = 0; i < 4; i++) {
@@ -807,8 +812,12 @@ export function plotFourFeaturesSimple(
       // Konfigurasi untuk sumbu overlay
       axisConfig = {
         side: 'top',
+<<<<<<< HEAD:src/config/plotFunction.ts
+        overlaying: `x${nSeq}`, // Remove as any, let TS infer
+=======
         // RE-INTRODUCE 'as any' here
         overlaying: `x${nSeq}` as any, // This tells TypeScript to trust that this string will be a valid axis ID
+>>>>>>> ce5384eda6d70379fb3ae23a31bd3e9391833c32:frontend/src/features/results-display/config/plotFunction.ts
       };
     }
 
@@ -820,13 +829,21 @@ export function plotFourFeaturesSimple(
       axisConfig.range = range;
     }
 
+<<<<<<< HEAD:src/config/plotFunction.ts
+    (layoutBuilder as any)[xaxisId] = axisConfig; // Keep as any for direct assignment
+=======
     (layoutBuilder as any)[xaxisId] = axisConfig;
+>>>>>>> ce5384eda6d70379fb3ae23a31bd3e9391833c32:frontend/src/features/results-display/config/plotFunction.ts
   }
 
   // Update counter dengan jumlah sumbu overlay yang ditambahkan (3)
   const finalCounter = counter + 3;
 
+<<<<<<< HEAD:src/config/plotFunction.ts
+  return { data: dataBuilder, layout: (layoutBuilder as any), counter: finalCounter }; // Keep as any for return
+=======
   return { data: dataBuilder, layout: (layoutBuilder as any), counter: finalCounter };
+>>>>>>> ce5384eda6d70379fb3ae23a31bd3e9391833c32:frontend/src/features/results-display/config/plotFunction.ts
 }
 
 /**

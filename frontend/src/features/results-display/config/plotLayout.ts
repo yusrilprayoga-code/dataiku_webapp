@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type Layout } from 'plotly.js';
 import { type LogDataRow } from '@/types';
+<<<<<<< HEAD:src/config/plotLayout.ts
+import { rangeCol, DEPTH_COL, colorCol, dataCol, unitCol } from '@/config/plotConfig'; // Sesuaikan path jika perlu
+=======
 import { rangeCol, DEPTH_COL, colorCol, dataCol, unitCol } from '@/features/results-display/config/plotConfig'; // Sesuaikan path jika perlu
+>>>>>>> ce5384eda6d70379fb3ae23a31bd3e9391833c32:frontend/src/features/results-display/config/plotLayout.ts
 
 // Definisikan tipe untuk peta sumbu agar konsisten
 type AxesMap = Record<string, string[]>;
