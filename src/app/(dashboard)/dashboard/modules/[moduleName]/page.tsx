@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import NormalizationParamsForm from '@/components/forms/NormalizationParams';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { type ParameterRow } from '@/types';
+import DepthMatchingPage from '@/features/depth-matching/page';
 
 // Placeholder component for demonstration purposes
 const SmoothingParamsForm = () => (
@@ -55,6 +56,8 @@ export default function ModulePage(props: any) {
 
   const renderParameterForm = () => {
     switch (moduleName) {
+      case 'depth-matching':
+        return <DepthMatchingPage />;
       case 'normalization':
         return <NormalizationParamsForm/>;
       case 'smoothing':

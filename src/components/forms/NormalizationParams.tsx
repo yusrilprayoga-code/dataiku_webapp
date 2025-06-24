@@ -193,12 +193,12 @@ export default function NormalizationParams() {
                     <tr key={param.id} className={`border-b border-gray-200 ${param.isEnabled ? getRowBgColor(param.location, param.mode) : 'bg-gray-100 text-gray-400'}`}>
                       
                       {/* Kolom statis (ID, Location, dll.) tidak berubah */}
-                      <td className="px-3 py-2 border-r text-center">{param.id}</td>
-                      <td className="px-3 py-2 border-r whitespace-nowrap">{param.location}</td>
-                      <td className="px-3 py-2 border-r whitespace-nowrap">{param.mode}</td>
-                      <td className="px-3 py-2 border-r whitespace-normal max-w-xs">{param.comment}</td>
-                      <td className="px-3 py-2 border-r whitespace-nowrap">{param.unit}</td>
-                      <td className="px-3 py-2 border-r font-semibold whitespace-nowrap">{param.name}</td>
+                      <td className="px-3 py-2 border-r text-center text-sm">{param.id}</td>
+                      <td className="px-3 py-2 border-r whitespace-nowrap text-sm">{param.location}</td>
+                      <td className="px-3 py-2 border-r whitespace-nowrap text-sm">{param.mode}</td>
+                      <td className="px-3 py-2 border-r whitespace-normal max-w-xs text-sm">{param.comment}</td>
+                      <td className="px-3 py-2 border-r whitespace-nowrap text-sm">{param.unit}</td>
+                      <td className="px-3 py-2 border-r font-semibold whitespace-nowrap text-sm">{param.name}</td>
                       
                       {/* Kolom 'P' untuk Checkbox */}
                       <td className="px-3 py-2 border-r text-center">
