@@ -1,0 +1,25 @@
+[33mb0d8fde[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{0}: commit: updated readme md
+[33mc7ea076[m HEAD@{1}: commit: updated readme md
+[33m9ca919c[m HEAD@{2}: commit: updated readme md
+[33m1be9c36[m HEAD@{3}: commit: updated readme md
+[33m53307b7[m HEAD@{4}: commit: updated readme md
+[33m8b82e0d[m HEAD@{5}: commit: done structure up to well data display on homepage
+[33mdd89039[m HEAD@{6}: commit: done structure up to well data display on homepage
+[33m1ee377c[m HEAD@{7}: commit: updated structure fix up to DATA UPLOAD
+[33m1c29ea3[m HEAD@{8}: commit: updated router for deploy
+[33m361680b[m HEAD@{9}: commit: updated router for deploy
+[33m285f1e3[m HEAD@{10}: commit: updated router for deploy
+[33md070fb7[m HEAD@{11}: commit: updated text no uploaded
+[33m5c4abc8[m HEAD@{12}: commit: edited readme into indonesian
+[33m0314c64[m HEAD@{13}: commit: edited readme into indonesian
+[33m692672a[m HEAD@{14}: commit: edited readme into indonesian
+[33m168746a[m HEAD@{15}: commit: updated req.txt and vercel.json
+[33m5979420[m HEAD@{16}: commit: updated req for vercel and readme
+[33me615148[m HEAD@{17}: commit: updated package json
+[33m360214d[m HEAD@{18}: commit: next.config.ts update
+[33m41688fc[m HEAD@{19}: commit: fixed module not found error
+[33mde2cdef[m HEAD@{20}: commit: fixed module not found error
+[33ma327dad[m HEAD@{21}: commit: edited vercel.json
+[33mf79857e[m HEAD@{22}: commit: edited vercel.json
+[33m44e59b7[m HEAD@{23}: commit: edited vercel.json
+[33md102749[m HEAD@{24}: commit: updated api and fe also features folder

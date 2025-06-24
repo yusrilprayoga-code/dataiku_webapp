@@ -36,13 +36,26 @@ yarn-error.log*
 # vercel
 .vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Next.js build output
+frontend/out
+frontend/.next
 
-# Folder Virtual Environment Python
-.venv/
+# Dependencies
+frontend/node_modules
+node_modules
 
-# File Environment Lokal
-.env.local
-.env.*.local
+# Python artifacts
+api/__pycache__
+api/venv
+__pycache__/
+*.pyc
+
+# Local environment variables
+.env
+.env*
+*.env.local
+
+# macOS & Windows
+.DS_Store
+Thumbs.db
+>>>>>>> ce5384eda6d70379fb3ae23a31bd3e9391833c32
