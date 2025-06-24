@@ -55,6 +55,9 @@ __pycache__/
 .env*
 *.env.local
 
+# .venv files
+.venv
+
 # macOS & Windows
 .DS_Store
 Thumbs.db

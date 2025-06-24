@@ -2559,7 +2559,7 @@ def plot_log_default(df, df_marker, df_well_marker):
         plot_bgcolor='white',
         showlegend=False,
         hovermode='y unified', hoverdistance=-1,
-        title_text="Well Log ABB-036",
+        title_text="Well Log Selected",
         title_x=0.5,
         modebar_remove=['lasso', 'autoscale', 'zoom',
                         'zoomin', 'zoomout', 'pan', 'select']
@@ -2573,33 +2573,6 @@ def plot_log_default(df, df_marker, df_well_marker):
 
     fig = layout_axis(fig, axes, ratio_plots_seq, plot_sequence)
     return fig
-
-
-def min_max_normalize(log_in,
-                      calib_min=40, calib_max=140,
-                      pct_min=3, pct_max=97,
-                      cutoff_min=0, cutoff_max=250):
-    """
-    Geolog-style MIN-MAX normalization using percentiles
-    """
-    log = np.array(log_in, dtype=float)
-
-    if cutoff_min is not None:
-        log[log < cutoff_min] = np.nan
-    if cutoff_max is not None:
-        log[log > cutoff_max] = np.nan
-
-    min_pnt = np.nanpercentile(log, pct_min)
-    max_pnt = np.nanpercentile(log, pct_max)
-
-    # Hindari pembagian dengan nol jika semua data sama
-    if max_pnt == min_pnt:
-        return np.full_like(log, calib_min)
-
-    m = (calib_max - calib_min) / (max_pnt - min_pnt)
-    log_out = calib_min + m * (log - min_pnt)
-
-    return log_out
 
 
 def plot_normalization(df, df_marker, df_well_marker):
