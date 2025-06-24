@@ -6,7 +6,7 @@
 import React, { useState, ChangeEvent } from 'react';
 import JSZip from 'jszip';
 
-import { ParsedSubFile, FileData, ProcessedFileDataForDisplay, StagedStructure} from '../types';
+import { ParsedSubFile, FileData, ProcessedFileDataForDisplay, StagedStructure } from '../types';
 import { readFileContent, readFileAsArrayBuffer } from '../utils/fileUtils';
 import { parseLASFile, parseCSVFile, parseXLSXFileWithSheetJS } from '../utils/fileParser';
 import FileList from './FileList';
@@ -107,7 +107,7 @@ export default function FileUploadViewer() {
     setStagedStructure(newStructureForNextPage);
 
     setMessage('');
-    router.push('/data-input'); // Or your next page
+    router.push('/data-input');
   };
 
   const processZipFile = async (
@@ -128,7 +128,7 @@ export default function FileUploadViewer() {
         structuresMap.set(structureName, { lasFiles: [], csvFiles: [] });
       }
       const currentStructure = structuresMap.get(structureName)!;
-      const fileId = `${structureName}_${fileNameInStructure}_${Date.now()}_${Math.random().toString(36).substring(2,7)}`;
+      const fileId = `${structureName}_${fileNameInStructure}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
       if (fileNameInStructure.toLowerCase().endsWith('.las')) {
         const promise = zipEntry.async('string').then(rawLasContent => {
@@ -159,24 +159,24 @@ export default function FileUploadViewer() {
     for (const [structureNameFromMap, files] of structuresMap.entries()) {
       if (files.lasFiles.length > 0 || files.csvFiles.length > 0) {
         resultStructures.push({
-          id: `${originalZipFile.name}_${structureNameFromMap}_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
+          id: `${originalZipFile.name}_${structureNameFromMap}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
           name: structureNameFromMap === "_ROOT_FILES_IN_ZIP_" ? `${originalZipFile.name} (Root Files)` : structureNameFromMap,
           originalZipName: originalZipFile.name,
           size: originalZipFile.size,
           originalFileType: originalZipFile.type,
           lastModified: originalZipFile.lastModified,
           isStructureFromZip: true,
-          lasFiles: files.lasFiles.sort((a,b) => a.name.localeCompare(b.name)),
-          csvFiles: files.csvFiles.sort((a,b) => a.name.localeCompare(b.name)),
+          lasFiles: files.lasFiles.sort((a, b) => a.name.localeCompare(b.name)),
+          csvFiles: files.csvFiles.sort((a, b) => a.name.localeCompare(b.name)),
           content: [], headers: [],
         });
       }
     }
-    resultStructures.sort((a,b) => a.name.localeCompare(b.name));
+    resultStructures.sort((a, b) => a.name.localeCompare(b.name));
     return resultStructures;
   };
 
-   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
@@ -187,11 +187,11 @@ export default function FileUploadViewer() {
     for (const file of Array.from(files)) {
       try {
         const commonFileProps = {
-            id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-            name: file.name,
-            size: file.size,
-            originalFileType: file.type || 'application/octet-stream',
-            lastModified: file.lastModified,
+          id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+          name: file.name,
+          size: file.size,
+          originalFileType: file.type || 'application/octet-stream',
+          lastModified: file.lastModified,
         };
 
         if (file.name.toLowerCase().endsWith('.zip')) {
@@ -200,7 +200,7 @@ export default function FileUploadViewer() {
           if (structuresFromZip.length === 0) {
             setMessage(`Warning: ZIP file ${file.name} did not yield any structures with LAS/CSV files.`);
           }
-          const zipFileData = structuresFromZip.map(s => ({...s, rawFileContent: arrayBufferContent}));
+          const zipFileData = structuresFromZip.map(s => ({ ...s, rawFileContent: arrayBufferContent }));
           allNewFileDataItems.push(...zipFileData);
 
         } else {
@@ -231,7 +231,7 @@ export default function FileUploadViewer() {
             isStructureFromZip: false,
             content: parsedData.data.slice(0, 1000),
             headers: parsedData.headers,
-            rawFileContent: rawFileContentForSingleFile, 
+            rawFileContent: rawFileContentForSingleFile,
           });
         }
       } catch (error) {
@@ -248,11 +248,11 @@ export default function FileUploadViewer() {
       setMessage('No new files or structures were processed.');
     }
     setTimeout(() => {
-      if(message.startsWith('Successfully') || message.startsWith('No new files') || message.startsWith('Warning')) setMessage('');
+      if (message.startsWith('Successfully') || message.startsWith('No new files') || message.startsWith('Warning')) setMessage('');
     }, 5000);
     if (event.target) event.target.value = '';
   };
-  
+
   return (
     <div className="flex h-screen bg-gray-50">
       <FileList
@@ -267,7 +267,7 @@ export default function FileUploadViewer() {
         onFileSelect={setSelectedFile}
         onDeleteFile={(id) => {
           setUploadedFiles(prev => prev.filter(f => f.id !== id));
-          if(selectedFile?.id === id) setSelectedFile(null);
+          if (selectedFile?.id === id) setSelectedFile(null);
         }}
       />
       <FilePreview
