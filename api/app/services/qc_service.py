@@ -1,4 +1,5 @@
 # FILE 2: api/app/services/qc_service.py
+# (Ini adalah kode run_quality_control.py dan handle_nulls_script.py Anda yang digabungkan)
 import os
 import lasio
 import pandas as pd
@@ -51,7 +52,7 @@ def check_extreme_values(df, column):
         return mask.any()
     return False
 
-def run_quality_control(files_data: list, logger):
+def run_full_qc_pipeline(files_data: list, logger):
     """Fungsi utama dari qc_logic.py Anda, sekarang di dalam service."""
     qc_results = []
     output_files = {}

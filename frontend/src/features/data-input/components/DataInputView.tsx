@@ -1,4 +1,3 @@
-
 // FILE: src/features/data-input/components/DataInputView.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
@@ -9,9 +8,8 @@ import Papa from 'papaparse';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { QCResponse, PreviewableFile, ProcessedFileDataForDisplay, QCResult, QCStatus } from '@/types';
 import { FileTextIcon, Folder as FolderIcon, Inbox, CheckCircle, Loader2 } from 'lucide-react';
-import DataTablePreview from './DataTablePreview'; // FIX: Import the correct preview component
+import DataTablePreview from './DataTablePreview';
 
-// FIX: Renamed from DataInputUtamaPage to DataInputView
 export default function DataInputView() {
   const router = useRouter();
 
@@ -30,8 +28,6 @@ export default function DataInputView() {
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [selectedFileForPreview, setSelectedFileForPreview] = useState<PreviewableFile | null>(null);
   const [isQcRunning, setIsQcRunning] = useState(false);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [qcStatusMessage, setQcStatusMessage] = useState('');
 
   useEffect(() => {
@@ -119,10 +115,41 @@ export default function DataInputView() {
     router.push('/dashboard');
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const getStatusRowStyle = (status: QCStatus) => { /* ... */ };
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const getStatusBadgeStyle = (status: QCStatus) => { /* ... */ };
+  // UPDATED: This function now returns the correct CSS classes for row background colors
+  const getStatusRowStyle = (status: QCStatus): string => {
+    switch (status) {
+      case 'MISSING_LOGS':
+      case 'ERROR':
+        return 'bg-red-100 hover:bg-red-200';
+      case 'HAS_NULL':
+        return 'bg-yellow-100 hover:bg-yellow-200';
+      case 'EXTREME_VALUES':
+        return 'bg-orange-100 hover:bg-orange-200';
+      case 'PASS':
+        return 'hover:bg-green-50';
+      default:
+        return 'hover:bg-gray-50';
+    }
+  };
+
+  // UPDATED: This function now returns appropriate styles for the status badges
+  const getStatusBadgeStyle = (status: QCStatus): string => {
+    switch (status) {
+      case 'MISSING_LOGS':
+        return 'bg-red-100 text-red-800';
+      case 'HAS_NULL':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'EXTREME_VALUES':
+        return 'bg-orange-100 text-orange-800';
+      case 'PASS':
+        return 'bg-green-100 text-green-800';
+      case 'ERROR':
+        return 'bg-red-200 text-red-900 font-bold';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   const handleSelectInputFile = (file: ProcessedFileDataForDisplay) => { setSelectedFileId(file.id); setSelectedFileForPreview({ id: file.id, name: file.name, content: file.content, headers: file.headers, }); };
   const handleSelectHandledFile = (file: PreviewableFile) => { setSelectedFileId(file.id); setSelectedFileForPreview(file); };
   const handleSelectOutputFile = (result: QCResult) => { if (!qcResults) return; setSelectedFileId(result.well_name); const outputFilename = Object.keys(qcResults.output_files).find(name => name.startsWith(result.well_name)); if (outputFilename && qcResults.output_files[outputFilename]) { Papa.parse(qcResults.output_files[outputFilename], { header: true, skipEmptyLines: true, complete: (res) => setSelectedFileForPreview({ id: result.well_name, name: outputFilename, content: res.data, headers: res.meta.fields || [] }) }); } else { setSelectedFileForPreview({ id: result.well_name, name: `${result.well_name} (No file content)`, content: [], headers: ["Info"], }); } };
@@ -136,7 +163,6 @@ export default function DataInputView() {
     );
   }
 
-  // This is your full three-panel JSX, now correctly part of this component
   return (
     <div className="flex h-screen bg-gray-50 text-gray-800">
       {/* Panel 1: Folder Navigation & Actions */}
@@ -191,7 +217,7 @@ export default function DataInputView() {
             <table className="min-w-full text-sm">
               <thead className="bg-gray-200 sticky top-0"><tr><th className="px-4 py-2 text-left font-semibold text-gray-600">Well Name</th><th className="px-4 py-2 text-left font-semibold text-gray-600">Status</th><th className="px-4 py-2 text-left font-semibold text-gray-600">Details</th></tr></thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {qcResults.qc_summary.map((result) => (<tr key={result.well_name} onClick={() => handleSelectOutputFile(result)} className={`cursor-pointer ${getStatusRowStyle(result.status)} ${selectedFileId === result.well_name ? 'border-l-4 border-blue-500' : ''}`}><td className="px-4 py-2 font-medium text-black">{result.well_name}</td><td className="px-4 py-2"><span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusBadgeStyle(result.status)}`}>{result.status}</span></td><td className="px-4 py-2 text-black">{result.details}</td></tr>))}
+                {qcResults.qc_summary.map((result) => (<tr key={result.well_name} onClick={() => handleSelectOutputFile(result)} className={`cursor-pointer transition-colors ${getStatusRowStyle(result.status)} ${selectedFileId === result.well_name ? 'border-l-4 border-blue-500' : ''}`}><td className="px-4 py-2 font-medium text-black">{result.well_name}</td><td className="px-4 py-2"><span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusBadgeStyle(result.status)}`}>{result.status}</span></td><td className="px-4 py-2 text-black">{result.details}</td></tr>))}
               </tbody>
             </table>
           )}
