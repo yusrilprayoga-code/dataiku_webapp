@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 // FILE 1: frontend/src/features/quality-control/types.ts
 // Menyatukan semua tipe data yang relevan di sini untuk kerapian.
 
