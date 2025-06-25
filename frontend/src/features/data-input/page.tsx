@@ -1,5 +1,4 @@
 // app/data-input/page.tsx
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // "use client";
 
 // import React, { useState, useEffect } from 'react';
@@ -261,6 +260,10 @@
 //     </div>
 //   );
 // }
+
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 // app/data-input-utama/page.tsx
 'use client';
