@@ -11,3 +11,4 @@ __pycache__/
 *.pyc
 
 api/.venv
+frontend/node_modules
