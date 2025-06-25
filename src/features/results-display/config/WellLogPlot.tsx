@@ -29,9 +29,19 @@ const WellLogPlot: React.FC<WellLogPlotProps> = () => {
       setIsLoading(true);
       setError(null);
 
-      const endpoint = plotType === 'default' 
-        ? 'http://127.0.0.1:5001/api/get-plot' 
-        : 'http://127.0.0.1:5001/api/get-normalization-plot';
+            let endpoint = '';
+      switch (plotType) {
+        case 'normalization':
+          endpoint = 'http://127.0.0.1:5001/api/get-normalization-plot';
+          break;
+        case 'porosity':
+          endpoint = 'http://127.0.0.1:5001/api/get-porosity-plot';
+          break;
+        case 'default':
+        default: 
+          endpoint = 'http://127.0.0.1:5001/api/get-plot';
+          break;
+      }
       
       try {
         // FIX: Gunakan metode POST dan kirim `selectedWells`
