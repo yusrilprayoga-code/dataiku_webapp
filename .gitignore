@@ -62,3 +62,6 @@ __pycache__/
 .DS_Store
 Thumbs.db
 >>>>>>> ce5384eda6d70379fb3ae23a31bd3e9391833c32
+
+# vercel config
+.vercel
