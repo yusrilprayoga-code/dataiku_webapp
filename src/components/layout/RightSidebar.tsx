@@ -45,7 +45,7 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
 const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
 
   const module1Buttons: string[] = ['ADD PLOT', 'OPEN CROSS PLOT', 'TRIM DATA'];
-  const qualityControlButtons: string[] = ['FILL MISSING', 'SMOOTHING', 'NORMALIZATION'];
+  const qualityControlButtons: string[] = ['DEPTH MATCHING','FILL MISSING', 'SMOOTHING', 'NORMALIZATION'];
   const logInterpretationButtons: string[] = ['VSH CALCULATION', 'POROSITY CALCULATION', 'SW CALCULATION', 'WATER RESISTIVITY CALCULATION'];
   const gowsButtons: string[] = ['RGSA-NGSA-DGSA', 'RPBE-ROBE', 'SWORAD', 'DNS-DNSV', 'GWD'];
 
@@ -55,9 +55,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
       <div className="flex flex-col gap-4">
         <ModuleSection buttons={['RENAME']} activeButton={activeButton} />
         <ModuleSection buttons={module1Buttons} activeButton={activeButton} />
-        <ModuleSection title="Module 1 - Quality Control" buttons={qualityControlButtons} activeButton={activeButton} />
-        <ModuleSection title="Module 2 - Log Interpretation" buttons={logInterpretationButtons} activeButton={activeButton} />
-        <ModuleSection title="Module 3 - Gas Oil Water Scanner (GOWS)" buttons={gowsButtons} activeButton={activeButton} />
+        <ModuleSection title="Preparation" buttons={qualityControlButtons} activeButton={activeButton} />
+        <ModuleSection title="Interpretation" buttons={logInterpretationButtons} activeButton={activeButton} />
+        <ModuleSection title="Gas Oil Water Scanner (GOWS)" buttons={gowsButtons} activeButton={activeButton} />
       </div>
     </aside>
   );
