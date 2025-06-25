@@ -1,6 +1,6 @@
 # /api/app.py
 from flask import Flask, request, jsonify, Response
-from app.services.qc_service import run_quality_control
+from app.services.qc_service import run_full_qc_pipeline
 from app.services.data_processing import handle_null_values, min_max_normalize
 import logging
 import os
@@ -45,7 +45,7 @@ def qc_route():
             return jsonify({"error": "Invalid input: 'files' key with a list of file objects is required."}), 400
 
         # Call the refactored logic, passing the app's logger
-        results = run_quality_control(files_data, app.logger)
+        results = run_full_qc_pipeline(files_data, app.logger)
 
         return jsonify(results)
 
