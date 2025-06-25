@@ -2,6 +2,7 @@
 from flask import Flask, request, jsonify, Response
 from app.services.qc_service import run_quality_control
 from app.services.data_processing import handle_null_values, min_max_normalize
+from app.services.vsh_calculation import calculate_vsh_from_gr
 import logging
 import os
 from flask_cors import CORS
@@ -11,8 +12,10 @@ from app.services.plotting_service import (
     extract_markers_with_mean_depth,
     normalize_xover,
     plot_log_default,
-    plot_normalization
+    plot_normalization,
+    plot_phie_den
 )
+from app.services.porosity import calculate_porosity
 from app.services.depth_matching import depth_matching, plot_depth_matching_results
 
 app = Flask(__name__)
@@ -342,6 +345,148 @@ def run_depth_matching_endpoint():
             )
 
             # 3. Kirim plot yang sudah jadi sebagai JSON
+            return jsonify(fig_result.to_json())
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/run-vsh-calculation', methods=['POST', 'OPTIONS'])
+def run_vsh_calculation():
+    """
+    Endpoint untuk menjalankan kalkulasi VSH berdasarkan parameter dari frontend,
+    dan menyimpan hasilnya kembali ke file CSV.
+    """
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+
+    if request.method == 'POST':
+        try:
+            payload = request.get_json()
+            params = payload.get('params', {})
+            selected_wells = payload.get('selected_wells', [])
+
+            if not selected_wells:
+                return jsonify({"error": "Tidak ada sumur yang dipilih."}), 400
+
+            print(
+                f"Memulai kalkulasi VSH untuk {len(selected_wells)} sumur...")
+
+            # Ekstrak parameter dari frontend, dengan nilai default
+            gr_ma = float(params.get('gr_ma', 30))
+            gr_sh = float(params.get('gr_sh', 120))
+            input_log = params.get('input_log', 'GR')
+            output_log = params.get('output_log', 'VSH_GR')
+
+            # Loop melalui setiap sumur yang dipilih
+            for well_name in selected_wells:
+                file_path = os.path.join(
+                    WELLS_DIR, f"{well_name}.csv")
+
+                if not os.path.exists(file_path):
+                    print(
+                        f"Peringatan: Melewatkan sumur {well_name}, file tidak ditemukan.")
+                    continue
+
+                # Baca data sumur
+                df_well = pd.read_csv(file_path)
+
+                # Panggil fungsi logika untuk menghitung VSH
+                df_updated = calculate_vsh_from_gr(
+                    df_well, input_log, gr_ma, gr_sh, output_log)
+
+                # Simpan (overwrite) file CSV dengan data yang sudah diperbarui
+                df_updated.to_csv(file_path, index=False)
+                print(f"Hasil VSH untuk sumur '{well_name}' telah disimpan.")
+
+            return jsonify({"message": f"Kalkulasi VSH berhasil untuk {len(selected_wells)} sumur."})
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/run-porosity-calculation', methods=['POST', 'OPTIONS'])
+def run_porosity_calculation():
+    """
+    Endpoint untuk menjalankan kalkulasi Porositas dan menyimpan hasilnya.
+    """
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+
+    if request.method == 'POST':
+        try:
+            payload = request.get_json()
+            params = payload.get('params', {})
+            selected_wells = payload.get('selected_wells', [])
+
+            if not selected_wells:
+                return jsonify({"error": "Tidak ada sumur yang dipilih."}), 400
+
+            # Loop melalui setiap sumur yang dipilih
+            for well_name in selected_wells:
+                file_path = os.path.join(
+                    WELLS_DIR, f"{well_name}.csv")
+                if not os.path.exists(file_path):
+                    continue
+
+                df_well = pd.read_csv(file_path)
+
+                # Panggil fungsi logika untuk menghitung Porositas
+                df_updated = calculate_porosity(df_well, params)
+
+                # Simpan (overwrite) file CSV dengan data yang sudah diperbarui
+                df_updated.to_csv(file_path, index=False)
+                print(
+                    f"Hasil Porositas untuk sumur '{well_name}' telah disimpan.")
+
+            return jsonify({"message": f"Kalkulasi Porositas berhasil untuk {len(selected_wells)} sumur."})
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/get-porosity-plot', methods=['POST', 'OPTIONS'])
+def get_porosity_plot():
+    """
+    Endpoint untuk membuat dan menampilkan plot hasil kalkulasi porositas.
+    """
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+
+    if request.method == 'POST':
+        try:
+            request_data = request.get_json()
+            selected_wells = request_data.get('selected_wells', [])
+
+            if not selected_wells:
+                return jsonify({"error": "Tidak ada sumur yang dipilih."}), 400
+
+            # Baca dan gabungkan data dari sumur yang dipilih
+            df_list = [pd.read_csv(os.path.join(
+                WELLS_DIR, f"{well}.csv")) for well in selected_wells]
+            df = pd.concat(df_list, ignore_index=True)
+
+            # Validasi: Pastikan kolom hasil kalkulasi sebelumnya (VSH, PHIE) sudah ada
+            required_cols = ['VSH', 'PHIE', 'PHIT',
+                             'PHIE_DEN', 'PHIT_DEN', 'RESERVOIR_CLASS']
+            if not all(col in df.columns for col in required_cols):
+                return jsonify({"error": "Data belum lengkap. Jalankan kalkulasi VSH dan Porosity terlebih dahulu."}), 400
+
+            df_marker_info = extract_markers_with_mean_depth(df)
+
+            # Panggil fungsi plotting yang baru
+            fig_result = plot_phie_den(
+                df=df,
+                df_marker=df_marker_info,
+                df_well_marker=df
+            )
+
             return jsonify(fig_result.to_json())
 
         except Exception as e:

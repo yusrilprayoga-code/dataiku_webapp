@@ -2644,3 +2644,65 @@ def plot_normalization(df, df_marker, df_well_marker):
     print(axes)
 
     return fig
+
+
+def plot_phie_den(df, df_marker, df_well_marker):
+    """
+    Membuat plot multi-panel untuk visualisasi hasil kalkulasi Porositas.
+    """
+    # FIX: Urutan plot disesuaikan dan RESERVOIR_CLASS dihapus
+    sequence = ['MARKER', 'GR', 'RHOB',
+                'PHIE_DEN', 'PHIT_DEN', 'RESERVOIR_CLASS']
+    plot_sequence = {i+1: v for i, v in enumerate(sequence)}
+
+    ratio_plots_seq = [ratio_plots.get(key, 1)
+                       for key in plot_sequence.values()]
+    subplot_col = len(plot_sequence)
+
+    fig = make_subplots(
+        rows=1, cols=subplot_col,
+        shared_yaxes=True,
+        column_widths=ratio_plots_seq,
+        horizontal_spacing=0.01
+    )
+
+    counter = 0
+    axes = {key: [] for key in plot_sequence.values()}
+
+    # Loop untuk memanggil plotter yang sesuai
+    for n_seq, key in plot_sequence.items():
+        if key == 'MARKER':
+            fig, axes = plot_flag(df_well_marker, fig, axes, key, n_seq)
+            fig, axes = plot_texts_marker(
+                df_marker, df_well_marker['DEPTH'].max(), fig, axes, key, n_seq)
+        elif key in ['GR', 'RHOB']:
+            fig, axes = plot_line(
+                df, fig, axes, base_key=key, n_seq=n_seq, col=key, label=key)
+        elif key in ['PHIE_DEN', 'PHIT_DEN']:
+            fig, axes, counter = plot_two_features_simple(
+                df, fig, axes, key, n_seq, counter, n_plots=subplot_col)
+        elif key == 'RESERVOIR_CLASS':
+            fig, axes = plot_flag(df, fig, axes, key, n_seq)
+
+    # Panggil fungsi-fungsi layout akhir
+    fig = layout_range_all_axis(fig, axes, plot_sequence)
+    fig = layout_draw_lines(fig, ratio_plots_seq, df,
+                            xgrid_intv=50)  # Memberi grid interval 50
+    fig = layout_axis(fig, axes, ratio_plots_seq, plot_sequence)
+
+    # Atur layout global
+    fig.update_layout(
+        margin=dict(l=40, r=20, t=80, b=40),
+        height=1600,
+        paper_bgcolor='white',
+        plot_bgcolor='white',
+        showlegend=False,
+        hovermode='y unified',
+        title_text="Porosity from Density (RHOB)",
+        title_x=0.5,
+    )
+    fig.update_yaxes(autorange='reversed', range=[
+                     df[depth].max(), df[depth].min()])
+    fig.update_traces(yaxis='y')
+
+    return fig
