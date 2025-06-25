@@ -1,4 +1,5 @@
 // FILE 2: frontend/src/features/quality-control/QcRunner.tsx
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { useAppDataStore } from '@/stores/useAppDataStore';

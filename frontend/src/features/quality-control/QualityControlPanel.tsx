@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 // FILE 2: frontend/src/features/quality-control/QualityControlPanel.tsx
 // Ini adalah FileUploadViewer.tsx Anda yang sudah ditingkatkan dengan logika QC
 'use client';
