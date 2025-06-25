@@ -1,10 +1,10 @@
 // app/your-route/page.tsx
-import FileUploadViewer from '../features/file_upload/components/FileUploadViewer'; 
+import FileUploadViewer from '../features/file_upload/page';
 
 export default function MyDataViewerPage() {
   return (
     <main>
-      <FileUploadViewer/>
+      <FileUploadViewer />
     </main>
   );
 }
