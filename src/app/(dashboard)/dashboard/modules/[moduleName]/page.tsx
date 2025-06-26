@@ -9,6 +9,8 @@ import NormalizationParamsForm from '@/components/forms/NormalizationParams';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { type ParameterRow } from '@/types';
 import DepthMatchingPage from '@/features/depth-matching/page';
+import VshCalculationParams from '@/components/forms/VshCalculationParams';
+import PorosityCalculationParams from '@/components/forms/PorosityCalculationParams';
 
 // Placeholder component for demonstration purposes
 const SmoothingParamsForm = () => (
@@ -62,6 +64,10 @@ export default function ModulePage(props: any) {
         return <NormalizationParamsForm/>;
       case 'smoothing':
         return <SmoothingParamsForm />;
+      case 'vsh-calculation':
+        return <VshCalculationParams />;
+      case 'porosity-calculation':
+        return <PorosityCalculationParams />;
       default:
         return (
           <div className="p-4 border rounded-lg bg-red-50 text-red-700">

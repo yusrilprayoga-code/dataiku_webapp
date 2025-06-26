@@ -74,7 +74,7 @@ export interface LogDataRow {
 export interface ParameterRow {
   id: number;
   location: 'Parameter' | 'Interval' | 'Constant' | 'Log' | 'Output';
-  mode: 'Input' | 'Output';
+  mode: 'Input' | 'Output' | 'In_Out';
   comment: string;
   unit: string;
   name: string;
