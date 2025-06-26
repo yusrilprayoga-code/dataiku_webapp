@@ -493,8 +493,3 @@ def get_porosity_plot():
             import traceback
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
-
-
-# This is for local development testing, Vercel will use its own server
-if __name__ == '__main__':
-    app.run(debug=True, port=5001)
