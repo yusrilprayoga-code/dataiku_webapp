@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "frontend/next.config.js",
+      "src": "frontend/next.config.ts",
       "use": "@vercel/next",
       "config": {
         "distDir": "frontend/.next"
