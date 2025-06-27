@@ -2715,6 +2715,18 @@ def plot_gsa_main(df_well):
     # Lakukan pra-pemrosesan data yang diperlukan untuk plot ini
     df_well = normalize_xover(df_well, 'NPHI', 'RHOB')
     df_well = normalize_xover(df_well, 'RT', 'RHOB')
+    df_well = normalize_xover(df_well, 'RT', 'RGSA')
+    df_well = normalize_xover(df_well, 'NPHI', 'NGSA')
+    df_well = normalize_xover(df_well, 'RHOB', 'DGSA')
+
+    zona_mapping = {
+        'Zona Prospek Kuat': 3,
+        'Zona Menarik': 2,
+        'Zona Lemah': 1,
+        'Non Prospek': 0
+    }
+
+    df_well['ZONA'] = df_well['ZONA'].map(zona_mapping)
     df_marker = extract_markers_with_mean_depth(df_well)
     df_well_marker = df_well.copy()
 
@@ -2749,7 +2761,6 @@ def plot_gsa_main(df_well):
             fig, axes, counter = plot_xover_log_normal(
                 df_well, fig, axes, key, n_seq, counter, subplot_col)
         elif key in ['RT_RGSA', 'NPHI_NGSA', 'RHOB_DGSA']:
-            # Asumsi plot_gsa_crossover sudah ada
             fig, axes, counter = plot_gsa_crossover(
                 df_well, fig, axes, key, n_seq, counter, subplot_col)
         elif key == 'ZONA':
@@ -2765,7 +2776,9 @@ def plot_gsa_main(df_well):
         yaxis=dict(autorange='reversed', range=[
                    df_well[depth].max(), df_well[depth].min()]),
         hovermode='y unified',
-        template='plotly_white'
+        template='plotly_white',
+        showlegend=False,
+        height=1600,
     )
 
     return fig

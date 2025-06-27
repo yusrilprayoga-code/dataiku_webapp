@@ -525,6 +525,33 @@ def run_gsa_calculation():
                 df_ngsa = process_all_wells_ngsa(df_rgsa, params)
                 df_dgsa = process_all_wells_dgsa(df_ngsa, params)
 
+                # Validasi kolom penting
+                required_cols = ['GR', 'RT', 'NPHI',
+                                 'RHOB', 'RGSA', 'NGSA', 'DGSA']
+                df_dgsa = df_dgsa.dropna(subset=required_cols)
+
+                # Hitung anomali
+                df_dgsa['RGSA_ANOM'] = df_dgsa['RT'] > df_dgsa['RGSA']
+                df_dgsa['NGSA_ANOM'] = df_dgsa['NPHI'] < df_dgsa['NGSA']
+                df_dgsa['DGSA_ANOM'] = df_dgsa['RHOB'] < df_dgsa['DGSA']
+
+                # Skoring
+                df_dgsa['SCORE'] = df_dgsa[['RGSA_ANOM',
+                                            'NGSA_ANOM', 'DGSA_ANOM']].sum(axis=1)
+
+                # Klasifikasi zona
+                def classify_zone(score):
+                    if score == 3:
+                        return 'Zona Prospek Kuat'
+                    elif score == 2:
+                        return 'Zona Menarik'
+                    elif score == 1:
+                        return 'Zona Lemah'
+                    else:
+                        return 'Non Prospek'
+
+                df_dgsa['ZONA'] = df_dgsa['SCORE'].apply(classify_zone)
+
                 # Simpan kembali file CSV dengan kolom GSA baru
                 df_dgsa.to_csv(file_path, index=False)
                 print(f"Hasil GSA untuk sumur '{well_name}' telah disimpan.")
