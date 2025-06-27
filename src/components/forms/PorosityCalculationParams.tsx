@@ -82,6 +82,7 @@ export default function PorosityCalculationParams() {
     const payload = {
       params: formParams,
       selected_wells: selectedWells,
+      selected_intervals: selectedIntervals
     };
     
     try {
