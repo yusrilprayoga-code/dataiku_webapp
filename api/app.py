@@ -8,15 +8,21 @@ import os
 from flask_cors import CORS
 import pandas as pd
 import numpy as np
+from typing import Optional
 from app.services.plotting_service import (
     extract_markers_with_mean_depth,
     normalize_xover,
+    plot_gsa_main,
     plot_log_default,
     plot_normalization,
-    plot_phie_den
+    plot_phie_den,
+    plot_gsa_main
 )
 from app.services.porosity import calculate_porosity
 from app.services.depth_matching import depth_matching, plot_depth_matching_results
+from app.services.rgsa import process_all_wells_rgsa
+from app.services.dgsa import process_all_wells_dgsa
+from app.services.ngsa import process_all_wells_ngsa
 
 app = Flask(__name__)
 
@@ -486,6 +492,70 @@ def get_porosity_plot():
                 df_marker=df_marker_info,
                 df_well_marker=df
             )
+
+            return jsonify(fig_result.to_json())
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/run-gsa-calculation', methods=['POST', 'OPTIONS'])
+def run_gsa_calculation():
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+    if request.method == 'POST':
+        try:
+            payload = request.get_json()
+            params = payload.get('params', {})
+            selected_wells = payload.get('selected_wells', [])
+
+            if not selected_wells:
+                return jsonify({"error": "Tidak ada sumur yang dipilih."}), 400
+
+            for well_name in selected_wells:
+                file_path = os.path.join(
+                    WELLS_DIR, f"{well_name}.csv")
+
+                df_well = pd.read_csv(file_path)
+
+                # Panggil fungsi orkestrator GSA
+                df_rgsa = process_all_wells_rgsa(df_well, params)
+                df_ngsa = process_all_wells_ngsa(df_rgsa, params)
+                df_dgsa = process_all_wells_dgsa(df_ngsa, params)
+
+                # Simpan kembali file CSV dengan kolom GSA baru
+                df_dgsa.to_csv(file_path, index=False)
+                print(f"Hasil GSA untuk sumur '{well_name}' telah disimpan.")
+
+            return jsonify({"message": f"Kalkulasi GSA berhasil untuk {len(selected_wells)} sumur."}), 200
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/get-gsa-plot', methods=['POST', 'OPTIONS'])
+def get_gsa_plot():
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+    if request.method == 'POST':
+        try:
+            request_data = request.get_json()
+            selected_wells = request_data.get('selected_wells', [])
+
+            if not selected_wells:
+                return jsonify({"error": "Tidak ada sumur yang dipilih."}), 400
+
+            # Baca dan gabungkan data dari sumur yang dipilih
+            df_list = [pd.read_csv(os.path.join(
+                WELLS_DIR, f"{well}.csv")) for well in selected_wells]
+            df = pd.concat(df_list, ignore_index=True)
+
+            # Panggil fungsi plotting GSA yang baru
+            fig_result = plot_gsa_main(df)
 
             return jsonify(fig_result.to_json())
 

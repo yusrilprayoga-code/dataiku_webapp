@@ -11,6 +11,7 @@ import { type ParameterRow } from '@/types';
 import DepthMatchingPage from '@/features/depth-matching/page';
 import VshCalculationParams from '@/components/forms/VshCalculationParams';
 import PorosityCalculationParams from '@/components/forms/PorosityCalculationParams';
+import GsaCalculationParams from '@/components/forms/GsaCalculationParams';
 
 // Placeholder component for demonstration purposes
 const SmoothingParamsForm = () => (
@@ -21,7 +22,7 @@ const SmoothingParamsForm = () => (
 );
 
 export default function ModulePage(props: any) {
-  const { moduleName } = props.params;
+  const moduleName = props?.params?.moduleName;
   const router = useRouter();
   const { addNormalizationResult } = useAppDataStore();
   const [isLoading, setIsLoading] = useState(false);
@@ -68,6 +69,8 @@ export default function ModulePage(props: any) {
         return <VshCalculationParams />;
       case 'porosity-calculation':
         return <PorosityCalculationParams />;
+      case 'rgsa-ngsa-dgsa':
+        return <GsaCalculationParams />;
       default:
         return (
           <div className="p-4 border rounded-lg bg-red-50 text-red-700">

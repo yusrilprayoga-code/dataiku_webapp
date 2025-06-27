@@ -2706,3 +2706,63 @@ def plot_phie_den(df, df_marker, df_well_marker):
     fig.update_traces(yaxis='y')
 
     return fig
+
+
+def plot_gsa_main(df_well):
+    """
+    Fungsi utama untuk membuat plot komprehensif Gas Show Anomaly.
+    """
+    # Lakukan pra-pemrosesan data yang diperlukan untuk plot ini
+    df_marker = extract_markers_with_mean_depth(df_well)
+
+    # Definisikan urutan track untuk plot GSA
+    sequence = ['MARKER', 'GR', 'RT_RHOB', 'NPHI_RHOB',
+                'RT_RGSA', 'NPHI_NGSA', 'RHOB_DGSA', 'ZONA']
+    plot_sequence = {i+1: v for i, v in enumerate(sequence)}
+
+    ratio_plots_seq = [ratio_plots.get(key, 1)
+                       for key in plot_sequence.values()]
+    subplot_col = len(plot_sequence)
+
+    fig = make_subplots(
+        rows=1, cols=subplot_col,
+        shared_yaxes=True,
+        column_widths=ratio_plots_seq,
+        horizontal_spacing=0.01
+    )
+
+    counter = 0
+    axes = {key: [] for key in plot_sequence.values()}
+
+    # Loop untuk memanggil plotter yang sesuai untuk setiap track
+    for n_seq, key in plot_sequence.items():
+        if key == 'MARKER':
+            fig, axes = plot_flag(df_well, fig, axes, key, n_seq)
+            fig, axes = plot_texts_marker(
+                df_marker, df_well['DEPTH'].max(), fig, axes, key, n_seq)
+        elif key == 'GR':
+            fig, axes = plot_line(df_well, fig, axes, key, n_seq)
+        elif key in ['NPHI_RHOB', 'RT_RHOB']:
+            fig, axes, counter = plot_xover_log_normal(
+                df_well, fig, axes, key, n_seq, counter, subplot_col)
+        elif key in ['RT_RGSA', 'NPHI_NGSA', 'RHOB_DGSA']:
+            # Asumsi plot_gsa_crossover sudah ada
+            fig, axes, counter = plot_gsa_crossover(
+                df_well, fig, axes, key, n_seq, counter, subplot_col)
+        elif key == 'ZONA':
+            fig, axes = plot_flag(df_well, fig, axes, key, n_seq)
+
+    # Finalisasi Layout
+    fig = layout_range_all_axis(fig, axes, plot_sequence)
+    fig = layout_draw_lines(fig, ratio_plots_seq, df_well, xgrid_intv=50)
+    fig = layout_axis(fig, axes, ratio_plots_seq, plot_sequence)
+
+    fig.update_layout(
+        title_text="Gas Show Anomaly (GSA) Analysis",
+        yaxis=dict(autorange='reversed', range=[
+                   df_well[depth].max(), df_well[depth].min()]),
+        hovermode='y unified',
+        template='plotly_white'
+    )
+
+    return fig
