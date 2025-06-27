@@ -1,6 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
+/frontend/node_modules
 /node_modules
 /.pnp
 .pnp.*
@@ -61,7 +62,6 @@ __pycache__/
 # macOS & Windows
 .DS_Store
 Thumbs.db
->>>>>>> ce5384eda6d70379fb3ae23a31bd3e9391833c32
 
 # vercel config
 .vercel

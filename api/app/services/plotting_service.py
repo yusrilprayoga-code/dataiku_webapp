@@ -2713,7 +2713,10 @@ def plot_gsa_main(df_well):
     Fungsi utama untuk membuat plot komprehensif Gas Show Anomaly.
     """
     # Lakukan pra-pemrosesan data yang diperlukan untuk plot ini
+    df_well = normalize_xover(df_well, 'NPHI', 'RHOB')
+    df_well = normalize_xover(df_well, 'RT', 'RHOB')
     df_marker = extract_markers_with_mean_depth(df_well)
+    df_well_marker = df_well.copy()
 
     # Definisikan urutan track untuk plot GSA
     sequence = ['MARKER', 'GR', 'RT_RHOB', 'NPHI_RHOB',
@@ -2737,9 +2740,9 @@ def plot_gsa_main(df_well):
     # Loop untuk memanggil plotter yang sesuai untuk setiap track
     for n_seq, key in plot_sequence.items():
         if key == 'MARKER':
-            fig, axes = plot_flag(df_well, fig, axes, key, n_seq)
+            fig, axes = plot_flag(df_well_marker, fig, axes, key, n_seq)
             fig, axes = plot_texts_marker(
-                df_marker, df_well['DEPTH'].max(), fig, axes, key, n_seq)
+                df_marker, df_well_marker['DEPTH'].max(), fig, axes, key, n_seq)
         elif key == 'GR':
             fig, axes = plot_line(df_well, fig, axes, key, n_seq)
         elif key in ['NPHI_RHOB', 'RT_RHOB']:
