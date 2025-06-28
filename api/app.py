@@ -8,15 +8,22 @@ import os
 from flask_cors import CORS
 import pandas as pd
 import numpy as np
+from typing import Optional
 from app.services.plotting_service import (
     extract_markers_with_mean_depth,
     normalize_xover,
+    plot_gsa_main,
     plot_log_default,
     plot_normalization,
-    plot_phie_den
+    plot_phie_den,
+    plot_gsa_main
 )
 from app.services.porosity import calculate_porosity
 from app.services.depth_matching import depth_matching, plot_depth_matching_results
+from app.services.rgsa import process_all_wells_rgsa
+from app.services.dgsa import process_all_wells_dgsa
+from app.services.ngsa import process_all_wells_ngsa
+from app.services.trim_data import trim_well_log
 
 app = Flask(__name__)
 
@@ -493,6 +500,167 @@ def get_porosity_plot():
             import traceback
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/run-gsa-calculation', methods=['POST', 'OPTIONS'])
+def run_gsa_calculation():
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+    if request.method == 'POST':
+        try:
+            payload = request.get_json()
+            params = payload.get('params', {})
+            selected_wells = payload.get('selected_wells', [])
+
+            if not selected_wells:
+                return jsonify({"error": "Tidak ada sumur yang dipilih."}), 400
+
+            for well_name in selected_wells:
+                file_path = os.path.join(
+                    WELLS_DIR, f"{well_name}.csv")
+
+                df_well = pd.read_csv(file_path)
+
+                # Panggil fungsi orkestrator GSA
+                df_rgsa = process_all_wells_rgsa(df_well, params)
+                df_ngsa = process_all_wells_ngsa(df_rgsa, params)
+                df_dgsa = process_all_wells_dgsa(df_ngsa, params)
+
+                # Validasi kolom penting
+                required_cols = ['GR', 'RT', 'NPHI',
+                                 'RHOB', 'RGSA', 'NGSA', 'DGSA']
+                df_dgsa = df_dgsa.dropna(subset=required_cols)
+
+                # Hitung anomali
+                df_dgsa['RGSA_ANOM'] = df_dgsa['RT'] > df_dgsa['RGSA']
+                df_dgsa['NGSA_ANOM'] = df_dgsa['NPHI'] < df_dgsa['NGSA']
+                df_dgsa['DGSA_ANOM'] = df_dgsa['RHOB'] < df_dgsa['DGSA']
+
+                # Skoring
+                df_dgsa['SCORE'] = df_dgsa[['RGSA_ANOM',
+                                            'NGSA_ANOM', 'DGSA_ANOM']].sum(axis=1)
+
+                # Klasifikasi zona
+                def classify_zone(score):
+                    if score == 3:
+                        return 'Zona Prospek Kuat'
+                    elif score == 2:
+                        return 'Zona Menarik'
+                    elif score == 1:
+                        return 'Zona Lemah'
+                    else:
+                        return 'Non Prospek'
+
+                df_dgsa['ZONA'] = df_dgsa['SCORE'].apply(classify_zone)
+
+                # Simpan kembali file CSV dengan kolom GSA baru
+                df_dgsa.to_csv(file_path, index=False)
+                print(f"Hasil GSA untuk sumur '{well_name}' telah disimpan.")
+
+            return jsonify({"message": f"Kalkulasi GSA berhasil untuk {len(selected_wells)} sumur."}), 200
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/get-gsa-plot', methods=['POST', 'OPTIONS'])
+def get_gsa_plot():
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+    if request.method == 'POST':
+        try:
+            request_data = request.get_json()
+            selected_wells = request_data.get('selected_wells', [])
+
+            if not selected_wells:
+                return jsonify({"error": "Tidak ada sumur yang dipilih."}), 400
+
+            # Baca dan gabungkan data dari sumur yang dipilih
+            df_list = [pd.read_csv(os.path.join(
+                WELLS_DIR, f"{well}.csv")) for well in selected_wells]
+            df = pd.concat(df_list, ignore_index=True)
+
+            # Panggil fungsi plotting GSA yang baru
+            fig_result = plot_gsa_main(df)
+
+            return jsonify(fig_result.to_json())
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/trim-data', methods=['POST'])
+def run_trim_well_log():
+    try:
+        data = request.get_json()
+
+        well_names = data.get('selected_wells', [])
+        params = data.get('params', {})
+
+        trim_mode = params.get('TRIM_MODE', 'AUTO')
+        top_depth = params.get('TOP_DEPTH')
+        bottom_depth = params.get('BOTTOM_DEPTH')
+        required_columns = data.get(
+            'required_columns', ['GR', 'RT', 'NPHI', 'RHOB'])
+
+        if not well_names:
+            return jsonify({'error': 'Daftar well_name wajib diisi'}), 400
+
+        responses = []
+
+        for well_name in well_names:
+            file_path = os.path.join(WELLS_DIR, f"{well_name}.csv")
+            if not os.path.exists(file_path):
+                return jsonify({'error': f"File {well_name}.csv tidak ditemukan."}), 404
+
+            df = pd.read_csv(file_path)
+
+            # Penentuan batas trimming tergantung mode
+            if trim_mode == 'AUTO':
+                trimmed_df = trim_well_log(
+                    df, None, None, required_columns, trim_mode)
+
+            elif trim_mode == 'UNTIL_TOP':
+                if not bottom_depth:
+                    return jsonify({'error': 'BOTTOM_DEPTH harus diisi untuk mode UNTIL_TOP'}), 400
+                trimmed_df = trim_well_log(
+                    df, bottom_depth, None, required_columns, trim_mode)
+
+            elif trim_mode == 'UNTIL_BOTTOM':
+                if not top_depth:
+                    return jsonify({'error': 'TOP_DEPTH harus diisi untuk mode UNTIL_BOTTOM'}), 400
+                trimmed_df = trim_well_log(
+                    df, None, top_depth, required_columns, trim_mode)
+
+            elif trim_mode == 'CUSTOM':
+                if not top_depth or not bottom_depth:
+                    return jsonify({'error': 'TOP_DEPTH dan BOTTOM_DEPTH harus diisi untuk mode CUSTOM'}), 400
+                trimmed_df = trim_well_log(
+                    df, bottom_depth, top_depth, required_columns, trim_mode)
+
+            else:
+                return jsonify({'error': f'Mode tidak dikenali: {trim_mode}'}), 400
+
+            # Simpan hasil
+            trimmed_path = os.path.join(WELLS_DIR, f"{well_name}.csv")
+            trimmed_df.to_csv(trimmed_path, index=False)
+
+            responses.append({
+                'well': well_name,
+                'rows': len(trimmed_df),
+                'file_saved': f'{well_name}.csv'
+            })
+
+        return jsonify({'message': 'Trimming berhasil', 'results': responses}), 200
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 
 # This is for local development testing, Vercel will use its own server

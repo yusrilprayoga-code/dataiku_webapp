@@ -1,233 +1,193 @@
-# Nama file: gsa_service.py
-# Deskripsi: Modul terpusat untuk kalkulasi dan plotting GSA (RGSA, NGSA, DGSA).
+# Nama file: rgsa_processor.py
+# Deskripsi: Skrip mandiri dan fleksibel untuk menjalankan kalkulasi RGSA
+# berdasarkan parameter yang diberikan.
 
-import lasio
-import numpy as np
+from typing import Optional
 import pandas as pd
+import numpy as np
 from sklearn.linear_model import LinearRegression
-from scipy.interpolate import interp1d
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import os
 
-
-def _normalize(series):
-    """(Internal) Menormalkan data. Mencegah pembagian dengan nol."""
-    std_dev = np.std(series)
-    if std_dev == 0:
-        return np.zeros_like(series)
-    return (series - np.mean(series)) / std_dev
+# FIX: Fungsi inti sekarang menerima dictionary 'params' untuk kustomisasi
 
 
-def _interpolate_coeffs(depth, coeff_df):
-    """(Internal) Melakukan interpolasi linear pada koefisien regresi."""
-    if coeff_df.empty:
-        return np.array([np.nan, np.nan, np.nan, np.nan])
-
-    if depth <= coeff_df['depth'].min():
-        return coeff_df.iloc[0][['b0', 'b1', 'b2', 'b3']].values
-    if depth >= coeff_df['depth'].max():
-        return coeff_df.iloc[-1][['b0', 'b1', 'b2', 'b3']].values
-
-    lower = coeff_df[coeff_df['depth'] <= depth].iloc[-1]
-    upper = coeff_df[coeff_df['depth'] > depth].iloc[0]
-    weight = (depth - lower['depth']) / (upper['depth'] - lower['depth'])
-    row = lower + weight * (upper - lower)
-    return row[['b0', 'b1', 'b2', 'b3']].values
-
-
-def calculate_gsa_log(df_input: pd.DataFrame,
-                      ref_log: str,
-                      target_log: str,
-                      output_log_name: str,
-                      filters: dict,
-                      window_size: int = 106,
-                      step: int = 20,
-                      min_points_in_window: int = 30) -> pd.DataFrame:
+def process_rgsa_for_well(df_well: pd.DataFrame, params: dict) -> Optional[pd.DataFrame]:
     """
-    Fungsi generik untuk menghitung baseline log (GSA) menggunakan sliding window regression.
-
-    Args:
-        df_input (pd.DataFrame): DataFrame yang berisi kolom 'Depth', ref_log, dan target_log.
-        ref_log (str): Nama kolom log referensi (misalnya, 'GR').
-        target_log (str): Nama kolom log target yang akan diregresi (misalnya, 'ILD', 'NPHI').
-        output_log_name (str): Nama kolom baru untuk menyimpan hasil (misalnya, 'RGSA', 'NGSA').
-        filters (dict): Kamus berisi filter untuk setiap log, contoh: {'GR': (5, 180), 'ILD': (0.2, 2000)}.
-        window_size (int): Ukuran jendela geser.
-        step (int): Langkah pergeseran jendela.
-        min_points_in_window (int): Jumlah minimum titik data valid dalam jendela.
-
-    Returns:
-        pd.DataFrame: DataFrame asli dengan tambahan kolom hasil GSA.
+    Memproses RGSA untuk satu DataFrame sumur menggunakan parameter dinamis.
     """
-    df_gsa = df_input[['Depth', ref_log, target_log]].dropna().copy()
+    # --- STEP 1: SIAPKAN DATA & VALIDASI ---
+    required_cols = ['DEPTH', 'GR', 'RT']
+    if not all(col in df_well.columns for col in required_cols):
+        print(
+            f"Peringatan: Melewatkan sumur karena kolom {required_cols} tidak lengkap.")
+        return None
+
+    df_rgsa = df_well[required_cols].dropna().copy()
+
+    if len(df_rgsa) < 100:
+        print(
+            f"Peringatan: Data terlalu sedikit untuk regresi RGSA (hanya {len(df_rgsa)} baris)")
+        return None
+
+    # --- STEP 2: SLIDING WINDOW REGRESI DENGAN PARAMETER DINAMIS ---
+    # Ambil nilai dari dictionary params, gunakan default jika tidak ada
+    window_size = int(params.get('window_size', 106))
+    step = int(params.get('step', 20))
+    min_points_in_window = int(params.get('min_points_in_window', 30))
+    # Ambil filter dari dictionary params
+    filters = params.get('filters', {})
+    gr_filter = filters.get('GR', (5, 180))
+    rt_filter = filters.get('RT', (0.1, 1000))
+
     coeffs = []
 
-    print(f"Memulai kalkulasi {output_log_name}...")
-    for start in range(0, len(df_gsa) - window_size, step):
-        window = df_gsa.iloc[start:start+window_size]
+    for start in range(0, len(df_rgsa) - window_size, step):
+        window = df_rgsa.iloc[start:start+window_size]
+        gr = window['GR'].values
+        rt = window['RT'].values
 
-        # Terapkan filter dinamis
-        mask = pd.Series(True, index=window.index)
-        for log, (min_val, max_val) in filters.items():
-            mask &= (window[log] > min_val) & (window[log] < max_val)
+        mask = (gr > gr_filter[0]) & (gr < gr_filter[1]) & (
+            rt > rt_filter[0]) & (rt < rt_filter[1])
+        gr_filtered = gr[mask]
+        rt_filtered = rt[mask]
 
-        window_filtered = window[mask]
-
-        if len(window_filtered) < min_points_in_window:
+        if len(gr_filtered) < min_points_in_window:
             continue
 
-        ref_vals = window_filtered[ref_log].values
-        target_vals = window_filtered[target_log].values
+        gr_scaled = 0.01 * gr_filtered
+        log_rt = np.log10(rt_filtered)
 
-        ref_scaled = 0.01 * ref_vals
-        X = np.vstack([ref_scaled, ref_scaled**2, ref_scaled**3]).T
-        y = np.log10(target_vals) if output_log_name == 'RGSA' else target_vals
+        X = np.vstack([gr_scaled, gr_scaled**2, gr_scaled**3]).T
+        y = log_rt
 
-        model = LinearRegression().fit(X, y)
-
-        coeffs.append({
-            'depth': window['Depth'].mean(),
-            'b0': model.intercept_, 'b1': model.coef_[0],
-            'b2': model.coef_[1], 'b3': model.coef_[2]
-        })
+        try:
+            model = LinearRegression().fit(X, y)
+            if hasattr(model, 'coef_') and len(model.coef_) == 3:
+                coeffs.append({
+                    'DEPTH': window['DEPTH'].mean(),
+                    'b0': model.intercept_, 'b1': model.coef_[0],
+                    'b2': model.coef_[1], 'b3': model.coef_[2]
+                })
+        except Exception as e:
+            print(
+                f"Peringatan: Gagal melakukan regresi pada kedalaman sekitar {window['DEPTH'].mean()}: {e}")
+            continue
 
     if not coeffs:
-        print(
-            f"Peringatan: Tidak ada koefisien yang bisa dihitung untuk {output_log_name}. Mengembalikan DataFrame tanpa perubahan.")
-        df_input[output_log_name] = np.nan
-        return df_input
+        print("Peringatan: Tidak ada koefisien regresi yang berhasil dihitung.")
+        return None
 
     coeff_df = pd.DataFrame(coeffs)
 
-    gsa_list = []
-    for _, row in df_gsa.iterrows():
-        depth, ref_val = row['Depth'], row[ref_log]
+    # --- STEP 3: INTERPOLASI & HITUNG RGSA ---
+    def interpolate_coeffs(depth):
+        if depth <= coeff_df['DEPTH'].min():
+            return coeff_df.iloc[0]
+        if depth >= coeff_df['DEPTH'].max():
+            return coeff_df.iloc[-1]
+        lower = coeff_df[coeff_df['DEPTH'] <= depth].iloc[-1]
+        upper = coeff_df[coeff_df['DEPTH'] > depth].iloc[0]
+        if upper['DEPTH'] == lower['DEPTH']:
+            return lower
+        weight = (depth - lower['DEPTH']) / (upper['DEPTH'] - lower['DEPTH'])
+        return lower + weight * (upper - lower)
 
-        if not (filters[ref_log][0] < ref_val < filters[ref_log][1]):
-            gsa_list.append(np.nan)
+    rgsa_list = []
+    for _, row in df_rgsa.iterrows():
+        depth, gr = row['DEPTH'], row['GR']
+
+        if not (gr_filter[0] < gr < gr_filter[1]):
+            rgsa_list.append(np.nan)
             continue
 
-        b0, b1, b2, b3 = _interpolate_coeffs(depth, coeff_df)
-        grfix = 0.01 * ref_val
-        log_gsa_val = b0 + b1*grfix + b2*grfix**2 + b3*grfix**3
+        b0, b1, b2, b3 = interpolate_coeffs(
+            depth)[['b0', 'b1', 'b2', 'b3']].values
+        grfix = 0.01 * gr
+        log_rgsa = b0 + b1*grfix + b2*grfix**2 + b3*grfix**3
+        rgsa = 10**log_rgsa
+        rgsa_list.append(rgsa)
 
-        gsa_val = 10**log_gsa_val if output_log_name == 'RGSA' else log_gsa_val
-        gsa_list.append(gsa_val)
+    df_rgsa['RGSA'] = rgsa_list
 
-    df_gsa[output_log_name] = gsa_list
+    # --- STEP 4: GABUNGKAN HASIL DAN ANALISIS ---
+    df_merged = pd.merge(
+        df_well, df_rgsa[['DEPTH', 'RGSA']], on='DEPTH', how='left')
 
-    return pd.merge(df_input, df_gsa[['Depth', output_log_name]], on='Depth', how='left')
+    if 'RT' in df_merged and 'RGSA' in df_merged:
+        df_merged['GAS_EFFECT_RT'] = (df_merged['RT'] > df_merged['RGSA'])
+        df_merged['RT_RATIO'] = df_merged['RT'] / df_merged['RGSA']
+        df_merged['RT_DIFF'] = df_merged['RT'] - df_merged['RGSA']
+
+    return df_merged
+
+# FIX: Fungsi orkestrator sekarang menerima dan meneruskan `params`
 
 
-def plot_gsa_results(df: pd.DataFrame, ref_log: str, target_log: str, gsa_log: str):
+def process_all_wells_rgsa(df_well: pd.DataFrame, params: dict):
     """
-    Membuat plot multi-panel untuk memvisualisasikan hasil GSA.
+    Fungsi orkestrator utama: memproses RGSA untuk semua sumur dengan parameter kustom.
     """
-    fig = make_subplots(
-        rows=1, cols=3, shared_yaxes=True,
-        subplot_titles=(f"1. {ref_log}",
-                        f"2. {target_log} vs {gsa_log}", "3. Anomaly")
-    )
 
-    # Panel 1: Log Referensi (GR)
-    fig.add_trace(go.Scattergl(
-        x=df[ref_log], y=df['Depth'], name=ref_log, line=dict(color='green')
-    ), row=1, col=1)
+    unique_wells = df_well['WELL_NAME'].unique()
+    print(f"📊 Memproses RGSA untuk {len(unique_wells)} sumur...")
 
-    # Panel 2: Log Target vs. Hasil GSA
-    fig.add_trace(go.Scattergl(
-        x=df[target_log], y=df['Depth'], name=target_log, line=dict(
-            color='blue')
-    ), row=1, col=2)
-    fig.add_trace(go.Scattergl(
-        x=df[gsa_log], y=df['Depth'], name=gsa_log, line=dict(
-            color='red', dash='dash')
-    ), row=1, col=2)
+    processed_wells = []
+    failed_wells = []
 
-    # Arsiran untuk anomali
-    is_resistive_or_gas = (df[target_log] > df[gsa_log]) if gsa_log == 'RGSA' else (
-        df[target_log] < df[gsa_log])
-    fill_color = 'rgba(255,165,0,0.3)' if gsa_log == 'RGSA' else 'rgba(0,255,255,0.3)'
+    for i, well_name in enumerate(unique_wells, 1):
+        print(f"\n🔍 Memproses sumur {i}/{len(unique_wells)}: {well_name}")
+        df_well = df_well[df_well['WELL_NAME'] ==
+                          well_name].copy().reset_index(drop=True)
 
-    fig.add_trace(go.Scattergl(
-        x=df[target_log], y=df['Depth'], showlegend=False, line=dict(width=0),
-        hoverinfo='none'
-    ), row=1, col=2)
-    fig.add_trace(go.Scattergl(
-        x=df[gsa_log], y=df['Depth'], fill='tonextx', fillcolor=fill_color,
-        showlegend=False, line=dict(width=0), hoverinfo='none',
-        # Terapkan arsiran hanya jika ada anomali
-        customdata=is_resistive_or_gas,
-        # TODO: Logika 'where' yang lebih canggih mungkin memerlukan pemrosesan data lebih lanjut
-    ), row=1, col=2)
+        # Teruskan dictionary `params` ke fungsi pemrosesan
+        result_df = process_rgsa_for_well(df_well, params)
 
-    # Panel 3: Anomali (Perbedaan)
-    anomaly_col = f"{gsa_log}_{target_log}_DIFF"
-    df[anomaly_col] = df[gsa_log] - df[target_log]
-    fig.add_trace(go.Scattergl(
-        x=df[anomaly_col], y=df['Depth'], name='Anomaly', line=dict(color='purple')
-    ), row=1, col=3)
-    fig.add_trace(go.Scattergl(
-        x=[0] * len(df), y=df['Depth'], mode='lines', line=dict(color='black', dash='dot', width=1),
-        showlegend=False
-    ), row=1, col=3)
+        if result_df is not None:
+            processed_wells.append(result_df)
+            print(f"✅ {well_name} - RGSA berhasil dihitung.")
+        else:
+            failed_wells.append(well_name)
+            print(f"❌ {well_name} - RGSA gagal dihitung.")
 
-    # Update Layout
-    fig.update_layout(
-        title_text=f"Analysis for {gsa_log}",
-        yaxis=dict(autorange='reversed', title_text="Depth"),
-        template="plotly_white",
-        showlegend=True
-    )
-    return fig
+    if processed_wells:
+        df_final = pd.concat(processed_wells, ignore_index=True)
+        print(
+            f"\n✅ Proses selesai. Hasil gabungan pada file asli.")
 
-
-def run_full_gsa_analysis(las_path: str):
-    """
-    Menjalankan seluruh alur kerja GSA (RGSA, NGSA, DGSA) pada satu file LAS.
-    """
-    las = lasio.read(las_path)
-    df_full = las.df().reset_index()
-    df_full.rename(columns={"DEPTH": "Depth", "GR_CAL": "GR",
-                   "DGRCC": "LWD_GR", "DENS": "RHOB"}, inplace=True, errors='ignore')
-
-    # Proses RGSA
-    df_processed = calculate_gsa_log(
-        df_input=df_full, ref_log='GR', target_log='ILD', output_log_name='RGSA',
-        filters={'GR': (5, 180), 'ILD': (0.2, 2000)}
-    )
-
-    # Proses NGSA
-    df_processed = calculate_gsa_log(
-        df_input=df_processed, ref_log='GR', target_log='NPHI', output_log_name='NGSA',
-        filters={'GR': (5, 180), 'NPHI': (0.05, 0.6)}
-    )
-
-    # Proses DGSA
-    df_processed = calculate_gsa_log(
-        df_input=df_processed, ref_log='GR', target_log='RHOB', output_log_name='DGSA',
-        filters={'GR': (5, 180), 'RHOB': (1.5, 3.0)}
-    )
-
-    # Anda bisa menyimpan atau mengembalikan DataFrame final ini
-    # df_processed.to_csv("gsa_complete_results.csv", index=False)
-
-    return df_processed
-
-
-# Contoh pemanggilan jika file ini dijalankan secara langsung
-if __name__ == "__main__":
-    las_file = "ABB-036.las"
-    if os.path.exists(las_file):
-        # Jalankan semua perhitungan
-        final_df = run_full_gsa_analysis(las_file)
-        print("Kalkulasi GSA Selesai. Hasil DataFrame:")
-        print(final_df[['Depth', 'GR', 'ILD', 'RGSA',
-              'NPHI', 'NGSA', 'RHOB', 'DGSA']].head())
-
-        # Buat dan tampilkan salah satu plot
-        fig_rgsa = plot_gsa_results(final_df, 'GR', 'ILD', 'RGSA')
-        fig_rgsa.show()
+        # print_summary_statistics(df_final, len(processed_wells), failed_wells)
     else:
-        print(f"File {las_file} tidak ditemukan untuk testing.")
+        print("\n❌ Tidak ada sumur yang berhasil diproses!")
+
+    return df_final
+
+
+def print_summary_statistics(df_final, success_count, failed_wells):
+    """Mencetak ringkasan statistik dari hasil RGSA."""
+    print(f"\n📈 RINGKASAN HASIL RGSA:")
+    print(f"  ✅ Sumur berhasil diproses: {success_count}")
+    print(f"  ❌ Sumur gagal diproses: {len(failed_wells)}")
+    if failed_wells:
+        print(f"  ⚠️ Daftar sumur yang gagal: {', '.join(failed_wells)}")
+
+    if 'GAS_EFFECT_RT' in df_final:
+        total_gas_points = df_final['GAS_EFFECT_RT'].sum()
+        total_points = len(df_final['GAS_EFFECT_RT'].dropna())
+        gas_percentage = (total_gas_points / total_points) * \
+            100 if total_points > 0 else 0
+
+        print(f"\n🔥 STATISTIK EFEK GAS (BERDASARKAN RT):")
+        print(f"  Total data points: {total_points:,}")
+        print(f"  Points dengan gas effect: {total_gas_points:,}")
+        print(f"  Persentase gas effect: {gas_percentage:.2f}%")
+
+        gas_by_well = df_final.groupby('WELL_NAME').agg({
+            'GAS_EFFECT_RT': ['count', 'sum'],
+            'RT_RATIO': ['mean', 'max'],
+            'RT_DIFF': ['mean', 'max']
+        }).round(3)
+        gas_by_well.columns = ['Total_Points', 'Gas_Points',
+                               'Avg_RT_Ratio', 'Max_RT_Ratio', 'Avg_RT_Diff', 'Max_RT_Diff']
+        gas_by_well['Gas_Percentage'] = (
+            gas_by_well['Gas_Points'] / gas_by_well['Total_Points'] * 100).round(2)
+        print(f"\n📋 EFEK GAS PER SUMUR (BERDASARKAN RT):")
+        print(gas_by_well.to_string())

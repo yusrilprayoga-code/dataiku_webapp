@@ -43,8 +43,8 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
 
 const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
 
-  const module1Buttons: string[] = ['ADD PLOT', 'OPEN CROSS PLOT', 'TRIM DATA'];
-  const qualityControlButtons: string[] = ['DEPTH MATCHING', 'FILL MISSING', 'SMOOTHING', 'NORMALIZATION'];
+  // const module1Buttons: string[] = ['ADD PLOT', 'OPEN CROSS PLOT'];
+  const qualityControlButtons: string[] = ['TRIM DATA', 'DEPTH MATCHING', 'FILL MISSING', 'SMOOTHING', 'NORMALIZATION'];
   const logInterpretationButtons: string[] = ['VSH CALCULATION', 'POROSITY CALCULATION', 'SW CALCULATION', 'WATER RESISTIVITY CALCULATION'];
   const gowsButtons: string[] = ['RGSA-NGSA-DGSA', 'RPBE-ROBE', 'SWORAD', 'DNS-DNSV', 'GWD'];
 
@@ -52,8 +52,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
     <aside className="w-72 bg-gray-100 p-4 border-l border-gray-300 overflow-y-auto">
       <h3 className="text-sm font-bold text-gray-800 mb-4">Module Configuration</h3>
       <div className="flex flex-col gap-4">
-        <ModuleSection buttons={['RENAME']} activeButton={activeButton} />
-        <ModuleSection buttons={module1Buttons} activeButton={activeButton} />
+        {/* <ModuleSection buttons={['RENAME']} activeButton={activeButton} />
+        <ModuleSection buttons={module1Buttons} activeButton={activeButton} /> */}
         <ModuleSection title="Data Preparation" buttons={qualityControlButtons} activeButton={activeButton} />
         <ModuleSection title="Interpretation" buttons={logInterpretationButtons} activeButton={activeButton} />
         <ModuleSection title="Gas Oil Water Scanner (GOWS)" buttons={gowsButtons} activeButton={activeButton} />

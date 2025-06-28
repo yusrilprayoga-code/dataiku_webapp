@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { type Layout, type Data } from 'plotly.js';
 import { useDashboard } from '@/contexts/DashboardContext';
 
+
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 type WellLogPlotProps = unknown
 
@@ -36,6 +37,9 @@ const WellLogPlot: React.FC<WellLogPlotProps> = () => {
           break;
         case 'porosity':
           endpoint = 'http://127.0.0.1:5001/api/get-porosity-plot';
+          break;
+        case 'gsa':
+          endpoint = 'http://127.0.0.1:5001/api/get-gsa-plot';
           break;
         case 'default':
         default: 
