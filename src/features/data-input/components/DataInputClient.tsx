@@ -135,7 +135,10 @@ export default function DataInputUtamaPage() {
         setSelectedFileId(null);
         try {
             const filesToProcess = stagedStructure.files.map(file => ({ name: file.originalName || file.name, content: file.rawContentString }));
-            const qcResponse = await fetch('/api/qc/run', {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+            const endpoint = `${apiUrl}/api/qc/run`;
+            console.log(`Sending QC request to: ${endpoint}`);
+            const qcResponse = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ files: filesToProcess }),
