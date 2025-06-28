@@ -20,29 +20,31 @@ const WellLogPlot: React.FC<WellLogPlotProps> = () => {
   useEffect(() => {
     if (selectedWells.length === 0) {
       setIsLoading(false);
-      setPlotData([]); 
+      setPlotData([]);
       setPlotLayout({ title: { text: 'Pilih satu atau lebih sumur dari sidebar untuk memulai' } });
       return;
     }
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
     const fetchPlotData = async () => {
       setIsLoading(true);
       setError(null);
 
-            let endpoint = '';
+      let endpoint = '';
       switch (plotType) {
         case 'normalization':
-          endpoint = 'http://127.0.0.1:5001/api/get-normalization-plot';
+          endpoint = `${apiUrl}/api/get-normalization-plot`;
           break;
         case 'porosity':
-          endpoint = 'http://127.0.0.1:5001/api/get-porosity-plot';
+          endpoint = `${apiUrl}/api/get-porosity-plot`;
           break;
         case 'default':
-        default: 
-          endpoint = 'http://127.0.0.1:5001/api/get-plot';
+        default:
+          endpoint = `${apiUrl}/api/get-plot`;
           break;
       }
-      
+
       try {
         // FIX: Gunakan metode POST dan kirim `selectedWells`
         const response = await fetch(endpoint, {
@@ -52,14 +54,13 @@ const WellLogPlot: React.FC<WellLogPlotProps> = () => {
           },
           body: JSON.stringify({ selected_wells: selectedWells }), // Kirim sebagai objek
         });
-        
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Gagal mengambil data dari server');
         }
-        
-        const responseData = await response.json();
-        const plotObject = JSON.parse(responseData);
+
+        const plotObject = await response.json();
 
         setPlotData(plotObject.data);
         setPlotLayout(plotObject.layout);
