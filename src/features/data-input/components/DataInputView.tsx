@@ -32,12 +32,12 @@ export default function DataInputView() {
   const [isQcRunning, setIsQcRunning] = useState(false);
   const [qcStatusMessage, setQcStatusMessage] = useState('');
 
-  useEffect(() => {
-    if (!stagedStructure) {
-      console.warn("No staged data in store. Redirecting to upload page.");
-      router.replace('/');
-    }
-  }, [stagedStructure, router]);
+  // useEffect(() => {
+  //   if (!stagedStructure) {
+  //     console.warn("No staged data in store. Redirecting to upload page.");
+  //     router.replace('/');
+  //   }
+  // }, [stagedStructure, router]);
 
   const handleRunQcWorkflow = async () => {
     if (!stagedStructure) return;
