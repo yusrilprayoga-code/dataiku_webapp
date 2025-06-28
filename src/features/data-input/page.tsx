@@ -4,7 +4,7 @@
 // app/data-input-utama/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Papa from 'papaparse';
 import { useAppDataStore } from '../../stores/useAppDataStore';
@@ -31,29 +31,23 @@ export default function DataInputUtamaPage() {
   const [isQcRunning, setIsQcRunning] = useState(false);
   const [qcStatusMessage, setQcStatusMessage] = useState('');
 
-  // --- MODIFIED: The new, robust data loading logic ---
+  // MODIFIED: Get session data directly
+  const structureName = useRef<string | null>(null);
+
   useEffect(() => {
-    const loadAndBuildStructure = async () => {
-      // 1. Get the structure name saved by the previous page
-      const structureName = sessionStorage.getItem('userDefinedStructureName');
+    // Get structure name from session storage
+    structureName.current = sessionStorage.getItem('userDefinedStructureName');
 
-      // 2. If no name, we can't proceed. Redirect to the start.
-      if (!structureName) {
-        console.warn("No structure name found in session. Redirecting to home.");
-        router.replace('/');
-        return;
-      }
+    if (!structureName.current) {
+      router.replace('/');
+      return;
+    }
 
+    const loadFiles = async () => {
+      setIsLoading(true);
       try {
-        // 3. Fetch all raw file data from IndexedDB
         const filesFromDb: FileData[] = await getAllFiles();
-        if (filesFromDb.length === 0) {
-          console.warn("IndexedDB is empty. Redirecting to home.");
-          router.replace('/');
-          return;
-        }
 
-        // 4. Re-create the `ProcessedFileDataForDisplay` array
         const filesForProcessing: ProcessedFileDataForDisplay[] = [];
         filesFromDb.forEach(fileData => {
           if (fileData.isStructureFromZip) {
@@ -86,39 +80,33 @@ export default function DataInputUtamaPage() {
           }
         });
 
-        // 5. Build the final StagedStructure object
         const reconstructedStructure: StagedStructure = {
-          userDefinedStructureName: structureName,
+          userDefinedStructureName: structureName.current!,
           files: filesForProcessing,
         };
 
-        // 6. Set it in our Zustand store for this page's components to use
         setStagedStructure(reconstructedStructure);
-
       } catch (error) {
-        console.error("Failed to load data from IndexedDB and build structure:", error);
-        router.replace('/'); // Redirect on error
+        console.error("Failed to load data:", error);
+        router.replace('/');
       } finally {
-        setIsLoading(false); // Done loading!
+        setIsLoading(false);
       }
     };
 
-    // Only run this logic if the structure isn't already in the store
+    // Only load if store is empty
     if (!stagedStructure) {
-      loadAndBuildStructure();
+      loadFiles();
     } else {
-      setIsLoading(false); // Data was already there (e.g., from fast client-side navigation)
+      setIsLoading(false);
     }
-  }, [stagedStructure, setStagedStructure, router]);
+  }, [router, setStagedStructure, stagedStructure]);
 
-
-  // --- Fungsi-fungsi lain tidak perlu diubah, karena mereka sudah membaca dari Zustand ---
   const handleRunQcWorkflow = async () => {
-    // Logika fetch Anda sudah benar menggunakan path relatif
     if (!stagedStructure) return;
     setIsQcRunning(true);
     setQcStatusMessage('Langkah 1: Menjalankan Quality Control...');
-    setQcResults(null); // Gunakan setQcResults untuk membersihkan
+    setQcResults(null);
     setActiveFolder('output');
     setSelectedFileForPreview(null);
     setSelectedFileId(null);
@@ -136,7 +124,7 @@ export default function DataInputUtamaPage() {
       }
       const initialQcResults: QCResponse = await qcResponse.json();
       setQcResults(initialQcResults);
-      await processAndHandleNulls(initialQcResults);
+      // await processAndHandleNulls(initialQcResults);
     } catch (error) {
       alert(`Error saat QC: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
@@ -146,7 +134,6 @@ export default function DataInputUtamaPage() {
   };
 
   const processAndHandleNulls = async (initialQcResults: QCResponse) => {
-    // Logika Anda di sini sudah benar
     const filesWithNulls = initialQcResults.qc_summary.filter(r => r.status === 'HAS_NULL');
     if (filesWithNulls.length === 0) { /* ... */ return; }
     setQcStatusMessage(`Langkah 2: Menangani ${filesWithNulls.length} file dengan null...`);
