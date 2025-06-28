@@ -47,33 +47,51 @@ export default function VshCalculationParams() {
   const router = useRouter();
   const [parameters, setParameters] = useState<ParameterRow[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
+
 
   useEffect(() => {
     setParameters(createInitialVshParameters());
   }, []);
 
-// Handler untuk mengubah nilai di kolom input
-  const handleValueChange = (id: number, newValue: string) => {
-    setParameters(prev => prev.map(row => 
-        row.id === id ? { ...row, values: { 'default': newValue } } : row
-    ));
+  const handleValueChange = (id: number, interval: string, newValue: string) => {
+    setParameters(prev =>
+      prev.map(row => {
+        if (row.id !== id) return row;
+
+        if (rowSync[id]) {
+          const newValues = Object.fromEntries(
+            Object.keys(row.values).map(i => [i, newValue])
+          );
+          return { ...row, values: newValues };
+        }
+
+        return {
+          ...row,
+          values: { ...row.values, [interval]: newValue },
+        };
+      })
+    );
   };
   
   // Handler untuk checkbox di kolom "P"
-  const handleRowToggle = (id: number, isEnabled: boolean) => {
-    setParameters(prev => prev.map(row => (row.id === id ? { ...row, isEnabled } : row)));
+  const handleRowToggle = (id: number, enabled: boolean) => {
+    setRowSync(prev => ({ ...prev, [id]: enabled }));
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
     const formParams = parameters
-      .filter(p => p.isEnabled)
-      .reduce((acc, param) => {
-        acc[param.name] = param.values['default'];
-        return acc;
-      }, {} as Record<string, string | number>);
+    .filter(p => p.isEnabled)
+    .reduce((acc, param) => {
+      const value = param.values[selectedIntervals[0] || 'default'] || param.values[Object.keys(param.values)[0]];
+      acc[param.name] = isNaN(Number(value)) ? value : Number(value);
+      return acc;
+    }, {} as Record<string, string | number>);
+
     
     const payload = {
       params: formParams,
@@ -196,18 +214,36 @@ export default function VshCalculationParams() {
                     <td className="px-3 py-2 border-r whitespace-normal max-w-xs">{param.comment}</td>
                     <td className="px-3 py-2 border-r whitespace-nowrap">{param.unit}</td>
                     <td className="px-3 py-2 border-r font-semibold whitespace-nowrap">{param.name}</td>
-                    <td className="px-3 py-2 border-r text-center"><input type="checkbox" className="h-4 w-4 rounded border-gray-400" checked={param.isEnabled} onChange={(e) => handleRowToggle(param.id, e.target.checked)} /></td>
+                    <td className="px-3 py-2 border-r text-center"><input type="checkbox" className="h-4 w-4 rounded border-gray-400" checked={!!rowSync[param.id]} onChange={(e) => handleRowToggle(param.id, e.target.checked)} /></td>
                       {selectedIntervals.map(interval => (
-                      <td key={interval} className="px-3 py-2 border-r bg-white text-black">
-                        <input
-                          type="text"
-                          value={String(param.values['default'] ?? '')}
-                          onChange={(e) => handleValueChange(param.id, e.target.value)}
-                          disabled={!param.isEnabled}
-                          className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
-                        />
-                      </td>
-                    ))}
+                        <td key={interval} className="px-3 py-2 border-r bg-white text-black">
+                          {param.name === 'OPT_GR' ? (
+                            <select
+                              value={String(param.values[interval] ?? param.values['default'] ?? '')}
+                              onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                              className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                            >
+                              <option value="LINEAR">LINEAR</option>
+                            </select>
+                          ) : param.name === 'OPT_COAL' ? (
+                            <select
+                              value={String(param.values[interval] ?? param.values['default'] ?? '')}
+                              onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                              className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                            >
+                              <option value="Yes">Yes</option>
+                              <option value="No">No</option>
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              value={ param.values[interval] ?? param.values['default'] ?? ''}
+                              onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                              className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                            />
+                          )}
+                        </td>
+                      ))}
                   </tr>
                 ))}
               </tbody>

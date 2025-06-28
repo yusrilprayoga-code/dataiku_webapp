@@ -42,7 +42,7 @@ def fill_null_values_in_marker_range(df, struktur, well_name):
     Isi nilai null pada GR, RT, NPHI, RHOB berdasarkan range marker.
     Hanya data dalam range marker yang akan diproses menggunakan backward-fill dan forward-fill.
     """
-    target_columns = ['GR', 'RT', 'NPHI', 'RHOB']
+    target_columns = ['GR', 'RT', 'NPHI', 'RHOB', 'GR_NORM']
     df_filled = df.copy().sort_values('DEPTH').reset_index(drop=True)
 
     marker_range_mask = pd.Series(

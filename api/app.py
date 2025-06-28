@@ -245,6 +245,27 @@ def list_wells():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/get-well-columns', methods=['POST'])
+def get_well_columns():
+    try:
+        data = request.get_json()
+        wells = data.get('wells', [])
+        result = {}
+
+        for well in wells:
+            file_path = os.path.join(WELLS_DIR, f"{well}.csv")
+            if os.path.exists(file_path):
+                # Hanya baca baris pertama
+                df = pd.read_csv(file_path, nrows=1)
+                result[well] = df.columns.tolist()
+            else:
+                result[well] = []
+
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/run-interval-normalization', methods=['POST', 'OPTIONS'])
 def run_interval_normalization():
     if request.method == 'OPTIONS':

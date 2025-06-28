@@ -27,8 +27,8 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
     { id: 3, location: 'Constant', mode: 'Input', comment: 'Hi Cumulative Percentile, eg 95', unit: '', name: 'PCT_MAX', isEnabled: true },
     { id: 4, location: 'Constant', mode: 'Input', comment: 'Minimum Cutoff to Force Missing', unit: '', name: 'CUTOFF_MIN', isEnabled: true },
     { id: 5, location: 'Constant', mode: 'Input', comment: 'Maximum Cutoff to Force Missing', unit: '', name: 'CUTOFF_MAX', isEnabled: true },
-    { id: 6, location: 'Constant', mode: 'Input', comment: 'Calibration Minimum', unit: '', name: 'CALIB_MIN', isEnabled: true },
-    { id: 7, location: 'Constant', mode: 'Input', comment: 'Calibration Maximum', unit: '', name: 'CALIB_MAX', isEnabled: true },
+    { id: 6, location: 'Constant', mode: 'Input', comment: 'Minimum Gamma Ray Value', unit: '', name: 'GR_MIN', isEnabled: true },
+    { id: 7, location: 'Constant', mode: 'Input', comment: 'Maximum Gamma Ray Value', unit: '', name: 'GR_MAX', isEnabled: true },
     // {
     //   id: 8, location: 'Log', mode: 'Input', comment: 'Input Log', unit: 'LOG_IN', isEnabled: true,
     //   name: 'LOG_IN'
@@ -36,10 +36,10 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
     // { id: 9, location: 'Log', mode: 'Output', comment: 'Output Log Name', unit: 'LOG_OUT', name: 'LOG_OUT', isEnabled: true },
   ];
 
-  const relevantParamNames = new Set(['NORMALIZE_OPT','LOG_IN', 'LOG_OUT', 'CALIB_MIN', 'CALIB_MAX', 'PCT_MIN', 'PCT_MAX', 'CUTOFF_MIN', 'CUTOFF_MAX']);
+  const relevantParamNames = new Set(['NORMALIZE_OPT','LOG_IN', 'LOG_OUT', 'GR_MIN', 'GR_MAX', 'PCT_MIN', 'PCT_MAX', 'CUTOFF_MIN', 'CUTOFF_MAX']);
   
   const defaultValues: Record<string, string | number> = {
-    'NORMALIZE_OPT': 'MIN-MAX', 'LOG_IN': 'GR', 'LOG_OUT': 'GR_NORM', 'CALIB_MIN': 40, 'CALIB_MAX': 140,
+    'NORMALIZE_OPT': 'MIN-MAX', 'LOG_IN': 'GR', 'LOG_OUT': 'GR_NORM', 'GR_MIN': 40, 'GR_MAX': 140,
     'PCT_MIN': 3, 'PCT_MAX': 97, 'CUTOFF_MIN': '0', 'CUTOFF_MAX': 250
   };
 
@@ -56,11 +56,30 @@ export default function NormalizationParams() {
   const [parameters, setParameters] = useState<ParameterRow[]>([]);
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
   
   useEffect(() => { setParameters(createInitialParameters(selectedIntervals)); }, [selectedIntervals]);
 
-  const handleUnifiedValueChange = (id: number, newValue: string) => { setParameters(prev => prev.map(row => { if (row.id === id) { const newValues = Object.fromEntries(Object.keys(row.values).map(intervalKey => [intervalKey, newValue])); return { ...row, values: newValues }; } return row; })); };
-  const handleRowToggle = (id: number, isEnabled: boolean) => { setParameters(prev => prev.map(row => (row.id === id ? { ...row, isEnabled } : row))); };
+  const handleUnifiedValueChange = (id: number, newValue: string, interval: string) => {
+    setParameters(prev => prev.map(row => {
+      if (row.id !== id) return row;
+        if (rowSync[id]) {
+          const newValues = Object.fromEntries(
+            Object.keys(row.values).map(i => [i, newValue])
+          );
+          return { ...row, values: newValues };
+        }
+        return {
+          ...row,
+          values: { ...row.values, [interval]: newValue },
+        };
+    }));
+  };
+
+
+  const handleRowToggle = (id: number, isEnabled: boolean) => {
+    setRowSync(prev => ({ ...prev, [id]: isEnabled }));
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,23 +224,32 @@ export default function NormalizationParams() {
                         <input 
                           type="checkbox" 
                           className="h-4 w-4 rounded border-gray-400" 
-                          checked={param.isEnabled} 
+                          checked={!!rowSync[param.id]} 
                           onChange={(e) => handleRowToggle(param.id, e.target.checked)} 
                         />
                       </td>
                       
                       {/* Kolom dinamis untuk setiap interval */}
                       {selectedIntervals.map(interval => (
-                      <td key={interval} className="px-3 py-2 border-r bg-white">
-                        <input
-                          type="text"
-                          value={param.values[interval] ?? ''}
-                          onChange={(e) => handleUnifiedValueChange(param.id, e.target.value)}
-                          disabled={!param.isEnabled}
-                          className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
-                        />
-                      </td>
-                    ))}
+                        <td key={interval} className="px-3 py-2 border-r bg-white text-black">
+                          {param.name === 'NORMALIZE_OPT' ? (
+                            <select
+                              value={param.values[interval] ?? ''}
+                              onChange={(e) => handleUnifiedValueChange(param.id, e.target.value, interval)}
+                              className="w-full p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                            >
+                              <option value="MIN-MAX">MIN-MAX</option>
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              value={param.values[interval] ?? ''}
+                              onChange={(e) => handleUnifiedValueChange(param.id, e.target.value, interval)}
+                              className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                            />
+                          )}
+                        </td>
+                      ))}
                     </tr>
                   ))}
               </tbody>
