@@ -15,23 +15,20 @@ import { useRouter } from 'next/navigation';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { DownloadCloud, Plus, UploadCloud } from 'lucide-react';
 
-// --- NEW: Import the database utility functions ---
 import { addMultipleFiles, getAllFiles, deleteFile as dbDeleteFile } from './utils/db';
 
 export default function FileUploadViewer() {
-  // This state is now just for rendering what's in the DB
   const [filesForDisplay, setFilesForDisplay] = useState<FileData[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileData | null>(null);
   const [selectedSubFile, setSelectedSubFile] = useState<ParsedSubFile | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [isInitialized, setIsInitialized] = useState<boolean>(false); // To handle initial load
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
+  const { setStagedStructure } = useAppDataStore();
   const router = useRouter();
-  const setStagedStructure = useAppDataStore((state) => state.setStagedStructure);
 
-  // --- NEW: useEffect to load files from IndexedDB on component mount ---
   useEffect(() => {
     const loadFilesFromDb = async () => {
       setMessage('Loading saved files...');
@@ -47,10 +44,9 @@ export default function FileUploadViewer() {
       }
     };
     loadFilesFromDb();
-  }, []); // Empty dependency array ensures this runs only once
+  }, []);
 
   const handleProceedToNextPage = () => {
-    // Logic now reads from filesForDisplay, which is synced with the DB
     if (filesForDisplay.length === 0) {
       setMessage("Please upload some files first.");
       setTimeout(() => setMessage(''), 3000);
@@ -65,9 +61,7 @@ export default function FileUploadViewer() {
     }
 
     const filesForNextPage: ProcessedFileDataForDisplay[] = [];
-    filesForDisplay.forEach(fileData => { // Use filesForDisplay
-      // ... (your existing logic for building filesForNextPage is CORRECT)
-      // Case 1: Files from a processed ZIP structure
+    filesForDisplay.forEach(fileData => {
       if (fileData.isStructureFromZip) {
         fileData.lasFiles?.forEach(subFile => {
           filesForNextPage.push({
@@ -123,15 +117,17 @@ export default function FileUploadViewer() {
       return;
     }
 
-    const newStructureForNextPage: StagedStructure = {
-      userDefinedStructureName: structureNameInput.trim(),
+    // MODIFIED: Store structure name in both sessionStorage and Zustand
+    const structureName = structureNameInput.trim();
+    sessionStorage.setItem('userDefinedStructureName', structureName);
+
+    // Create temporary structure for Zustand
+    const tempStructure: StagedStructure = {
+      userDefinedStructureName: structureName,
       files: filesForNextPage,
     };
+    setStagedStructure(tempStructure);
 
-    // This is correct: set the prepared data in the (non-persisted) store
-    sessionStorage.setItem('userDefinedStructureName', structureNameInput.trim());
-
-    setMessage('');
     router.push('/data-input');
   };
 
