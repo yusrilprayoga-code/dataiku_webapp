@@ -98,8 +98,12 @@ export default function DataInputUtamaPage() {
     };
 
     // Only load if store is empty
-    loadFiles();
-  }, [router, setStagedStructure]);
+    if (!stagedStructure) {
+      loadFiles();
+    } else {
+      setIsLoading(false);
+    }
+  }, [router, setStagedStructure, stagedStructure]);
 
   const handleRunQcWorkflow = async () => {
     if (!stagedStructure) return;
