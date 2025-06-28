@@ -31,14 +31,17 @@ export default function DataInputUtamaPage() {
   const [isQcRunning, setIsQcRunning] = useState(false);
   const [qcStatusMessage, setQcStatusMessage] = useState('');
 
-  // MODIFIED: Get session data directly
-  const structureName = useRef<string | null>(null);
+  const [structureName, setStructureName] = useState<string | null>(null);
 
   useEffect(() => {
-    // Get structure name from session storage
-    structureName.current = sessionStorage.getItem('userDefinedStructureName');
+    // Client-side only
+    if (typeof window === 'undefined') return;
 
-    if (!structureName.current) {
+    // Get structure name from session storage
+    const name = sessionStorage.getItem('userDefinedStructureName');
+    setStructureName(name);
+
+    if (!name) {
       router.replace('/');
       return;
     }
@@ -81,7 +84,7 @@ export default function DataInputUtamaPage() {
         });
 
         const reconstructedStructure: StagedStructure = {
-          userDefinedStructureName: structureName.current!,
+          userDefinedStructureName: name,
           files: filesForProcessing,
         };
 
@@ -95,12 +98,8 @@ export default function DataInputUtamaPage() {
     };
 
     // Only load if store is empty
-    if (!stagedStructure) {
-      loadFiles();
-    } else {
-      setIsLoading(false);
-    }
-  }, [router, setStagedStructure, stagedStructure]);
+    loadFiles();
+  }, [router, setStagedStructure]);
 
   const handleRunQcWorkflow = async () => {
     if (!stagedStructure) return;

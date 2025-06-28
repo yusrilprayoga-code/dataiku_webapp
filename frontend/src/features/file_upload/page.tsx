@@ -119,7 +119,10 @@ export default function FileUploadViewer() {
 
     // MODIFIED: Store structure name in both sessionStorage and Zustand
     const structureName = structureNameInput.trim();
-    sessionStorage.setItem('userDefinedStructureName', structureName);
+
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('userDefinedStructureName', structureName);
+    }
 
     // Create temporary structure for Zustand
     const tempStructure: StagedStructure = {
