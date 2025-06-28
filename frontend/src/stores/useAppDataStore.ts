@@ -1,5 +1,5 @@
-// src/stores/useAppDataStore.ts
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { type Data, type Layout } from 'plotly.js';
 import {
   PlotData,
@@ -14,8 +14,8 @@ interface AppState {
   stagedStructure: StagedStructure | null;
   qcResults: QCResponse | null;
   handledFiles: PreviewableFile[];
-  normalizationResults: Record<string, PlotData>; 
-  
+  normalizationResults: Record<string, PlotData>;
+
   // --- State for Dashboard Interaction ---
   selectedWell: string | null;
   selectedIntervals: string[];
@@ -26,7 +26,7 @@ interface AppState {
 
   // --- Actions ---
   // Data Input & QC Actions
-  setStagedStructure: (structure: StagedStructure | null) => void;
+  setStagedStructure: (structure: StagedStructure) => void;
   setQcResults: (results: QCResponse | null) => void;
   addHandledFile: (file: PreviewableFile) => void;
   addNormalizationResult: (id: string, plot: PlotData) => void;
@@ -40,68 +40,95 @@ interface AppState {
   fetchPlotData: (wellId: string) => Promise<void>;
 }
 
-export const useAppDataStore = create<AppState>((set, get) => ({
-  // --- Initial State ---
-  stagedStructure: null,
-  qcResults: null,
-  handledFiles: [],
-  normalizationResults: {},
-  
-  selectedWell: 'ABAB-035',
-  selectedIntervals: ['B1', 'GUF'],
-  plotData: [],
-  plotLayout: {},
-  isLoadingPlot: true,
-  plotError: null,
+export const useAppDataStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      // --- Initial State ---
+      stagedStructure: null,
+      qcResults: null,
+      handledFiles: [],
+      normalizationResults: {},
 
-  // --- Actions Implementation ---
-  setStagedStructure: (structure) => set({ stagedStructure: structure }),
-  setQcResults: (results) => set({ qcResults: results }),
-  addHandledFile: (file) => set((state) => ({ handledFiles: [...state.handledFiles, file] })),
-  
-  addNormalizationResult: (id, plot) => set(state => ({
-    normalizationResults: { ...state.normalizationResults, [id]: plot }
-  })),
+      selectedWell: 'ABAB-035',
+      selectedIntervals: ['B1', 'GUF'],
+      plotData: [],
+      plotLayout: {},
+      isLoadingPlot: true,
+      plotError: null,
 
-  clearQcResults: () => set({ qcResults: null, handledFiles: [] }),
-  clearNormalizationResults: () => set({ normalizationResults: {} }),
-  
-  clearAllData: () => set({
-    stagedStructure: null,
-    qcResults: null,
-    handledFiles: [],
-    normalizationResults: {},
-  }),
-  
-  setSelectedWell: (well) => {
-    set({ selectedWell: well });
-    get().fetchPlotData(well); // Automatically fetch new data on well change
-  },
+      // --- Actions Implementation ---
+      setStagedStructure: (structure) => set({ stagedStructure: structure }),
+      setQcResults: (results) => set({ qcResults: results }),
+      addHandledFile: (file) => set((state) => ({
+        handledFiles: [...state.handledFiles, file]
+      })),
 
-  toggleInterval: (interval) =>
-    set((state) => ({
-      selectedIntervals: state.selectedIntervals.includes(interval)
-        ? state.selectedIntervals.filter((i) => i !== interval)
-        : [...state.selectedIntervals, interval],
-    })),
+      addNormalizationResult: (id, plot) => set(state => ({
+        normalizationResults: {
+          ...state.normalizationResults,
+          [id]: plot
+        }
+      })),
 
-  fetchPlotData: async (wellId) => {
-    if (!wellId) return;
-    set({ isLoadingPlot: true, plotError: null });
-    try {
-      const response = await fetch(`http://127.0.0.1:5000/api/get-plot?well=${wellId}`);
-      if (!response.ok) throw new Error(`Failed to fetch plot data for ${wellId}`);
-      
-      const plotObject: PlotData = await response.json();
-      set({
-        plotData: plotObject.data,
-        plotLayout: plotObject.layout,
-        isLoadingPlot: false,
-      });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
-      set({ plotError: errorMessage, isLoadingPlot: false });
+      clearQcResults: () => set({
+        qcResults: null,
+        handledFiles: []
+      }),
+
+      clearNormalizationResults: () => set({
+        normalizationResults: {}
+      }),
+
+      clearAllData: () => set({
+        stagedStructure: null,
+        qcResults: null,
+        handledFiles: [],
+        normalizationResults: {},
+      }),
+
+      setSelectedWell: (well) => {
+        set({ selectedWell: well });
+        get().fetchPlotData(well);
+      },
+
+      toggleInterval: (interval) =>
+        set((state) => ({
+          selectedIntervals: state.selectedIntervals.includes(interval)
+            ? state.selectedIntervals.filter((i) => i !== interval)
+            : [...state.selectedIntervals, interval],
+        })),
+
+      fetchPlotData: async (wellId) => {
+        if (!wellId) return;
+        set({ isLoadingPlot: true, plotError: null });
+        try {
+          const response = await fetch(`/api/get-plot?well=${wellId}`);
+          if (!response.ok) throw new Error(`Failed to fetch plot data for ${wellId}`);
+
+          const plotObject: PlotData = await response.json();
+          set({
+            plotData: plotObject.data,
+            plotLayout: plotObject.layout,
+            isLoadingPlot: false,
+          });
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+          set({ plotError: errorMessage, isLoadingPlot: false });
+        }
+      },
+    }),
+    {
+      name: 'app-data-storage',
+      partialize: (state) => ({
+        // Only persist critical navigation state
+        stagedStructure: state.stagedStructure,
+        qcResults: state.qcResults,
+        handledFiles: state.handledFiles,
+
+        // Don't persist heavy visualization states
+        // These will be re-fetched as needed
+      }),
+      storage: createJSONStorage(() => localStorage),
     }
-  },
-}));
-
+  )
+);

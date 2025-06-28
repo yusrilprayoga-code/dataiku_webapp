@@ -30,28 +30,40 @@ export default function DataInputUtamaPage() {
   const [selectedFileForPreview, setSelectedFileForPreview] = useState<PreviewableFile | null>(null);
   const [isQcRunning, setIsQcRunning] = useState(false);
   const [qcStatusMessage, setQcStatusMessage] = useState('');
+  const [isInitializing, setIsInitializing] = useState(true);
 
   const [structureName, setStructureName] = useState<string | null>(null);
 
   useEffect(() => {
-    // Client-side only
-    if (typeof window === 'undefined') return;
-
-    // Get structure name from session storage
-    const name = sessionStorage.getItem('userDefinedStructureName');
-    setStructureName(name);
-
-    if (!name) {
-      router.replace('/');
-      return;
-    }
-
-    const loadFiles = async () => {
-      setIsLoading(true);
+    const initializeData = async () => {
       try {
-        const filesFromDb: FileData[] = await getAllFiles();
+        // 1. Check if we have data in Zustand
+        if (stagedStructure) {
+          setIsLoading(false);
+          return;
+        }
 
+        // 2. Check localStorage for backup
+        const localStaged = localStorage.getItem('stagedStructure');
+        const localName = localStorage.getItem('structureName');
+
+        if (localStaged && localName) {
+          const parsed = JSON.parse(localStaged) as StagedStructure;
+          setStagedStructure(parsed);
+          setIsLoading(false);
+          return;
+        }
+
+        // 3. Check sessionStorage
+        const sessionName = sessionStorage.getItem('userDefinedStructureName');
+        if (!sessionName) {
+          throw new Error('No structure name found');
+        }
+
+        // 4. Load from IndexedDB
+        const filesFromDb = await getAllFiles();
         const filesForProcessing: ProcessedFileDataForDisplay[] = [];
+
         filesFromDb.forEach(fileData => {
           if (fileData.isStructureFromZip) {
             const processSubFiles = (subFiles: any[] | undefined, type: 'las-as-csv' | 'csv') => {
@@ -83,26 +95,24 @@ export default function DataInputUtamaPage() {
           }
         });
 
-        const reconstructedStructure: StagedStructure = {
-          userDefinedStructureName: name,
+        const reconstructed: StagedStructure = {
+          userDefinedStructureName: sessionName,
           files: filesForProcessing,
         };
 
-        setStagedStructure(reconstructedStructure);
+        setStagedStructure(reconstructed);
+        localStorage.setItem('stagedStructure', JSON.stringify(reconstructed));
+        localStorage.setItem('structureName', sessionName);
       } catch (error) {
-        console.error("Failed to load data:", error);
+        console.error("Initialization failed:", error);
         router.replace('/');
       } finally {
         setIsLoading(false);
+        setIsInitializing(false);
       }
     };
 
-    // Only load if store is empty
-    if (!stagedStructure) {
-      loadFiles();
-    } else {
-      setIsLoading(false);
-    }
+    initializeData();
   }, [router, setStagedStructure, stagedStructure]);
 
   const handleRunQcWorkflow = async () => {
@@ -177,6 +187,15 @@ export default function DataInputUtamaPage() {
       <div className="h-screen w-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
         <p className="ml-4">Memuat data sesi...</p>
+      </div>
+    );
+  }
+
+  if (isInitializing) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+        <p className="ml-4">Initializing application...</p>
       </div>
     );
   }

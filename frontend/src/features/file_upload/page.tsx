@@ -117,19 +117,21 @@ export default function FileUploadViewer() {
       return;
     }
 
-    // MODIFIED: Store structure name in both sessionStorage and Zustand
     const structureName = structureNameInput.trim();
 
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('userDefinedStructureName', structureName);
-    }
-
-    // Create temporary structure for Zustand
-    const tempStructure: StagedStructure = {
+    // Persist structure name in both Zustand and localStorage
+    const newStructureForNextPage: StagedStructure = {
       userDefinedStructureName: structureName,
       files: filesForNextPage,
     };
-    setStagedStructure(tempStructure);
+
+    // Save to Zustand store
+    setStagedStructure(newStructureForNextPage);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('stagedStructure', JSON.stringify(newStructureForNextPage));
+      localStorage.setItem('structureName', structureName);
+    }
 
     router.push('/data-input');
   };
