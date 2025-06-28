@@ -1,5 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { FileData } from '../types'; // Adjust path based on your project structure
+import { FileData } from '../features/file_upload/types'; // Adjust path based on your project structure
 
 const DB_NAME = 'file-storage-db';
 const STORE_NAME = 'uploaded-files';

@@ -5,8 +5,6 @@ import * as XLSX from 'xlsx';
 import { ParsedFileData } from '@/types'; // Adjust path if needed
 
 export const parseLASFile = (fileContent: string): ParsedFileData => {
-  // ... your existing parseLASFile logic ...
-  // Ensure it returns { headers: string[], data: any[] }
   const lines = fileContent.split('\n');
   let parsedHeaders: string[] = [];
   const parsedData: any[] = [];
