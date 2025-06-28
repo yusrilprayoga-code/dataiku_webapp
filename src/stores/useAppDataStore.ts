@@ -120,13 +120,8 @@ export const useAppDataStore = create<AppState>()(
     {
       name: 'app-data-storage',
       partialize: (state) => ({
-        // Only persist critical navigation state
-        stagedStructure: state.stagedStructure,
-        qcResults: state.qcResults,
-        handledFiles: state.handledFiles,
-
-        // Don't persist heavy visualization states
-        // These will be re-fetched as needed
+        selectedWell: state.selectedWell,
+        selectedIntervals: state.selectedIntervals,
       }),
       storage: createJSONStorage(() => localStorage),
     }
