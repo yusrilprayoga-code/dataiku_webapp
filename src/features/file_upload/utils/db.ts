@@ -49,3 +49,9 @@ export const deleteFile = async (id: string) => {
     const db = await initDB();
     await db.delete(STORE_NAME, id);
 };
+
+export const clearAllFiles = async () => {
+    const db = await initDB();
+    await db.clear(STORE_NAME);
+    console.log('IndexedDB store has been cleared.');
+};

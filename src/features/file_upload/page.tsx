@@ -15,7 +15,7 @@ import FilePreview from './components/FilePreview';
 import { useRouter } from 'next/navigation';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { DownloadCloud, Plus, UploadCloud } from 'lucide-react';
-import { addMultipleFiles, getAllFiles, deleteFile as dbDeleteFile } from './utils/db';
+import { addMultipleFiles, getAllFiles, deleteFile as dbDeleteFile, clearAllFiles } from './utils/db';
 
 export default function FileUploadViewer() {
   const [filesForDisplay, setFilesForDisplay] = useState<FileData[]>([]);
@@ -25,8 +25,6 @@ export default function FileUploadViewer() {
   const [message, setMessage] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
-
-  const { setStagedStructure } = useAppDataStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -47,12 +45,14 @@ export default function FileUploadViewer() {
   }, []);
 
   const handleProceedToNextPage = () => {
+    // 1. Check if there are any files displayed from our database.
     if (filesForDisplay.length === 0) {
       setMessage("Please upload some files first.");
       setTimeout(() => setMessage(''), 3000);
       return;
     }
 
+    // 2. Get the name for the structure from the user.
     const structureNameInput = window.prompt("Please enter a name for this data structure/folder:");
     if (!structureNameInput || structureNameInput.trim() === "") {
       setMessage("Structure name is required to proceed.");
@@ -60,75 +60,6 @@ export default function FileUploadViewer() {
       return;
     }
     const name = structureNameInput.trim();
-
-    const filesForNextPage: ProcessedFileDataForDisplay[] = [];
-    filesForDisplay.forEach(fileData => {
-      if (fileData.isStructureFromZip) {
-        fileData.lasFiles?.forEach(subFile => {
-          filesForNextPage.push({
-            id: subFile.id,
-            name: `${fileData.name}/${subFile.name}`,
-            originalName: subFile.name,
-            structurePath: fileData.name,
-            type: 'las-as-csv',
-            content: subFile.content,
-            headers: subFile.headers,
-            rawContentString: subFile.rawContentString,
-          });
-        });
-        fileData.csvFiles?.forEach(subFile => {
-          filesForNextPage.push({
-            id: subFile.id,
-            name: `${fileData.name}/${subFile.name}`,
-            originalName: subFile.name,
-            structurePath: fileData.name,
-            type: 'csv',
-            content: subFile.content,
-            headers: subFile.headers,
-            rawContentString: subFile.rawContentString,
-          });
-        });
-      }
-      // Case 2: Single uploaded LAS or CSV files
-      else if (fileData.rawFileContent && typeof fileData.rawFileContent === 'string') {
-        let fileType: 'las-as-csv' | 'csv' | null = null;
-        if (fileData.name.toLowerCase().endsWith('.las')) {
-          fileType = 'las-as-csv';
-        } else if (fileData.name.toLowerCase().endsWith('.csv')) {
-          fileType = 'csv';
-        }
-
-        if (fileType) {
-          filesForNextPage.push({
-            id: fileData.id,
-            name: fileData.name,
-            type: fileType,
-            content: fileData.content || [],
-            headers: fileData.headers || [],
-            rawContentString: fileData.rawFileContent,
-          });
-        }
-      }
-    });
-
-
-    if (filesForNextPage.length === 0) {
-      setMessage("No relevant LAS or CSV files found to proceed.");
-      setTimeout(() => setMessage(''), 3000);
-      return;
-    }
-
-    const structureName = structureNameInput.trim();
-
-    // Persist structure name in both Zustand and localStorage
-    const newStructureForNextPage: StagedStructure = {
-      userDefinedStructureName: structureName,
-      files: filesForNextPage,
-    };
-
-    // Save to Zustand store
-    setStagedStructure(newStructureForNextPage);
-
     router.push(`/data-input?structureName=${encodeURIComponent(name)}`);
   };
 
@@ -199,6 +130,7 @@ export default function FileUploadViewer() {
   };
 
   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    await clearAllFiles(); // Clear IndexedDB
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
