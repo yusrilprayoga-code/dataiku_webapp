@@ -36,12 +36,18 @@ export default function DataInputUtamaPage() {
 
     useEffect(() => {
         const initializeData = async () => {
-            if (useAppDataStore.getState().stagedStructure) {
-                setIsLoading(false);
-                return;
+
+            console.log("--- DATA INITIALIZATION START ---");
+            const existingState = useAppDataStore.getState().stagedStructure;
+
+            if (existingState) {
+                console.log("Data already exists in store. Skipping fetch, proceeding to render.");
+                setIsLoading(false); // Make sure to set loading to false!
+                return; // We can now safely exit.
             }
             try {
                 const structureName = searchParams.get('structureName');
+                console.log(`[LOG 1] Structure Name from URL:`, structureName);
 
                 if (!structureName) {
                     // This error message is now more accurate
@@ -50,6 +56,7 @@ export default function DataInputUtamaPage() {
 
                 // The rest of your logic remains exactly the same...
                 const filesFromDb = await getAllFiles();
+                console.log(`[LOG 2] Data retrieved from IndexedDB:`, filesFromDb);
                 if (filesFromDb.length === 0) {
                     throw new Error("IndexedDB is empty, can't build structure.");
                 }
@@ -69,12 +76,14 @@ export default function DataInputUtamaPage() {
                         filesForProcessing.push({ id: fileData.id, name: fileData.name, type: fileType, content: fileData.content || [], headers: fileData.headers || [], rawContentString: fileData.rawFileContent });
                     }
                 });
+                console.log(`[LOG 3] Data after transformation:`, filesForProcessing);
 
                 const reconstructed: StagedStructure = {
                     userDefinedStructureName: structureName,
                     files: filesForProcessing,
                 };
                 setStagedStructure(reconstructed);
+                console.log(`[LOG 4] Final object to be set in state:`, reconstructed);
 
             } catch (error) {
                 console.error("Initialization failed, redirecting to home:", error);
