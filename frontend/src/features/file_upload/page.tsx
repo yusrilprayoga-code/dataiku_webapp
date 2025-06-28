@@ -128,10 +128,10 @@ export default function FileUploadViewer() {
     // Save to Zustand store
     setStagedStructure(newStructureForNextPage);
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('stagedStructure', JSON.stringify(newStructureForNextPage));
-      localStorage.setItem('structureName', structureName);
-    }
+    // if (typeof window !== 'undefined') {
+    //   localStorage.setItem('stagedStructure', JSON.stringify(newStructureForNextPage));
+    //   localStorage.setItem('structureName', structureName);
+    // }
 
     router.push('/data-input');
   };
@@ -286,6 +286,7 @@ export default function FileUploadViewer() {
     }, 5000);
     if (event.target) event.target.value = '';
   };
+
 
   const handleDeleteFile = async (id: string) => {
     try {

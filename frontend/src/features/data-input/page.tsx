@@ -36,32 +36,24 @@ export default function DataInputUtamaPage() {
 
   useEffect(() => {
     const initializeData = async () => {
+      // If the structure is already in our store (e.g. from fast client-side nav), we're done.
+      if (useAppDataStore.getState().stagedStructure) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        // 1. Check if we have data in Zustand
-        if (stagedStructure) {
-          setIsLoading(false);
-          return;
-        }
-
-        // 2. Check localStorage for backup
-        const localStaged = localStorage.getItem('stagedStructure');
-        const localName = localStorage.getItem('structureName');
-
-        if (localStaged && localName) {
-          const parsed = JSON.parse(localStaged) as StagedStructure;
-          setStagedStructure(parsed);
-          setIsLoading(false);
-          return;
-        }
-
-        // 3. Check sessionStorage
+        // Find the structure name. Using sessionStorage is fine for this temporary hand-off.
         const sessionName = sessionStorage.getItem('userDefinedStructureName');
         if (!sessionName) {
-          throw new Error('No structure name found');
+          throw new Error('No structure name found in session. Cannot initialize page.');
         }
 
-        // 4. Load from IndexedDB
+        // The single source of truth for large data is IndexedDB.
         const filesFromDb = await getAllFiles();
+        if (filesFromDb.length === 0) {
+          throw new Error("IndexedDB is empty, can't build structure.");
+        }
         const filesForProcessing: ProcessedFileDataForDisplay[] = [];
 
         filesFromDb.forEach(fileData => {
@@ -101,19 +93,16 @@ export default function DataInputUtamaPage() {
         };
 
         setStagedStructure(reconstructed);
-        localStorage.setItem('stagedStructure', JSON.stringify(reconstructed));
-        localStorage.setItem('structureName', sessionName);
       } catch (error) {
-        console.error("Initialization failed:", error);
+        console.error("Initialization failed, redirecting to home:", error);
         router.replace('/');
       } finally {
         setIsLoading(false);
-        setIsInitializing(false);
       }
     };
 
     initializeData();
-  }, [router, setStagedStructure, stagedStructure]);
+  }, [router, setStagedStructure]);
 
   const handleRunQcWorkflow = async () => {
     if (!stagedStructure) return;
