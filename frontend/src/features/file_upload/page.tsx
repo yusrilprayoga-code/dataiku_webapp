@@ -15,7 +15,7 @@ import FilePreview from './components/FilePreview';
 import { useRouter } from 'next/navigation';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { DownloadCloud, Plus, UploadCloud } from 'lucide-react';
-import { addMultipleFiles, getAllFiles, deleteFile as dbDeleteFile, clearAllFiles } from './utils/db';
+import { addMultipleFiles, getAllFiles, deleteFile as dbDeleteFile, clearAllFiles } from '../../lib/db';
 
 export default function FileUploadViewer() {
   const [filesForDisplay, setFilesForDisplay] = useState<FileData[]>([]);
