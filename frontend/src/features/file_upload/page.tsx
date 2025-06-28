@@ -15,7 +15,6 @@ import FilePreview from './components/FilePreview';
 import { useRouter } from 'next/navigation';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { DownloadCloud, Plus, UploadCloud } from 'lucide-react';
-
 import { addMultipleFiles, getAllFiles, deleteFile as dbDeleteFile } from './utils/db';
 
 export default function FileUploadViewer() {
@@ -60,6 +59,7 @@ export default function FileUploadViewer() {
       setTimeout(() => setMessage(''), 3000);
       return;
     }
+    const name = structureNameInput.trim();
 
     const filesForNextPage: ProcessedFileDataForDisplay[] = [];
     filesForDisplay.forEach(fileData => {
@@ -129,12 +129,7 @@ export default function FileUploadViewer() {
     // Save to Zustand store
     setStagedStructure(newStructureForNextPage);
 
-    // if (typeof window !== 'undefined') {
-    //   localStorage.setItem('stagedStructure', JSON.stringify(newStructureForNextPage));
-    //   localStorage.setItem('structureName', structureName);
-    // }
-
-    router.push('/data-input');
+    router.push(`/data-input?structureName=${encodeURIComponent(name)}`);
   };
 
   const processZipFile = async (

@@ -5,7 +5,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Papa from 'papaparse';
 import { useAppDataStore } from '../../stores/useAppDataStore';
 import { QCResponse, PreviewableFile, ProcessedFileDataForDisplay, QCResult, QCStatus, StagedStructure } from '@/types';
@@ -15,6 +15,7 @@ import { getAllFiles } from '@/features/file_upload/utils/db';
 
 export default function DataInputUtamaPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // --- REFACTORED: We only need ONE loading state. ---
   const [isLoading, setIsLoading] = useState(true);
@@ -40,11 +41,14 @@ export default function DataInputUtamaPage() {
         return;
       }
       try {
-        const sessionName = sessionStorage.getItem('userDefinedStructureName');
-        if (!sessionName) {
-          throw new Error('No structure name found in session. Cannot initialize page.');
+        const structureName = searchParams.get('structureName');
+
+        if (!structureName) {
+          // This error message is now more accurate
+          throw new Error('No structure name found in URL. Cannot initialize page.');
         }
 
+        // The rest of your logic remains exactly the same...
         const filesFromDb = await getAllFiles();
         if (filesFromDb.length === 0) {
           throw new Error("IndexedDB is empty, can't build structure.");
@@ -67,7 +71,7 @@ export default function DataInputUtamaPage() {
         });
 
         const reconstructed: StagedStructure = {
-          userDefinedStructureName: sessionName,
+          userDefinedStructureName: structureName,
           files: filesForProcessing,
         };
         setStagedStructure(reconstructed);
@@ -81,7 +85,7 @@ export default function DataInputUtamaPage() {
       }
     };
     initializeData();
-  }, [router, setStagedStructure]);
+  }, [router, searchParams, setStagedStructure]);
 
   const handleRunQcWorkflow = async () => {
     if (!stagedStructure) return;
