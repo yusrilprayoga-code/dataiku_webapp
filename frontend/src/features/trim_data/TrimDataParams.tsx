@@ -22,7 +22,7 @@ const createInitialTrimParameters = (): ParameterRow[] => {
       id: 1,
       location: 'Parameter',
       mode: 'Input',
-      comment: 'Trim mode (AUTO, UNTIL_TOP, UNTIL_BOTTOM, CUSTOM)',
+      comment: 'Trim mode (AUTO, DEPTH_BELOW, DEPTH_ABOVE, IN_RANGE, OUT_RANGE)',
       unit: 'MODE',
       name: 'TRIM_MODE',
       isEnabled: true,
@@ -31,26 +31,26 @@ const createInitialTrimParameters = (): ParameterRow[] => {
       id: 2,
       location: 'Parameter',
       mode: 'Input',
-      comment: 'Top Depth (input jika mode UNTIL_BOTTOM atau CUSTOM)',
+      comment: 'Upper limit of depth to trim data',
       unit: 'm',
-      name: 'TOP_DEPTH',
+      name: 'DEPTH_ABOVE',
       isEnabled: true,
     },
     {
       id: 3,
       location: 'Parameter',
       mode: 'Input',
-      comment: 'Bottom Depth (input jika mode UNTIL_TOP atau CUSTOM)',
+      comment: 'Lower limit of depth to trim data',
       unit: 'm',
-      name: 'BOTTOM_DEPTH',
+      name: 'DEPTH_BELOW',
       isEnabled: true,
     },
   ];
 
   const defaultValues: Record<string, string | number> = {
     TRIM_MODE: 'AUTO',
-    TOP_DEPTH: '',
-    BOTTOM_DEPTH: '',
+    DEPTH_ABOVE: '',
+    DEPTH_BELOW: '',
   };
 
   return allParams.map(p => ({
@@ -147,8 +147,8 @@ export default function TrimDataParams() {
 
   const isInputDisabled = (paramName: string, trimMode: string): boolean => {
     if (trimMode === 'AUTO') return true;
-    if (trimMode === 'UNTIL_TOP' && paramName === 'TOP_DEPTH') return true;
-    if (trimMode === 'UNTIL_BOTTOM' && paramName === 'BOTTOM_DEPTH') return true;
+    if (trimMode === 'TRIM_ABOVE' && paramName === 'DEPTH_ABOVE') return true;
+    if (trimMode === 'TRIM_BELLOW' && paramName === 'DEPTH_BELOW') return true;
   return false;
 };
 
@@ -197,9 +197,9 @@ const currentTrimMode = trimModeParam?.values['default'] || 'AUTO';
                   const mode = parameters.find(p => p.name === 'TRIM_MODE')?.values.default;
 
                   const shouldShowInput =
-                    param.name === 'TOP_DEPTH' && (mode === 'UNTIL_BOTTOM' || mode === 'CUSTOM') ||
-                    param.name === 'BOTTOM_DEPTH' && (mode === 'UNTIL_TOP' || mode === 'CUSTOM') ||
-                    !['TOP_DEPTH', 'BOTTOM_DEPTH'].includes(param.name);
+                    param.name === 'DEPTH_ABOVE' && (mode === 'DEPTH_ABOVE' || mode === 'IN_RANGE' || mode === 'OUT_RANGE') ||
+                    param.name === 'DEPTH_BELOW' && (mode === 'DEPTH_BELOW' || mode === 'IN_RANGE' || mode === 'OUT_RANGE') ||
+                    !['DEPTH_ABOVE', 'DEPTH_BELOW'].includes(param.name);
 
                   return shouldShowInput ? (
                     <tr key={param.id} className={`border-b border-gray-200 text-white ${param.isEnabled ? getRowBgColor(param.location, param.mode) : 'bg-gray-100 text-gray-400'}`}>
@@ -218,9 +218,10 @@ const currentTrimMode = trimModeParam?.values['default'] || 'AUTO';
                                 className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
                             >
                                 <option value="AUTO">AUTO</option>
-                                <option value="UNTIL_TOP">UNTIL_TOP</option>
-                                <option value="UNTIL_BOTTOM">UNTIL_BOTTOM</option>
-                                <option value="CUSTOM">CUSTOM</option>
+                                <option value="DEPTH_BELOW">DEPTH_BELOW</option>
+                                <option value="DEPTH_ABOVE">DEPTH_ABOVE</option>
+                                <option value="IN_RANGE">IN_RANGE</option>
+                                <option value="OUT_RANGE">OUT_RANGE</option>
                             </select>
                             ) : (
                             <input

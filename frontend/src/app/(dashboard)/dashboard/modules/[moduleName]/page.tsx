@@ -13,6 +13,7 @@ import VshCalculationParams from '@/features/vsh-calculation/VshCalculationParam
 import PorosityCalculationParams from '@/features/porosity/PorosityCalculationParams';
 import GsaCalculationParams from '@/features/rgsa-ngsa-dgsa/GsaCalculationParams';
 import TrimDataParams from '@/features/trim_data/TrimDataParams';
+import FillMissingPage from '@/features/fill_missing/page';
 
 // Placeholder component for demonstration purposes
 const SmoothingParamsForm = () => (
@@ -60,6 +61,8 @@ export default function ModulePage(props: any) {
 
   const renderParameterForm = () => {
     switch (moduleName) {
+      case 'fill-missing':
+        return <FillMissingPage />;
       case 'trim-data':
         return <TrimDataParams />;
       case 'depth-matching':

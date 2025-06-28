@@ -1,14 +1,12 @@
 # /api/app.py
 from flask import Flask, request, jsonify, Response
 from app.services.qc_service import run_full_qc_pipeline
-from app.services.data_processing import handle_null_values, min_max_normalize
+from app.services.data_processing import fill_null_values_in_marker_range, handle_null_values, selective_normalize_handler, trim_data_depth
 from app.services.vsh_calculation import calculate_vsh_from_gr
 import logging
 import os
 from flask_cors import CORS
 import pandas as pd
-import numpy as np
-from typing import Optional
 from app.services.plotting_service import (
     extract_markers_with_mean_depth,
     normalize_xover,
@@ -23,7 +21,6 @@ from app.services.depth_matching import depth_matching, plot_depth_matching_resu
 from app.services.rgsa import process_all_wells_rgsa
 from app.services.dgsa import process_all_wells_dgsa
 from app.services.ngsa import process_all_wells_ngsa
-from app.services.trim_data import trim_well_log
 
 app = Flask(__name__)
 
@@ -101,6 +98,43 @@ DATA_PATH = os.path.join(SCRIPT_DIR, 'sample_data', 'pass_qc.csv')
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 WELLS_DIR = os.path.join(PROJECT_ROOT, 'sample_data', 'wells')
 LAS_DIR = os.path.join(PROJECT_ROOT, 'sample_data', 'depth-matching')
+
+
+@app.route('/api/fill-null-marker', methods=['POST'])
+def fill_null_marker():
+    try:
+        payload = request.get_json()
+        selected_wells = payload.get('selected_wells', [])
+
+        if not selected_wells:
+            return jsonify({'error': 'selected_wells wajib diisi'}), 400
+
+        results = []
+
+        for well_name in selected_wells:
+            file_path = os.path.join(WELLS_DIR, f"{well_name}.csv")
+            if not os.path.exists(file_path):
+                results.append(
+                    {'well': well_name, 'status': 'File tidak ditemukan'})
+                continue
+
+            df = pd.read_csv(file_path)
+
+            struktur = df['STRUKTUR'].iloc[0] if 'STRUKTUR' in df.columns else 'UNKNOWN'
+
+            df_filled = fill_null_values_in_marker_range(
+                df, struktur, well_name)
+            df_filled.to_csv(file_path, index=False)
+
+            results.append({'well': well_name, 'rows': len(
+                df_filled), 'status': 'Berhasil diproses'})
+
+        return jsonify({'message': 'Pengisian nilai null selesai', 'results': results}), 200
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/get-plot', methods=['POST'])
@@ -183,16 +217,8 @@ def get_normalization_plot():
             if log_out_col not in df.columns or df[log_out_col].isnull().all():
                 return jsonify({"error": f"Tidak ada data normalisasi yang valid untuk sumur yang dipilih. Jalankan proses pada interval yang benar."}), 400
 
-            # Siapkan data marker dari DataFrame gabungan
-            df_marker_info = extract_markers_with_mean_depth(df)
-
-            # ==========================================================
-            # FIX: Panggil `plot_normalization` dengan argumen yang benar
-            # ==========================================================
             fig_result = plot_normalization(
-                df=df,                 # DataFrame lengkap dengan semua data log
-                df_marker=df_marker_info,      # DataFrame khusus untuk teks marker
-                df_well_marker=df      # DataFrame lengkap untuk plot latar belakang marker
+                df=df,
             )
 
             return jsonify(fig_result.to_json())
@@ -221,27 +247,23 @@ def list_wells():
 
 @app.route('/api/run-interval-normalization', methods=['POST', 'OPTIONS'])
 def run_interval_normalization():
-
     if request.method == 'OPTIONS':
-        # Respons ini sudah cukup untuk memberitahu browser bahwa permintaan POST diizinkan
         return jsonify({'status': 'ok'}), 200
 
     try:
-        # 1. Terima semua data dari frontend: params, sumur, dan interval
+        # Ambil data dari frontend
         payload = request.get_json()
         params = payload.get('params', {})
         selected_wells = payload.get('selected_wells', [])
         selected_intervals = payload.get('selected_intervals', [])
 
         if not selected_wells or not selected_intervals:
-            return jsonify({"error": "Sumur dan Interval harus dipilih."}), 400
+            return jsonify({"error": "Sumur dan interval harus dipilih."}), 400
 
-        print(
-            f"Memulai normalisasi untuk {len(selected_wells)} sumur pada {len(selected_intervals)} interval...")
+        print(f"Mulai normalisasi untuk {len(selected_wells)} sumur...")
 
-        # Ekstrak parameter normalisasi dari payload
+        # Ambil parameter normalisasi
         log_in_col = params.get('LOG_IN', 'GR')
-        log_out_col = params.get('LOG_OUT', 'GR_NORM')
         calib_min = float(params.get('CALIB_MIN', 40))
         calib_max = float(params.get('CALIB_MAX', 140))
         pct_min = int(params.get('PCT_MIN', 3))
@@ -251,61 +273,39 @@ def run_interval_normalization():
 
         processed_dfs = []
 
-        # 2. LOOPING PERTAMA: Iterasi untuk setiap sumur yang dipilih
         for well_name in selected_wells:
             file_path = os.path.join(WELLS_DIR, f"{well_name}.csv")
             if not os.path.exists(file_path):
-                print(
-                    f"Peringatan: Melewatkan sumur {well_name}, file tidak ditemukan.")
+                print(f"Peringatan: File untuk {well_name} tidak ditemukan.")
                 continue
 
-            df_well = pd.read_csv(file_path)
-            # Buat kolom output baru berisi NaN (Not a Number)
-            df_well[log_out_col] = np.nan
+            df = pd.read_csv(file_path)
 
-            # 3. LOOPING KEDUA: Iterasi untuk setiap interval di dalam sumur saat ini
-            for interval in selected_intervals:
-                # Filter dataframe untuk mendapatkan baris yang sesuai dengan interval ini
-                interval_mask = df_well['MARKER'] == interval
+            # Jalankan handler normalisasi untuk marker terpilih
+            df_norm = selective_normalize_handler(
+                df=df,
+                log_column=log_in_col,
+                marker_column='MARKER',
+                target_markers=selected_intervals,
+                calib_min=calib_min,
+                calib_max=calib_max,
+                pct_min=pct_min,
+                pct_max=pct_max,
+                cutoff_min=cutoff_min,
+                cutoff_max=cutoff_max
+            )
 
-                # Jika tidak ada data untuk interval ini di sumur saat ini, lewati
-                if interval_mask.sum() == 0:
-                    continue
+            # Simpan kembali ke file
+            df_norm.to_csv(file_path, index=False)
+            processed_dfs.append(df_norm)
 
-                # Ambil data log HANYA dari subset interval ini
-                log_to_normalize = df_well.loc[interval_mask, log_in_col].dropna(
-                ).values
+            print(f"Normalisasi selesai untuk {well_name}")
 
-                if len(log_to_normalize) == 0:
-                    continue
-
-                # 4. JALANKAN NORMALISASI pada data subset
-                normalized_values = min_max_normalize(
-                    log_in=log_to_normalize,
-                    calib_min=calib_min,
-                    calib_max=calib_max,
-                    pct_min=pct_min,
-                    pct_max=pct_max,
-                    cutoff_min=cutoff_min,
-                    cutoff_max=cutoff_max
-                )
-
-                # 5. SIMPAN HASIL kembali ke dataframe utama pada baris yang benar
-                df_well.loc[interval_mask, log_out_col] = normalized_values
-
-            processed_dfs.append(df_well)
-            df_well.to_csv(file_path, index=False)
-            print(
-                f"Hasil normalisasi untuk sumur '{well_name}' telah disimpan ke {file_path}")
-
-        # 6. Gabungkan semua dataframe yang sudah diproses
         if not processed_dfs:
-            return jsonify({"error": "Tidak ada data yang berhasil diproses."}), 400
+            return jsonify({"error": "Tidak ada file yang berhasil diproses."}), 400
 
+        # Gabungkan semua hasil jika diperlukan
         final_df = pd.concat(processed_dfs, ignore_index=True)
-
-        # 7. Kembalikan data yang sudah dinormalisasi sebagai JSON
-        # Format 'records' mudah dibaca oleh JavaScript
         result_json = final_df.to_json(orient='records')
 
         return jsonify({
@@ -593,6 +593,20 @@ def get_gsa_plot():
             return jsonify({"error": str(e)}), 500
 
 
+def trim(df, depth_above=0.0, depth_below=0.0, above=0, below=0):
+    depth_above = float(depth_above)
+    depth_below = float(depth_below)
+
+    if above == 1 and below == 0:
+        df = df[df.index >= depth_above]
+    elif above == 0 and below == 1:
+        df = df[df.index <= depth_below]
+    elif above == 1 and below == 1:
+        df = df[(df.index >= depth_above) & (df.index <= depth_below)]
+
+    return df
+
+
 @app.route('/api/trim-data', methods=['POST'])
 def run_trim_well_log():
     try:
@@ -600,10 +614,9 @@ def run_trim_well_log():
 
         well_names = data.get('selected_wells', [])
         params = data.get('params', {})
-
         trim_mode = params.get('TRIM_MODE', 'AUTO')
-        top_depth = params.get('TOP_DEPTH')
-        bottom_depth = params.get('BOTTOM_DEPTH')
+        depth_above = params.get('DEPTH_ABOVE')
+        depth_below = params.get('DEPTH_BELOW')
         required_columns = data.get(
             'required_columns', ['GR', 'RT', 'NPHI', 'RHOB'])
 
@@ -619,31 +632,35 @@ def run_trim_well_log():
 
             df = pd.read_csv(file_path)
 
-            # Penentuan batas trimming tergantung mode
+            if 'DEPTH' not in df.columns:
+                return jsonify({'error': f"Kolom DEPTH tidak ditemukan di {well_name}"}), 400
+
+            df.set_index('DEPTH', inplace=True)
+
             if trim_mode == 'AUTO':
-                trimmed_df = trim_well_log(
-                    df, None, None, required_columns, trim_mode)
-
-            elif trim_mode == 'UNTIL_TOP':
-                if not bottom_depth:
-                    return jsonify({'error': 'BOTTOM_DEPTH harus diisi untuk mode UNTIL_TOP'}), 400
-                trimmed_df = trim_well_log(
-                    df, bottom_depth, None, required_columns, trim_mode)
-
-            elif trim_mode == 'UNTIL_BOTTOM':
-                if not top_depth:
-                    return jsonify({'error': 'TOP_DEPTH harus diisi untuk mode UNTIL_BOTTOM'}), 400
-                trimmed_df = trim_well_log(
-                    df, None, top_depth, required_columns, trim_mode)
-
-            elif trim_mode == 'CUSTOM':
-                if not top_depth or not bottom_depth:
-                    return jsonify({'error': 'TOP_DEPTH dan BOTTOM_DEPTH harus diisi untuk mode CUSTOM'}), 400
-                trimmed_df = trim_well_log(
-                    df, bottom_depth, top_depth, required_columns, trim_mode)
+                trim_data_auto = trim_data_auto(df, required_columns)
 
             else:
-                return jsonify({'error': f'Mode tidak dikenali: {trim_mode}'}), 400
+                # Trim selain AUTO menggunakan helper `trim()`
+                above_flag = 1 if depth_above else 0
+                below_flag = 1 if depth_below else 0
+
+                if above_flag and depth_above is None:
+                    return jsonify({'error': 'depth_above harus diisi'}), 400
+                if below_flag and depth_below is None:
+                    return jsonify({'error': 'depth_below harus diisi'}), 400
+
+                trimmed_df = trim_data_depth(
+                    df.copy(),
+                    depth_above=depth_above or 0,
+                    depth_below=depth_below or 0,
+                    above=above_flag,
+                    below=below_flag,
+                    mode=trim_mode
+                )
+
+            # Reset index agar DEPTH kembali sebagai kolom
+            trimmed_df.reset_index(inplace=True)
 
             # Simpan hasil
             trimmed_path = os.path.join(WELLS_DIR, f"{well_name}.csv")
