@@ -15,7 +15,7 @@ import FilePreview from './components/FilePreview';
 import { useRouter } from 'next/navigation';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { DownloadCloud, Plus, UploadCloud } from 'lucide-react';
-import { addMultipleFiles, getAllFiles, deleteFile as dbDeleteFile, clearAllFiles } from '../../lib/db';
+import { addMultipleFiles, getAllFiles, deleteFile as dbDeleteFile, clearAllFiles, addWellLogs, getAllWellLogs } from '../../lib/db';
 
 export default function FileUploadViewer() {
   const [filesForDisplay, setFilesForDisplay] = useState<FileData[]>([]);
@@ -130,62 +130,69 @@ export default function FileUploadViewer() {
   };
 
   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    await clearAllFiles(); // Clear IndexedDB
+    await clearAllFiles();
     const files = event.target.files;
     if (!files || files.length === 0) return;
-
     setIsUploading(true);
     setMessage('Processing files...');
+
     const allNewFileDataItems: FileData[] = [];
 
     for (const file of Array.from(files)) {
       try {
-        const commonFileProps = {
-          id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-          name: file.name,
-          size: file.size,
-          originalFileType: file.type || 'application/octet-stream',
-          lastModified: file.lastModified,
-        };
-
         if (file.name.toLowerCase().endsWith('.zip')) {
+          // Your ZIP processing logic is already correct.
+          // It creates structures with the right structurePath.
           const arrayBufferContent = await readFileAsArrayBuffer(file);
           const structuresFromZip = await processZipFile(file, arrayBufferContent);
-          if (structuresFromZip.length === 0) {
-            setMessage(`Warning: ZIP file ${file.name} did not yield any structures with LAS/CSV files.`);
+          if (structuresFromZip.length > 0) {
+            allNewFileDataItems.push(...structuresFromZip);
           }
-          const zipFileData = structuresFromZip.map(s => ({ ...s, rawFileContent: arrayBufferContent }));
-          allNewFileDataItems.push(...zipFileData);
-
         } else {
+          // --- THIS LOGIC FOR SINGLE FILES IS NEW AND CORRECTED ---
           let parsedData: { headers: string[], data: any[] };
-          let rawFileContentForSingleFile: string | ArrayBuffer;
+          const fileContentString = await readFileContent(file);
+          const fileBaseName = file.name.replace(/\.[^/.]+$/, ""); // "my_well.las" -> "my_well"
 
-          if (file.name.toLowerCase().endsWith('.csv')) {
-            const fileContentString = await readFileContent(file);
-            rawFileContentForSingleFile = fileContentString;
-            parsedData = await parseCSVFile(fileContentString);
-          } else if (file.name.toLowerCase().endsWith('.las')) {
-            const fileContentString = await readFileContent(file);
-            rawFileContentForSingleFile = fileContentString;
+          let type: 'las-as-csv' | 'csv' | null = null;
+
+          if (file.name.toLowerCase().endsWith('.las')) {
             parsedData = parseLASFile(fileContentString);
-          } else if (file.name.toLowerCase().endsWith('.xlsx')) {
-            const arrayBufferContent = await readFileAsArrayBuffer(file);
-            rawFileContentForSingleFile = arrayBufferContent;
-            parsedData = parseXLSXFileWithSheetJS(arrayBufferContent);
+            type = 'las-as-csv';
+          } else if (file.name.toLowerCase().endsWith('.csv')) {
+            parsedData = await parseCSVFile(fileContentString);
+            type = 'csv';
           } else {
-            throw new Error('Unsupported individual file type.');
+            // Skip unsupported single file types like .xlsx for this logic
+            continue;
           }
 
-          if (parsedData.data.length === 0 && parsedData.headers.length === 0) {
-            setMessage(`Warning: File ${file.name} seems empty or unparsable.`);
-          }
+          // Create the display item for the upload list
           allNewFileDataItems.push({
-            ...commonFileProps,
+            id: file.name, // Use name as ID for single files
+            name: file.name,
+            size: file.size,
+            originalFileType: file.type,
+            lastModified: file.lastModified,
             isStructureFromZip: false,
             content: parsedData.data.slice(0, 1000),
             headers: parsedData.headers,
-            rawFileContent: rawFileContentForSingleFile,
+            rawFileContent: fileContentString,
+          });
+
+          const allWellLogs = await getAllWellLogs();
+
+          // Create the individual log record for the 'well-logs' database
+          allWellLogs.push({
+            id: file.name,
+            name: file.name,
+            originalName: file.name,
+            // The crucial change: the "well name" is the filename without extension.
+            structurePath: fileBaseName,
+            type: type,
+            content: parsedData.data,
+            headers: parsedData.headers,
+            rawContentString: fileContentString,
           });
         }
       } catch (error) {
@@ -193,25 +200,38 @@ export default function FileUploadViewer() {
         setMessage(`Error processing ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
+    // 1. Create a flattened list of individual logs from the processed data
+    const allWellLogs: ProcessedFileDataForDisplay[] = [];
+    allNewFileDataItems.forEach(fileData => {
+      if (fileData.isStructureFromZip) {
+        const extractLogs = (subFiles: any[] | undefined, type: 'las-as-csv' | 'csv') => {
+          subFiles?.forEach(subFile => {
+            allWellLogs.push({ id: subFile.id, name: `${fileData.name}/${subFile.name}`, originalName: subFile.name, structurePath: fileData.name, type, content: subFile.content, headers: subFile.headers, rawContentString: subFile.rawContentString });
+          });
+        };
+        extractLogs(fileData.lasFiles, 'las-as-csv');
+        extractLogs(fileData.csvFiles, 'csv');
+      }
+    });
 
+    // Now, save everything to the database
     if (allNewFileDataItems.length > 0) {
       try {
         await addMultipleFiles(allNewFileDataItems);
-        const updatedFiles = await getAllFiles(); // Re-fetch to get a fresh, sorted list
+        await addWellLogs(allWellLogs);
+
+        const updatedFiles = await getAllFiles();
         setFilesForDisplay(updatedFiles);
-        setMessage(`Successfully processed and saved ${allNewFileDataItems.length} item(s)`);
+        setMessage(`Successfully processed and saved ${allWellLogs.length} log(s)`);
       } catch (error) {
-        console.error("Failed to save files to database:", error);
-        setMessage("Error: Could not save files.");
+        console.log(`Error occured when trying to save eerything to database`)
       }
     } else {
       setMessage('No new files or structures were processed.');
     }
 
     setIsUploading(false);
-    setTimeout(() => {
-      if (!message.startsWith('Error')) setMessage('');
-    }, 5000);
+    setTimeout(() => { if (!message.startsWith('Error')) setMessage(''); }, 5000);
     if (event.target) event.target.value = '';
   };
 

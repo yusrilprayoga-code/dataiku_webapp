@@ -1,6 +1,7 @@
 // /src/contexts/DashboardContext.tsx
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import { getWellList } from '@/lib/db'; // Adjust path
 
 export type PlotType = 'default' | 'normalization' | 'porosity';
 
@@ -23,46 +24,23 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [plotType, setPlotType] = useState<PlotType>('default');
 
   useEffect(() => {
-    const fetchWells = async () => {
+    const fetchWellsFromDb = async () => {
       try {
-        // --- THIS IS THE FIX ---
-        // 1. Get the base URL from our environment variable.
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        if (!apiUrl) {
-          console.error("API URL is not configured. Please set NEXT_PUBLIC_API_URL.");
-          return;
-        }
+        const wellNames = await getWellList();
 
-        // 2. Construct the full endpoint.
-        const endpoint = `${apiUrl}/api/list-wells`;
-        console.log(`Fetching available wells from: ${endpoint}`);
+        setAvailableWells(wellNames);
 
-        // 3. Use the full endpoint in the fetch call.
-        const response = await fetch(endpoint);
-
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-
-        const data = await response.json();
-
-        if (Array.isArray(data)) {
-          setAvailableWells(data);
-
-          // Automatically select the first well as the default if one isn't already selected.
-          if (data.length > 0 && selectedWells.length === 0) {
-            setSelectedWells([data[0]]);
-          }
+        if (wellNames.length > 0 && selectedWells.length === 0) {
+          setSelectedWells([wellNames[0]]);
         }
       } catch (error) {
-        console.error("Failed to fetch well list:", error);
+        console.error("Failed to fetch well list from IndexedDB:", error);
       }
     };
 
-    fetchWells();
-    // The dependency array should be empty to ensure this only runs once on mount.
+    fetchWellsFromDb();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only once when the provider mounts
+  }, []);
 
   const toggleWellSelection = (well: string) => {
     setSelectedWells(prev =>

@@ -11,7 +11,7 @@ import { useAppDataStore } from '../../../stores/useAppDataStore';
 import { QCResponse, PreviewableFile, ProcessedFileDataForDisplay, QCResult, QCStatus, StagedStructure } from '@/types';
 import { FileTextIcon, Folder as FolderIcon, Inbox, CheckCircle, Loader2 } from 'lucide-react';
 import DataTablePreview from '@/features/data-input/components/DataTablePreview';
-import { getAllFiles } from '@/lib/db';
+import { getAllWellLogs } from '@/lib/db';
 
 const getStatusRowStyle = (status: QCStatus): string => {
     switch (status) {
@@ -45,9 +45,6 @@ const getStatusBadgeStyle = (status: QCStatus): string => {
             return 'bg-gray-100 text-gray-800';
     }
 };
-
-
-
 
 export default function DataInputUtamaPage() {
     const router = useRouter();
@@ -83,35 +80,19 @@ export default function DataInputUtamaPage() {
                     // This error message is now more accurate
                     throw new Error('No structure name found in URL. Cannot initialize page.');
                 }
+                const filesForProcessing = await getAllWellLogs();
 
-                // The rest of your logic remains exactly the same...
-                const filesFromDb = await getAllFiles();
-                console.log(`[LOG 2] Data retrieved from IndexedDB:`, filesFromDb);
-                if (filesFromDb.length === 0) {
-                    throw new Error("IndexedDB is empty, can't build structure.");
+                if (filesForProcessing.length === 0) {
+                    throw new Error("No well logs found in IndexedDB.");
                 }
 
-                const filesForProcessing: ProcessedFileDataForDisplay[] = [];
-                filesFromDb.forEach(fileData => {
-                    if (fileData.isStructureFromZip) {
-                        const processSubFiles = (subFiles: any[] | undefined, type: 'las-as-csv' | 'csv') => {
-                            subFiles?.forEach(subFile => {
-                                filesForProcessing.push({ id: subFile.id, name: `${fileData.name}/${subFile.name}`, originalName: subFile.name, structurePath: fileData.name, type, content: subFile.content, headers: subFile.headers, rawContentString: subFile.rawContentString });
-                            });
-                        };
-                        processSubFiles(fileData.lasFiles, 'las-as-csv');
-                        processSubFiles(fileData.csvFiles, 'csv');
-                    } else if (fileData.rawFileContent && typeof fileData.rawFileContent === 'string') {
-                        const fileType = fileData.name.toLowerCase().endsWith('.las') ? 'las-as-csv' : 'csv';
-                        filesForProcessing.push({ id: fileData.id, name: fileData.name, type: fileType, content: fileData.content || [], headers: fileData.headers || [], rawContentString: fileData.rawFileContent });
-                    }
-                });
-                console.log(`[LOG 3] Data after transformation:`, filesForProcessing);
+                console.log(`[LOG 2 & 3] Retrieved and transformed data:`, filesForProcessing);
 
                 const reconstructed: StagedStructure = {
                     userDefinedStructureName: structureName,
-                    files: filesForProcessing,
+                    files: filesForProcessing, // The data is already in the correct format!
                 };
+
                 setStagedStructure(reconstructed);
                 console.log(`[LOG 4] Final object to be set in state:`, reconstructed);
 
