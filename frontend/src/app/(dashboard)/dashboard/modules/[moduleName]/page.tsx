@@ -5,13 +5,14 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import NormalizationParamsForm from '@/components/forms/NormalizationParams';
+import NormalizationParamsForm from '@/features/normalization/NormalizationParams';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { type ParameterRow } from '@/types';
 import DepthMatchingPage from '@/features/depth-matching/page';
-import VshCalculationParams from '@/components/forms/VshCalculationParams';
-import PorosityCalculationParams from '@/components/forms/PorosityCalculationParams';
-import GsaCalculationParams from '@/components/forms/GsaCalculationParams';
+import VshCalculationParams from '@/features/vsh-calculation/VshCalculationParams';
+import PorosityCalculationParams from '@/features/porosity/PorosityCalculationParams';
+import GsaCalculationParams from '@/features/rgsa-ngsa-dgsa/GsaCalculationParams';
+import TrimDataParams from '@/features/trim_data/TrimDataParams';
 
 // Placeholder component for demonstration purposes
 const SmoothingParamsForm = () => (
@@ -59,6 +60,8 @@ export default function ModulePage(props: any) {
 
   const renderParameterForm = () => {
     switch (moduleName) {
+      case 'trim-data':
+        return <TrimDataParams />;
       case 'depth-matching':
         return <DepthMatchingPage />;
       case 'normalization':

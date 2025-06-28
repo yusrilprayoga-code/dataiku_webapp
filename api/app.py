@@ -23,6 +23,7 @@ from app.services.depth_matching import depth_matching, plot_depth_matching_resu
 from app.services.rgsa import process_all_wells_rgsa
 from app.services.dgsa import process_all_wells_dgsa
 from app.services.ngsa import process_all_wells_ngsa
+from app.services.trim_data import trim_well_log
 
 app = Flask(__name__)
 
@@ -590,6 +591,76 @@ def get_gsa_plot():
             import traceback
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/trim-data', methods=['POST'])
+def run_trim_well_log():
+    try:
+        data = request.get_json()
+
+        well_names = data.get('selected_wells', [])
+        params = data.get('params', {})
+
+        trim_mode = params.get('TRIM_MODE', 'AUTO')
+        top_depth = params.get('TOP_DEPTH')
+        bottom_depth = params.get('BOTTOM_DEPTH')
+        required_columns = data.get(
+            'required_columns', ['GR', 'RT', 'NPHI', 'RHOB'])
+
+        if not well_names:
+            return jsonify({'error': 'Daftar well_name wajib diisi'}), 400
+
+        responses = []
+
+        for well_name in well_names:
+            file_path = os.path.join(WELLS_DIR, f"{well_name}.csv")
+            if not os.path.exists(file_path):
+                return jsonify({'error': f"File {well_name}.csv tidak ditemukan."}), 404
+
+            df = pd.read_csv(file_path)
+
+            # Penentuan batas trimming tergantung mode
+            if trim_mode == 'AUTO':
+                trimmed_df = trim_well_log(
+                    df, None, None, required_columns, trim_mode)
+
+            elif trim_mode == 'UNTIL_TOP':
+                if not bottom_depth:
+                    return jsonify({'error': 'BOTTOM_DEPTH harus diisi untuk mode UNTIL_TOP'}), 400
+                trimmed_df = trim_well_log(
+                    df, bottom_depth, None, required_columns, trim_mode)
+
+            elif trim_mode == 'UNTIL_BOTTOM':
+                if not top_depth:
+                    return jsonify({'error': 'TOP_DEPTH harus diisi untuk mode UNTIL_BOTTOM'}), 400
+                trimmed_df = trim_well_log(
+                    df, None, top_depth, required_columns, trim_mode)
+
+            elif trim_mode == 'CUSTOM':
+                if not top_depth or not bottom_depth:
+                    return jsonify({'error': 'TOP_DEPTH dan BOTTOM_DEPTH harus diisi untuk mode CUSTOM'}), 400
+                trimmed_df = trim_well_log(
+                    df, bottom_depth, top_depth, required_columns, trim_mode)
+
+            else:
+                return jsonify({'error': f'Mode tidak dikenali: {trim_mode}'}), 400
+
+            # Simpan hasil
+            trimmed_path = os.path.join(WELLS_DIR, f"{well_name}.csv")
+            trimmed_df.to_csv(trimmed_path, index=False)
+
+            responses.append({
+                'well': well_name,
+                'rows': len(trimmed_df),
+                'file_saved': f'{well_name}.csv'
+            })
+
+        return jsonify({'message': 'Trimming berhasil', 'results': responses}), 200
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 
 # This is for local development testing, Vercel will use its own server
