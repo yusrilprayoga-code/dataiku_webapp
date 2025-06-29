@@ -1,7 +1,7 @@
 // /src/contexts/DashboardContext.tsx
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { getWellList } from '@/lib/db'; // Adjust path
+import { getProcessedWellList } from '@/lib/db';
 
 export type PlotType = 'default' | 'normalization' | 'porosity';
 
@@ -26,7 +26,9 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const fetchWellsFromDb = async () => {
       try {
-        const wellNames = await getWellList();
+        // --- THIS IS THE FIX ---
+        // We now fetch from the list of PROCESSED wells
+        const wellNames = await getProcessedWellList();
 
         setAvailableWells(wellNames);
 
@@ -34,12 +36,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           setSelectedWells([wellNames[0]]);
         }
       } catch (error) {
-        console.error("Failed to fetch well list from IndexedDB:", error);
+        console.error("Failed to fetch processed well list from IndexedDB:", error);
       }
     };
 
     fetchWellsFromDb();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleWellSelection = (well: string) => {

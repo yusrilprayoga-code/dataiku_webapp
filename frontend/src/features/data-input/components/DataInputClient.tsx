@@ -11,7 +11,7 @@ import { useAppDataStore } from '../../../stores/useAppDataStore';
 import { QCResponse, PreviewableFile, ProcessedFileDataForDisplay, QCResult, QCStatus, StagedStructure } from '@/types';
 import { FileTextIcon, Folder as FolderIcon, Inbox, CheckCircle, Loader2 } from 'lucide-react';
 import DataTablePreview from '@/features/data-input/components/DataTablePreview';
-import { getAllWellLogs } from '@/lib/db';
+import { getAllWellLogs, saveProcessedWell } from '@/lib/db';
 
 const getStatusRowStyle = (status: QCStatus): string => {
     switch (status) {
@@ -60,6 +60,7 @@ export default function DataInputUtamaPage() {
     const [selectedFileForPreview, setSelectedFileForPreview] = useState<PreviewableFile | null>(null);
     const [isQcRunning, setIsQcRunning] = useState(false);
     const [qcStatusMessage, setQcStatusMessage] = useState('');
+    const [processedCSVs, setProcessedCSVs] = useState<Record<string, string>>({});
 
     useEffect(() => {
         const initializeData = async () => {
@@ -130,6 +131,7 @@ export default function DataInputUtamaPage() {
             }
             const initialQcResults: QCResponse = await qcResponse.json();
             setQcResults(initialQcResults);
+            setProcessedCSVs(initialQcResults.output_files || {});
         } catch (error) {
             alert(`Error saat QC: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
@@ -139,8 +141,28 @@ export default function DataInputUtamaPage() {
     };
 
     const handleContinue = () => { setIsNavigating(true); router.push('/dashboard'); };
+    const handleSaveResults = async () => {
+        if (Object.keys(processedCSVs).length === 0) {
+            alert("No processed results to save. Please run QC first.");
+            return;
+        }
 
-    // --- Handler functions are fine, but some were duplicated in DataInputView ---
+        console.log("Saving processed data to the final database table...");
+
+        const savePromises = Object.entries(processedCSVs).map(([filename, csvContent]) => {
+            // filename is "WELL-A.csv", we want "WELL-A"
+            const wellName = filename.replace(/\.csv$/i, '');
+            return saveProcessedWell(wellName, csvContent);
+        });
+
+        try {
+            await Promise.all(savePromises);
+            alert(`Successfully saved ${savePromises.length} processed wells! You can now view them on the dashboard.`);
+        } catch (error) {
+            console.error("Failed to save processed wells to IndexedDB", error);
+            alert("Error saving results to the database.");
+        }
+    };
     const handleSelectInputFile = (file: ProcessedFileDataForDisplay) => {
         setSelectedFileId(file.id);
         setSelectedFileForPreview({
@@ -187,18 +209,18 @@ export default function DataInputUtamaPage() {
                         className={`w-full flex items-center gap-3 p-2 rounded-md text-sm font-medium transition-colors ${activeFolder === 'output' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'} disabled:text-gray-400 disabled:cursor-not-allowed`}>
                         <FolderIcon className="w-5 h-5" /> Output
                     </button>
-                    <button onClick={() => { setActiveFolder('handled'); setSelectedFileForPreview(null); setSelectedFileId(null); }}
+                    {/* <button onClick={() => { setActiveFolder('handled'); setSelectedFileForPreview(null); setSelectedFileId(null); }}
                         disabled={handledFiles.length === 0}
                         className={`w-full flex items-center gap-3 p-2 rounded-md text-sm font-medium transition-colors ${activeFolder === 'handled' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'} disabled:text-gray-400 disabled:cursor-not-allowed`}>
                         <CheckCircle className="w-5 h-5 text-green-500" /> ABB (pass_qc)
-                    </button>
+                    </button> */}
                 </nav>
                 <div className="mt-auto pt-4 space-y-2 border-t">
                     <button onClick={handleRunQcWorkflow} disabled={isQcRunning || isNavigating}
                         className="w-full px-4 py-3 bg-green-500 text-white font-bold rounded hover:bg-green-600 disabled:bg-gray-400 flex items-center justify-center gap-2">
                         {isQcRunning ? (<><Loader2 className="w-5 h-5 animate-spin" />Processing...</>) : "Run Quality Control"}
                     </button>
-                    <button onClick={handleContinue} disabled={isNavigating || isNavigating}
+                    <button onClick={() => { handleContinue(); handleSaveResults(); }} disabled={isNavigating || isNavigating}
                         className="w-full px-4 py-2 bg-blue-500 text-white font-bold rounded hover:bg-blue-600 flex items-center justify-center transition-colors disabled:bg-gray-400 disabled:cursor-wait">
                         {isNavigating ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />Loading...</>) : ("Continue")}
                     </button>
