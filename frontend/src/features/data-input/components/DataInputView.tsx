@@ -64,7 +64,7 @@ export default function DataInputView() {
       }
       const initialQcResults: QCResponse = await qcResponse.json();
       setQcResults(initialQcResults);
-      await processAndHandleNulls(initialQcResults);
+      // await processAndHandleNulls(initialQcResults);
     } catch (error) {
       alert(`An error occurred during QC: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
