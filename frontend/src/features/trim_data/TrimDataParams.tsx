@@ -1,3 +1,5 @@
+// frontend/src/features/trim_data/TrimDataParams.tsx
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -122,20 +124,20 @@ export default function TrimDataParams() {
 
       case 'Constant':
         if (mode === 'Input') {
-          return 'bg-yellow-300'; 
-        } else { 
+          return 'bg-yellow-300';
+        } else {
           return 'bg-yellow-100';
         }
 
       case 'Log':
         if (mode === 'Input') {
-          return 'bg-cyan-400'; 
-        } else { 
-          return 'bg-cyan-200'; 
+          return 'bg-cyan-400';
+        } else {
+          return 'bg-cyan-200';
         }
-        
+
       case 'Output':
-          return 'bg-yellow-600';
+        return 'bg-yellow-600';
 
       case 'Interval':
         return 'bg-green-400';
@@ -149,11 +151,11 @@ export default function TrimDataParams() {
     if (trimMode === 'AUTO') return true;
     if (trimMode === 'UNTIL_TOP' && paramName === 'TOP_DEPTH') return true;
     if (trimMode === 'UNTIL_BOTTOM' && paramName === 'BOTTOM_DEPTH') return true;
-  return false;
-};
+    return false;
+  };
 
-const trimModeParam = parameters.find(p => p.name === 'TRIM_MODE');
-const currentTrimMode = trimModeParam?.values['default'] || 'AUTO';
+  const trimModeParam = parameters.find(p => p.name === 'TRIM_MODE');
+  const currentTrimMode = trimModeParam?.values['default'] || 'AUTO';
 
 
   const tableHeaders = ['#', 'Location', 'Mode', 'Comment', 'Unit', 'Name'];
@@ -209,29 +211,29 @@ const currentTrimMode = trimModeParam?.values['default'] || 'AUTO';
                       <td className="px-3 py-2 border-r max-w-xs whitespace-normal">{param.comment}</td>
                       <td className="px-3 py-2 border-r whitespace-nowrap">{param.unit}</td>
                       <td className="px-3 py-2 border-r font-semibold whitespace-nowrap">{param.name}</td>
-                        <td className="px-3 py-2 border-r bg-white text-black">
-                          {param.name === 'TRIM_MODE' ? (
-                            <select
-                                value={String(param.values['default'] ?? '')}
-                                onChange={(e) => handleValueChange(param.id, e.target.value)}
-                                disabled={!param.isEnabled}
-                                className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
-                            >
-                                <option value="AUTO">AUTO</option>
-                                <option value="UNTIL_TOP">UNTIL_TOP</option>
-                                <option value="UNTIL_BOTTOM">UNTIL_BOTTOM</option>
-                                <option value="CUSTOM">CUSTOM</option>
-                            </select>
-                            ) : (
-                            <input
-                                type="text"
-                                value={param.values['default'] ?? ''}
-                                onChange={(e) => handleValueChange(param.id, e.target.value)}
-                                disabled={isInputDisabled(param.name, String(currentTrimMode))}
-                                className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
-                            />
-                            )}
-                        </td>
+                      <td className="px-3 py-2 border-r bg-white text-black">
+                        {param.name === 'TRIM_MODE' ? (
+                          <select
+                            value={String(param.values['default'] ?? '')}
+                            onChange={(e) => handleValueChange(param.id, e.target.value)}
+                            disabled={!param.isEnabled}
+                            className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                          >
+                            <option value="AUTO">AUTO</option>
+                            <option value="UNTIL_TOP">UNTIL_TOP</option>
+                            <option value="UNTIL_BOTTOM">UNTIL_BOTTOM</option>
+                            <option value="CUSTOM">CUSTOM</option>
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={param.values['default'] ?? ''}
+                            onChange={(e) => handleValueChange(param.id, e.target.value)}
+                            disabled={isInputDisabled(param.name, String(currentTrimMode))}
+                            className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                          />
+                        )}
+                      </td>
                     </tr>
                   ) : null;
                 })}
