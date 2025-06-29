@@ -1,47 +1,68 @@
 // /src/lib/db.ts
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { FileData, ProcessedFileDataForDisplay } from '../features/file_upload/types'; // Adjust path
+import { FileData, ProcessedFileDataForDisplay } from '../features/file_upload/types';
 
 const DB_NAME = 'file-storage-db';
 const STORE_UPLOADS = 'uploaded-files';
 const STORE_LOGS = 'well-logs';
-const DB_VERSION = 2;
+const STORE_PROCESSED = 'processed-wells'; // <-- NEW: Our "golden source" table
+const DB_VERSION = 3; // <-- IMPORTANT: Increment version to trigger upgrade
 
-// Define the shape of our database with TWO stores
+interface ProcessedWell {
+    wellName: string;
+    csvContent: string;
+}
+
 interface FileDB extends DBSchema {
-    [STORE_UPLOADS]: {
-        key: string;
-        value: FileData;
-    };
-    [STORE_LOGS]: {
-        key: string;
-        value: ProcessedFileDataForDisplay; // This store holds the processed files
-        indexes: { 'by-well': string };     // Add an index for efficient lookups
-    };
+    [STORE_UPLOADS]: { key: string; value: FileData; };
+    [STORE_LOGS]: { key: string; value: ProcessedFileDataForDisplay; indexes: { 'by-well': string }; };
+    [STORE_PROCESSED]: { key: string; value: ProcessedWell; }; // <-- Define the new store
 }
 
 let dbPromise: Promise<IDBPDatabase<FileDB>> | null = null;
 
 const initDB = () => {
-    if (dbPromise) {
-        return dbPromise;
-    }
+    if (dbPromise) return dbPromise;
     dbPromise = openDB<FileDB>(DB_NAME, DB_VERSION, {
         upgrade(db, oldVersion) {
-            // This runs if the DB version changes.
-            if (oldVersion < 1) {
-                db.createObjectStore(STORE_UPLOADS, { keyPath: 'id' });
-            }
             if (oldVersion < 2) {
-                // Create our new store for individual logs
-                const logStore = db.createObjectStore(STORE_LOGS, { keyPath: 'id' });
-                // An index on the well/structure name will be useful later
-                logStore.createIndex('by-well', 'structurePath');
+                if (!db.objectStoreNames.contains(STORE_UPLOADS)) {
+                    db.createObjectStore(STORE_UPLOADS, { keyPath: 'id' });
+                }
+                if (!db.objectStoreNames.contains(STORE_LOGS)) {
+                    const logStore = db.createObjectStore(STORE_LOGS, { keyPath: 'id' });
+                    logStore.createIndex('by-well', 'structurePath');
+                }
+            }
+            if (oldVersion < 3) {
+                // Create the new store for final, processed wells
+                if (!db.objectStoreNames.contains(STORE_PROCESSED)) {
+                    db.createObjectStore(STORE_PROCESSED, { keyPath: 'wellName' });
+                }
             }
         },
     });
     return dbPromise;
+};
+
+// --- Functions for the new 'processed-wells' store ---
+
+export const saveProcessedWell = async (wellName: string, csvContent: string) => {
+    const db = await initDB();
+    await db.put(STORE_PROCESSED, { wellName, csvContent });
+};
+
+export const getProcessedWellList = async (): Promise<string[]> => {
+    const db = await initDB();
+    const keys = await db.getAllKeys(STORE_PROCESSED);
+    return keys.sort();
+};
+
+export const getProcessedWellData = async (wellName: string): Promise<string | undefined> => {
+    const db = await initDB();
+    const record = await db.get(STORE_PROCESSED, wellName);
+    return record?.csvContent;
 };
 
 // This function for the original uploads remains the same
