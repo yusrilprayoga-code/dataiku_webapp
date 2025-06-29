@@ -1,3 +1,5 @@
+// frontend/src/features/trim_data/TrimDataParams.tsx
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
