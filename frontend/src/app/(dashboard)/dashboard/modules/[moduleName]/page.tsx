@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import PageProps from 'next/app';
 import { type ParameterRow } from '@/types';
 import NormalizationParamsForm from '@/features/normalization/NormalizationParams';
 import DepthMatchingPage from '@/features/depth-matching/page';
@@ -22,8 +23,16 @@ const NotImplementedModule = ({ moduleName }: { moduleName: string }) => (
   </div>
 );
 
+interface ModulePageProps {
+  params: {
+    moduleName: string;
+    // The type of the value is `string | string[]` for catch-all routes.
+    // For a single dynamic param, `string` is fine.
+  };
+  searchParams?: { [key: string]: string | string[] | undefined };
+}
 
-export default function ModulePage({ params }: { params: { moduleName: string } }) {
+export default function ModulePage({ params }: ModulePageProps) {
   const { moduleName } = params;
   const router = useRouter();
 
