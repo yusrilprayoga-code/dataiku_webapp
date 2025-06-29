@@ -47,11 +47,11 @@ export default function WellLogPlot() {
           endpointPath = '/api/get-porosity-plot';
           break;
         case 'gsa':
-          endpoint = '/api/get-gsa-plot';
+          endpointPath = '/api/get-gsa-plot';
           break;
         case 'default':
-        default: 
-          endpoint = '/api/get-plot';
+        default:
+          endpointPath = '/api/get-plot';
           break;
       }
       const endpoint = `${apiUrl}${endpointPath}`;
