@@ -9,6 +9,7 @@ import { Loader2 } from 'lucide-react';
 // REMOVE this import, we no longer get data from the client's DB
 // import { getProcessedWellData } from '@/lib/db';
 
+
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 export default function WellLogPlot() {
@@ -45,8 +46,12 @@ export default function WellLogPlot() {
         case 'porosity':
           endpointPath = '/api/get-porosity-plot';
           break;
-        default:
-          endpointPath = '/api/get-plot';
+        case 'gsa':
+          endpoint = '/api/get-gsa-plot';
+          break;
+        case 'default':
+        default: 
+          endpoint = '/api/get-plot';
           break;
       }
       const endpoint = `${apiUrl}${endpointPath}`;
