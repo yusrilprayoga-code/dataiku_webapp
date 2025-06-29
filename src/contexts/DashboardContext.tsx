@@ -1,7 +1,10 @@
 // /src/contexts/DashboardContext.tsx
 
+'use client';
+
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { getProcessedWellList } from '@/lib/db';
+// REMOVE this import, we no longer get data from the client's DB
+// import { getProcessedWellList } from '@/lib/db'; 
 
 export type PlotType = 'default' | 'normalization' | 'porosity';
 
@@ -19,29 +22,46 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [availableWells, setAvailableWells] = useState<string[]>([]);
-  const [selectedWells, setSelectedWells] = useState<string[]>([]); // Start with empty, will be populated
+  const [selectedWells, setSelectedWells] = useState<string[]>([]);
   const [selectedIntervals, setSelectedIntervals] = useState<string[]>(['B1', 'GUF']);
   const [plotType, setPlotType] = useState<PlotType>('default');
 
   useEffect(() => {
-    const fetchWellsFromDb = async () => {
+    // --- THIS IS THE NEW LOGIC ---
+    // This function now fetches the well list directly from your stateful backend API.
+    const fetchWellsFromServer = async () => {
       try {
-        // --- THIS IS THE FIX ---
-        // We now fetch from the list of PROCESSED wells
-        const wellNames = await getProcessedWellList();
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        if (!apiUrl) {
+          throw new Error("API URL is not configured.");
+        }
 
-        setAvailableWells(wellNames);
+        const endpoint = `${apiUrl}/api/list-wells`;
+        console.log(`Fetching available wells from server: ${endpoint}`);
 
-        if (wellNames.length > 0 && selectedWells.length === 0) {
-          setSelectedWells([wellNames[0]]);
+        const response = await fetch(endpoint);
+        if (!response.ok) {
+          throw new Error('Network response from /api/list-wells was not ok');
+        }
+
+        const wellNames: string[] = await response.json();
+
+        if (Array.isArray(wellNames)) {
+          setAvailableWells(wellNames);
+
+          // Automatically select the first well if none are selected
+          if (wellNames.length > 0 && selectedWells.length === 0) {
+            setSelectedWells([wellNames[0]]);
+          }
         }
       } catch (error) {
-        console.error("Failed to fetch processed well list from IndexedDB:", error);
+        console.error("Failed to fetch well list from server:", error);
       }
     };
 
-    fetchWellsFromDb();
-  }, []);
+    fetchWellsFromServer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once when the provider mounts
 
   const toggleWellSelection = (well: string) => {
     setSelectedWells(prev =>
