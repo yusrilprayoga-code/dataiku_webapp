@@ -1,69 +1,33 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
 
-// Komponen helper untuk Form Field
-// const FormField: React.FC<{ label: string; children: React.ReactNode; className?: string }> = ({ label, children, className = '' }) => (
-//     <div className={className}>
-//         <label className="block text-sm font-medium text-gray-500 mb-1">{label}</label>
-//         {children}
-//     </div>
-// );
+interface TrimDataParamsProps {
+  onSubmit: (payload: any, endpointPath: string) => void;
+  isSubmitting: boolean;
+}
 
 const createInitialTrimParameters = (): ParameterRow[] => {
   const createValues = (val: string | number) => ({ default: val });
-
   const allParams: Omit<ParameterRow, 'values'>[] = [
-    {
-      id: 1,
-      location: 'Parameter',
-      mode: 'Input',
-      comment: 'Trim mode (AUTO, UNTIL_TOP, UNTIL_BOTTOM, CUSTOM)',
-      unit: 'MODE',
-      name: 'TRIM_MODE',
-      isEnabled: true,
-    },
-    {
-      id: 2,
-      location: 'Parameter',
-      mode: 'Input',
-      comment: 'Top Depth (input jika mode UNTIL_BOTTOM atau CUSTOM)',
-      unit: 'm',
-      name: 'TOP_DEPTH',
-      isEnabled: true,
-    },
-    {
-      id: 3,
-      location: 'Parameter',
-      mode: 'Input',
-      comment: 'Bottom Depth (input jika mode UNTIL_TOP atau CUSTOM)',
-      unit: 'm',
-      name: 'BOTTOM_DEPTH',
-      isEnabled: true,
-    },
+    { id: 1, location: 'Parameter', mode: 'Input', comment: 'Trim mode (AUTO, UNTIL_TOP, UNTIL_BOTTOM, CUSTOM)', unit: 'MODE', name: 'TRIM_MODE', isEnabled: true },
+    { id: 2, location: 'Parameter', mode: 'Input', comment: 'Top Depth (input jika mode UNTIL_BOTTOM atau CUSTOM)', unit: 'm', name: 'TOP_DEPTH', isEnabled: true },
+    { id: 3, location: 'Parameter', mode: 'Input', comment: 'Bottom Depth (input jika mode UNTIL_TOP atau CUSTOM)', unit: 'm', name: 'BOTTOM_DEPTH', isEnabled: true },
   ];
-
-  const defaultValues: Record<string, string | number> = {
-    TRIM_MODE: 'AUTO',
-    TOP_DEPTH: '',
-    BOTTOM_DEPTH: '',
-  };
-
-  return allParams.map(p => ({
-    ...p,
-    values: createValues(defaultValues[p.name] || '')
-  }));
+  const defaultValues: Record<string, string | number> = { TRIM_MODE: 'AUTO', TOP_DEPTH: '', BOTTOM_DEPTH: '' };
+  return allParams.map(p => ({ ...p, values: createValues(defaultValues[p.name] || '') }));
 };
 
-export default function TrimDataParams() {
+
+// The component now accepts props, specifically the `onSubmit` function and `isSubmitting` state.
+export default function TrimDataParams({ onSubmit, isSubmitting }: TrimDataParamsProps) {
   const { selectedIntervals, selectedWells } = useDashboard();
-  const router = useRouter();
+  // const router = useRouter(); // No longer needed
   const [parameters, setParameters] = useState<ParameterRow[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // const [isSubmitting, setIsSubmitting] = useState(false); // No longer needed, parent handles this.
 
   useEffect(() => {
     setParameters(createInitialTrimParameters());
@@ -77,10 +41,14 @@ export default function TrimDataParams() {
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // --- REFACTORED: The handleSubmit function is now much simpler ---
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
+    // 1. Define the specific API endpoint for this module.
+    const endpointPath = '/api/trim-data';
+
+    // 2. Build the parameters object from the component's state.
     const formParams = parameters
       .filter(p => p.isEnabled)
       .reduce((acc, param) => {
@@ -88,31 +56,15 @@ export default function TrimDataParams() {
         return acc;
       }, {} as Record<string, string | number>);
 
+    // 3. Create the full payload the backend expects.
     const payload = {
       params: formParams,
       selected_wells: selectedWells,
     };
 
-    try {
-      const response = await fetch('http://127.0.0.1:5001/api/trim-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Server error');
-      }
-
-      const result = await response.json();
-      alert(result.message || 'Data berhasil di-trim.');
-      router.push('/dashboard');
-    } catch (error) {
-      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsSubmitting(false);
-    }
+    // 4. Call the generic submit function passed down from the parent page.
+    // We hand off the payload and endpoint, and the parent handles the rest.
+    onSubmit(payload, endpointPath);
   };
 
   const getRowBgColor = (location: string, mode: string): string => {
@@ -122,20 +74,20 @@ export default function TrimDataParams() {
 
       case 'Constant':
         if (mode === 'Input') {
-          return 'bg-yellow-300'; 
-        } else { 
+          return 'bg-yellow-300';
+        } else {
           return 'bg-yellow-100';
         }
 
       case 'Log':
         if (mode === 'Input') {
-          return 'bg-cyan-400'; 
-        } else { 
-          return 'bg-cyan-200'; 
+          return 'bg-cyan-400';
+        } else {
+          return 'bg-cyan-200';
         }
-        
+
       case 'Output':
-          return 'bg-yellow-600';
+        return 'bg-yellow-600';
 
       case 'Interval':
         return 'bg-green-400';
@@ -149,11 +101,11 @@ export default function TrimDataParams() {
     if (trimMode === 'AUTO') return true;
     if (trimMode === 'UNTIL_TOP' && paramName === 'TOP_DEPTH') return true;
     if (trimMode === 'UNTIL_BOTTOM' && paramName === 'BOTTOM_DEPTH') return true;
-  return false;
-};
+    return false;
+  };
 
-const trimModeParam = parameters.find(p => p.name === 'TRIM_MODE');
-const currentTrimMode = trimModeParam?.values['default'] || 'AUTO';
+  const trimModeParam = parameters.find(p => p.name === 'TRIM_MODE');
+  const currentTrimMode = trimModeParam?.values['default'] || 'AUTO';
 
 
   const tableHeaders = ['#', 'Location', 'Mode', 'Comment', 'Unit', 'Name'];
@@ -209,29 +161,29 @@ const currentTrimMode = trimModeParam?.values['default'] || 'AUTO';
                       <td className="px-3 py-2 border-r max-w-xs whitespace-normal">{param.comment}</td>
                       <td className="px-3 py-2 border-r whitespace-nowrap">{param.unit}</td>
                       <td className="px-3 py-2 border-r font-semibold whitespace-nowrap">{param.name}</td>
-                        <td className="px-3 py-2 border-r bg-white text-black">
-                          {param.name === 'TRIM_MODE' ? (
-                            <select
-                                value={String(param.values['default'] ?? '')}
-                                onChange={(e) => handleValueChange(param.id, e.target.value)}
-                                disabled={!param.isEnabled}
-                                className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
-                            >
-                                <option value="AUTO">AUTO</option>
-                                <option value="UNTIL_TOP">UNTIL_TOP</option>
-                                <option value="UNTIL_BOTTOM">UNTIL_BOTTOM</option>
-                                <option value="CUSTOM">CUSTOM</option>
-                            </select>
-                            ) : (
-                            <input
-                                type="text"
-                                value={param.values['default'] ?? ''}
-                                onChange={(e) => handleValueChange(param.id, e.target.value)}
-                                disabled={isInputDisabled(param.name, String(currentTrimMode))}
-                                className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
-                            />
-                            )}
-                        </td>
+                      <td className="px-3 py-2 border-r bg-white text-black">
+                        {param.name === 'TRIM_MODE' ? (
+                          <select
+                            value={String(param.values['default'] ?? '')}
+                            onChange={(e) => handleValueChange(param.id, e.target.value)}
+                            disabled={!param.isEnabled}
+                            className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                          >
+                            <option value="AUTO">AUTO</option>
+                            <option value="UNTIL_TOP">UNTIL_TOP</option>
+                            <option value="UNTIL_BOTTOM">UNTIL_BOTTOM</option>
+                            <option value="CUSTOM">CUSTOM</option>
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={param.values['default'] ?? ''}
+                            onChange={(e) => handleValueChange(param.id, e.target.value)}
+                            disabled={isInputDisabled(param.name, String(currentTrimMode))}
+                            className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                          />
+                        )}
+                      </td>
                     </tr>
                   ) : null;
                 })}
