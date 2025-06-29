@@ -1,12 +1,13 @@
 /** @type {import('next').NextConfig} */
-// next.config.js
-module.exports = {
-  async rewrites() {
-    return [
-      {
-        source: '/dashboard/modules/:path*',
-        destination: '/dashboard/modules/[...moduleName]',
-      },
-    ];
-  },
+const nextConfig = {
+  //   async rewrites() {
+  //     return [
+  //       {
+  //         source: '/api/:path*',
+  //         destination: 'http://127.0.0.1:5001/api/:path*', // Proxy to your Flask app
+  //       },
+  //     ];
+  //   },
 };
+
+module.exports = nextConfig
