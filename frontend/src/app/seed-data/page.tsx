@@ -59,12 +59,12 @@ export default function SeedDataPage() {
     return (
         <div style={{ padding: '40px', fontFamily: 'sans-serif', maxWidth: '600px', margin: 'auto' }}>
             <h1>Seed Persistent Volume</h1>
-            <p>This page is for one-time use to upload the initial `initial_data.zip` file to the backend's persistent storage.</p>
+            <p>This page is for one-time use to upload the initial initial_data.zip file to the backends persistent storage.</p>
 
             <form onSubmit={handleSubmit}>
                 <div style={{ margin: '20px 0' }}>
                     <label htmlFor="file-upload" style={{ display: 'block', marginBottom: '8px' }}>
-                        Select `initial_data.zip`:
+                        Select initial_data.zip:
                     </label>
                     <input
                         id="file-upload"
