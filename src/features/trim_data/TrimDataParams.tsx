@@ -1,35 +1,69 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
 
-interface TrimDataParamsProps {
-  onSubmit: (payload: any, endpointPath: string) => void;
-  isSubmitting: boolean;
-}
+// Komponen helper untuk Form Field
+// const FormField: React.FC<{ label: string; children: React.ReactNode; className?: string }> = ({ label, children, className = '' }) => (
+//     <div className={className}>
+//         <label className="block text-sm font-medium text-gray-500 mb-1">{label}</label>
+//         {children}
+//     </div>
+// );
 
 const createInitialTrimParameters = (): ParameterRow[] => {
   const createValues = (val: string | number) => ({ default: val });
+
   const allParams: Omit<ParameterRow, 'values'>[] = [
-    { id: 1, location: 'Parameter', mode: 'Input', comment: 'Trim mode (AUTO, UNTIL_TOP, UNTIL_BOTTOM, CUSTOM)', unit: 'MODE', name: 'TRIM_MODE', isEnabled: true },
-    { id: 2, location: 'Parameter', mode: 'Input', comment: 'Top Depth (input jika mode UNTIL_BOTTOM atau CUSTOM)', unit: 'm', name: 'TOP_DEPTH', isEnabled: true },
-    { id: 3, location: 'Parameter', mode: 'Input', comment: 'Bottom Depth (input jika mode UNTIL_TOP atau CUSTOM)', unit: 'm', name: 'BOTTOM_DEPTH', isEnabled: true },
+    {
+      id: 1,
+      location: 'Parameter',
+      mode: 'Input',
+      comment: 'Trim mode (AUTO, UNTIL_TOP, UNTIL_BOTTOM, CUSTOM)',
+      unit: 'MODE',
+      name: 'TRIM_MODE',
+      isEnabled: true,
+    },
+    {
+      id: 2,
+      location: 'Parameter',
+      mode: 'Input',
+      comment: 'Top Depth (input jika mode UNTIL_BOTTOM atau CUSTOM)',
+      unit: 'm',
+      name: 'TOP_DEPTH',
+      isEnabled: true,
+    },
+    {
+      id: 3,
+      location: 'Parameter',
+      mode: 'Input',
+      comment: 'Bottom Depth (input jika mode UNTIL_TOP atau CUSTOM)',
+      unit: 'm',
+      name: 'BOTTOM_DEPTH',
+      isEnabled: true,
+    },
   ];
-  const defaultValues: Record<string, string | number> = { TRIM_MODE: 'AUTO', TOP_DEPTH: '', BOTTOM_DEPTH: '' };
-  return allParams.map(p => ({ ...p, values: createValues(defaultValues[p.name] || '') }));
+
+  const defaultValues: Record<string, string | number> = {
+    TRIM_MODE: 'AUTO',
+    TOP_DEPTH: '',
+    BOTTOM_DEPTH: '',
+  };
+
+  return allParams.map(p => ({
+    ...p,
+    values: createValues(defaultValues[p.name] || '')
+  }));
 };
 
-
-// The component now accepts props, specifically the `onSubmit` function and `isSubmitting` state.
-export default function TrimDataParams({ onSubmit, isSubmitting }: TrimDataParamsProps) {
+export default function TrimDataParams() {
   const { selectedIntervals, selectedWells } = useDashboard();
-  // const router = useRouter(); // No longer needed
+  const router = useRouter();
   const [parameters, setParameters] = useState<ParameterRow[]>([]);
-  // const [isSubmitting, setIsSubmitting] = useState(false); // No longer needed, parent handles this.
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setParameters(createInitialTrimParameters());
@@ -43,14 +77,10 @@ export default function TrimDataParams({ onSubmit, isSubmitting }: TrimDataParam
     );
   };
 
-  // --- REFACTORED: The handleSubmit function is now much simpler ---
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    // 1. Define the specific API endpoint for this module.
-    const endpointPath = '/api/trim-data';
-
-    // 2. Build the parameters object from the component's state.
     const formParams = parameters
       .filter(p => p.isEnabled)
       .reduce((acc, param) => {
@@ -58,15 +88,31 @@ export default function TrimDataParams({ onSubmit, isSubmitting }: TrimDataParam
         return acc;
       }, {} as Record<string, string | number>);
 
-    // 3. Create the full payload the backend expects.
     const payload = {
       params: formParams,
       selected_wells: selectedWells,
     };
 
-    // 4. Call the generic submit function passed down from the parent page.
-    // We hand off the payload and endpoint, and the parent handles the rest.
-    onSubmit(payload, endpointPath);
+    try {
+      const response = await fetch('http://127.0.0.1:5001/api/trim-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Server error');
+      }
+
+      const result = await response.json();
+      alert(result.message || 'Data berhasil di-trim.');
+      router.push('/dashboard');
+    } catch (error) {
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getRowBgColor = (location: string, mode: string): string => {
