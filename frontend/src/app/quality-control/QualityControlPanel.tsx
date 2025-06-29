@@ -12,8 +12,8 @@ import { useAppDataStore } from '@/stores/useAppDataStore';
 import { Loader2, PlayCircle, FileText, Folder, CheckCircle, Eye, Inbox, Upload, Trash2 } from 'lucide-react';
 
 import { FileData, ParsedSubFile, ProcessedFileDataForDisplay, QcApiResponse, PreviewableFile, StagedStructure } from './types';
-import { readFileAsArrayBuffer, readFileContent } from '../file_upload/utils/fileUtils';
-import { parseCSVFile, parseLASFile, parseXLSXFileWithSheetJS } from '../file_upload/utils/fileParser';
+import { readFileAsArrayBuffer, readFileContent } from '../../features/file_upload/utils/fileUtils';
+import { parseCSVFile, parseLASFile, parseXLSXFileWithSheetJS } from '../../features/file_upload/utils/fileParser';
 
 // --- Komponen-komponen UI yang dipecah agar lebih rapi ---
 

@@ -5,14 +5,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import NormalizationParamsForm from '@/features/normalization/NormalizationParams';
+import NormalizationParamsForm from '@/app/normalization/NormalizationParams';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { type ParameterRow } from '@/types';
-import DepthMatchingPage from '@/features/depth-matching/page';
-import VshCalculationParams from '@/features/vsh-calculation/VshCalculationParams';
-import PorosityCalculationParams from '@/features/porosity/PorosityCalculationParams';
-import GsaCalculationParams from '@/features/rgsa-ngsa-dgsa/GsaCalculationParams';
-import TrimDataParams from '@/features/trim_data/TrimDataParams';
+import DepthMatchingPage from '@/app/depth-matching/page';
+import VshCalculationParams from '@/app/vsh-calculation/VshCalculationParams';
+import PorosityCalculationParams from '@/app/porosity/PorosityCalculationParams';
+import GsaCalculationParams from '@/app/rgsa-ngsa-dgsa/GsaCalculationParams';
+import TrimDataParams from '@/app/trim_data/TrimDataParams';
 
 // Placeholder component for demonstration purposes
 const SmoothingParamsForm = () => (
