@@ -3,9 +3,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React, { useState } from 'react';
+import React, { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import PageProps from 'next/app';
 import { type ParameterRow } from '@/types';
 import NormalizationParamsForm from '@/features/normalization/NormalizationParams';
 import DepthMatchingPage from '@/features/depth-matching/page';
@@ -14,6 +13,7 @@ import PorosityCalculationParams from '@/features/porosity/PorosityCalculationPa
 import GsaCalculationParams from '@/features/rgsa-ngsa-dgsa/GsaCalculationParams';
 import TrimDataParams from '@/features/trim_data/TrimDataParams';
 import { Loader2 } from 'lucide-react';
+import { Metadata } from 'next';
 
 // A generic placeholder for modules that are not yet implemented
 const NotImplementedModule = ({ moduleName }: { moduleName: string }) => (
@@ -23,29 +23,16 @@ const NotImplementedModule = ({ moduleName }: { moduleName: string }) => (
   </div>
 );
 
-interface ModulePageProps {
-  params: {
-    moduleName: string;
-    // The type of the value is `string | string[]` for catch-all routes.
-    // For a single dynamic param, `string` is fine.
-  };
-  searchParams?: { [key: string]: string | string[] | undefined };
-}
+type Params = Promise<{ moduleName: string }>;
 
-export default function ModulePage({ params }: ModulePageProps) {
-  const { moduleName } = params;
-  const router = useRouter();
+export default function ModulePage(props: { params: Params }) {
+  const params = use(props.params);
+  const moduleName = params.moduleName;
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // NEW: A generic state to hold the response from any API call
   const [apiResult, setApiResult] = useState<any>(null);
 
-  /**
-   * A generic function to handle submissions from any child form component.
-   * @param payload - The JSON data to send to the backend.
-   * @param endpointPath - The specific API path for the module (e.g., '/api/run-vsh-calculation').
-   */
   const handleFormSubmit = async (payload: any, endpointPath: string) => {
     setIsLoading(true);
     setError(null);
@@ -86,7 +73,7 @@ export default function ModulePage({ params }: ModulePageProps) {
   const renderParameterForm = () => {
     // We pass the generic `handleFormSubmit` function to each child component.
     switch (moduleName) {
-      case 'trim-data':
+      case "trim-data":
         return <TrimDataParams onSubmit={handleFormSubmit} isSubmitting={isLoading} />;
       // case 'depth-matching':
       //   return <DepthMatchingPage onSubmit={handleFormSubmit} isSubmitting={isLoading} />;
