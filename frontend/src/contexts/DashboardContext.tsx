@@ -1,11 +1,17 @@
+// /src/contexts/DashboardContext.tsx
+
+'use client';
+
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+// REMOVE this import, we no longer get data from the client's DB
+// import { getProcessedWellList } from '@/lib/db'; 
 
 export type PlotType = 'default' | 'normalization' | 'porosity' | 'gsa';
 
 interface DashboardContextType {
   availableWells: string[];
-  selectedWells: string[];  
-  toggleWellSelection: (well: string) => void; 
+  selectedWells: string[];
+  toggleWellSelection: (well: string) => void;
   selectedIntervals: string[];
   toggleInterval: (interval: string) => void;
   plotType: PlotType;
@@ -16,36 +22,53 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [availableWells, setAvailableWells] = useState<string[]>([]);
-  const [selectedWells, setSelectedWells] = useState<string[]>(['ABB-035']);
+  const [selectedWells, setSelectedWells] = useState<string[]>([]);
   const [selectedIntervals, setSelectedIntervals] = useState<string[]>(['B1', 'GUF']);
   const [plotType, setPlotType] = useState<PlotType>('default');
 
-    useEffect(() => {
-    const fetchWells = async () => {
+  useEffect(() => {
+    // --- THIS IS THE NEW LOGIC ---
+    // This function now fetches the well list directly from your stateful backend API.
+    const fetchWellsFromServer = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:5001/api/list-wells');
-        if (!response.ok) throw new Error('Network response was not ok');
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setAvailableWells(data);
-          // Secara otomatis pilih sumur pertama sebagai default jika ada
-          if (data.length > 0 && selectedWells.length === 0) {
-            setSelectedWells([data[0]]);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        if (!apiUrl) {
+          throw new Error("API URL is not configured.");
+        }
+
+        const endpoint = `${apiUrl}/api/list-wells`;
+        console.log(`Fetching available wells from server: ${endpoint}`);
+
+        const response = await fetch(endpoint);
+        if (!response.ok) {
+          throw new Error('Network response from /api/list-wells was not ok');
+        }
+
+        const wellNames: string[] = await response.json();
+
+        if (Array.isArray(wellNames)) {
+          setAvailableWells(wellNames);
+
+          // Automatically select the first well if none are selected
+          if (wellNames.length > 0 && selectedWells.length === 0) {
+            setSelectedWells([wellNames[0]]);
           }
         }
       } catch (error) {
-        console.error("Gagal mengambil daftar sumur:", error);
+        console.error("Failed to fetch well list from server:", error);
       }
     };
-    fetchWells();
-  }, [selectedWells.length]);
+
+    fetchWellsFromServer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once when the provider mounts
 
   const toggleWellSelection = (well: string) => {
     setSelectedWells(prev =>
       prev.includes(well) ? prev.filter(w => w !== well) : [...prev, well]
     );
   };
-  
+
   const toggleInterval = (interval: string) => {
     setSelectedIntervals(prev =>
       prev.includes(interval)
