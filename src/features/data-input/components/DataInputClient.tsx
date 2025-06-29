@@ -100,7 +100,8 @@ export default function DataInputUtamaPage() {
             } catch (error) {
                 console.error("Initialization failed, redirecting to home:", error);
                 router.replace('/');
-            } finally {
+            }
+            finally {
                 setIsLoading(false);
             }
         };
