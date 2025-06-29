@@ -6,9 +6,6 @@ import dynamic from 'next/dynamic';
 import { type Layout, type Data } from 'plotly.js';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { Loader2 } from 'lucide-react';
-// REMOVE this import, we no longer get data from the client's DB
-// import { getProcessedWellData } from '@/lib/db';
-
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
