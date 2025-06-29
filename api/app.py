@@ -105,6 +105,7 @@ def fill_null_marker():
     try:
         payload = request.get_json()
         selected_wells = payload.get('selected_wells', [])
+        selected_logs = payload.get('selected_logs', [])
 
         if not selected_wells:
             return jsonify({'error': 'selected_wells wajib diisi'}), 400
@@ -123,7 +124,7 @@ def fill_null_marker():
             struktur = df['STRUKTUR'].iloc[0] if 'STRUKTUR' in df.columns else 'UNKNOWN'
 
             df_filled = fill_null_values_in_marker_range(
-                df, struktur, well_name)
+                df, selected_logs)
             df_filled.to_csv(file_path, index=False)
 
             results.append({'well': well_name, 'rows': len(
@@ -395,6 +396,7 @@ def run_vsh_calculation():
             payload = request.get_json()
             params = payload.get('params', {})
             selected_wells = payload.get('selected_wells', [])
+            selected_intervals = payload.get('selected_intervals', [])
 
             if not selected_wells:
                 return jsonify({"error": "Tidak ada sumur yang dipilih."}), 400
@@ -403,8 +405,8 @@ def run_vsh_calculation():
                 f"Memulai kalkulasi VSH untuk {len(selected_wells)} sumur...")
 
             # Ekstrak parameter dari frontend, dengan nilai default
-            gr_ma = float(params.get('gr_ma', 30))
-            gr_sh = float(params.get('gr_sh', 120))
+            gr_ma = float(params.get('GR_MA', 30))
+            gr_sh = float(params.get('GR_SH', 120))
             input_log = params.get('input_log', 'GR')
             output_log = params.get('output_log', 'VSH_GR')
 
@@ -423,7 +425,10 @@ def run_vsh_calculation():
 
                 # Panggil fungsi logika untuk menghitung VSH
                 df_updated = calculate_vsh_from_gr(
-                    df_well, input_log, gr_ma, gr_sh, output_log)
+                    df_well, input_log, gr_ma, gr_sh, output_log,
+                    marker_column='MARKER',  # atau sesuaikan jika kolom marker berbeda
+                    target_markers=selected_intervals
+                )
 
                 # Simpan (overwrite) file CSV dengan data yang sudah diperbarui
                 df_updated.to_csv(file_path, index=False)
@@ -450,6 +455,7 @@ def run_porosity_calculation():
             payload = request.get_json()
             params = payload.get('params', {})
             selected_wells = payload.get('selected_wells', [])
+            selected_intervals = payload.get('selected_intervals', [])
 
             if not selected_wells:
                 return jsonify({"error": "Tidak ada sumur yang dipilih."}), 400
@@ -464,7 +470,11 @@ def run_porosity_calculation():
                 df_well = pd.read_csv(file_path)
 
                 # Panggil fungsi logika untuk menghitung Porositas
-                df_updated = calculate_porosity(df_well, params)
+                df_updated = calculate_porosity(
+                    df_well, params,
+                    marker_column='MARKER',
+                    target_markers=selected_intervals
+                )
 
                 # Simpan (overwrite) file CSV dengan data yang sudah diperbarui
                 df_updated.to_csv(file_path, index=False)
@@ -532,6 +542,8 @@ def run_gsa_calculation():
             payload = request.get_json()
             params = payload.get('params', {})
             selected_wells = payload.get('selected_wells', [])
+            selected_intervals = payload.get('selected_intervals', [])
+            print(selected_intervals)
 
             if not selected_wells:
                 return jsonify({"error": "Tidak ada sumur yang dipilih."}), 400
@@ -543,14 +555,17 @@ def run_gsa_calculation():
                 df_well = pd.read_csv(file_path)
 
                 # Panggil fungsi orkestrator GSA
-                df_rgsa = process_all_wells_rgsa(df_well, params)
-                df_ngsa = process_all_wells_ngsa(df_rgsa, params)
-                df_dgsa = process_all_wells_dgsa(df_ngsa, params)
+                df_rgsa = process_all_wells_rgsa(
+                    df_well, params, selected_intervals)
+                df_ngsa = process_all_wells_ngsa(
+                    df_rgsa, params, selected_intervals)
+                df_dgsa = process_all_wells_dgsa(
+                    df_ngsa, params, selected_intervals)
 
                 # Validasi kolom penting
                 required_cols = ['GR', 'RT', 'NPHI',
                                  'RHOB', 'RGSA', 'NGSA', 'DGSA']
-                df_dgsa = df_dgsa.dropna(subset=required_cols)
+                # df_dgsa = df_dgsa.dropna(subset=required_cols)
 
                 # Hitung anomali
                 df_dgsa['RGSA_ANOM'] = df_dgsa['RT'] > df_dgsa['RGSA']

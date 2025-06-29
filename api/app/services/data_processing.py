@@ -37,12 +37,11 @@ def handle_null_values(csv_content: str) -> str:
 # fill_null_handler.py
 
 
-def fill_null_values_in_marker_range(df, struktur, well_name):
+def fill_null_values_in_marker_range(df, selected_logs):
     """
     Isi nilai null pada GR, RT, NPHI, RHOB berdasarkan range marker.
     Hanya data dalam range marker yang akan diproses menggunakan backward-fill dan forward-fill.
     """
-    target_columns = ['GR', 'RT', 'NPHI', 'RHOB', 'GR_NORM']
     df_filled = df.copy().sort_values('DEPTH').reset_index(drop=True)
 
     marker_range_mask = pd.Series(
@@ -67,7 +66,7 @@ def fill_null_values_in_marker_range(df, struktur, well_name):
                 (df_filled['DEPTH'] <= last_marker_depth)
             )
 
-    for col in target_columns:
+    for col in selected_logs:
         if col not in df_filled.columns:
             continue
         marker_indices = df_filled[marker_range_mask].index

@@ -24,7 +24,9 @@ const createInitialVshParameters = (): ParameterRow[] => {
     { id: 1, location: 'Interval', mode: 'In_Out', comment: 'Option for VSH from gamma ray', unit: 'ALPHA*8', name: 'OPT_GR', isEnabled: true },
     { id: 2, location: 'Interval', mode: 'In_Out', comment: 'Gamma ray matrix (clean)', unit: 'GAPI', name: 'GR_MA', isEnabled: true },
     { id: 3, location: 'Interval', mode: 'In_Out', comment: 'Gamma ray shale', unit: 'GAPI', name: 'GR_SH', isEnabled: true },
-    { id: 4, location: 'Interval', mode: 'In_Out', comment: 'Option to allow coal logic', unit: 'LOGICAL', name: 'OPT_COAL', isEnabled: true },
+    // { id: 4, location: 'Interval', mode: 'In_Out', comment: 'Option to allow coal logic', unit: 'LOGICAL', name: 'OPT_COAL', isEnabled: true },
+    { id: 4, location: 'Log', mode: 'Input', comment: 'Gamma ray log', unit: 'GAPI', name: 'GR', isEnabled: true },
+    { id: 5, location: 'Log', mode: 'Output', comment: 'VSH from gamma ray', unit: 'V/V', name: 'VSH_GR', isEnabled: true },
   ];
 
   // Definisikan nilai default
@@ -32,7 +34,8 @@ const createInitialVshParameters = (): ParameterRow[] => {
     'OPT_GR': 'LINEAR',
     'GR_MA': 30,
     'GR_SH': 120,
-    'OPT_COAL': 'No',
+    'GR': 'GR',
+    'VSH_GR': 'VSH_GR',
   };
 
   // Petakan untuk menghasilkan data awal yang benar
@@ -43,7 +46,7 @@ const createInitialVshParameters = (): ParameterRow[] => {
 };
 
 export default function VshCalculationParams() {
-  const { selectedIntervals, selectedWells } = useDashboard();
+  const { selectedIntervals, selectedWells, wellColumns } = useDashboard();
   const router = useRouter();
   const [parameters, setParameters] = useState<ParameterRow[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,6 +56,8 @@ export default function VshCalculationParams() {
   useEffect(() => {
     setParameters(createInitialVshParameters());
   }, []);
+
+  const combinedColumns = selectedWells.flatMap(well => wellColumns[well] || []);
 
   const handleValueChange = (id: number, interval: string, newValue: string) => {
     setParameters(prev =>
@@ -96,6 +101,7 @@ export default function VshCalculationParams() {
     const payload = {
       params: formParams,
       selected_wells: selectedWells,
+      selected_intervals: selectedIntervals,
     };
     
     try {
@@ -216,7 +222,7 @@ export default function VshCalculationParams() {
                     <td className="px-3 py-2 border-r font-semibold whitespace-nowrap">{param.name}</td>
                     <td className="px-3 py-2 border-r text-center"><input type="checkbox" className="h-4 w-4 rounded border-gray-400" checked={!!rowSync[param.id]} onChange={(e) => handleRowToggle(param.id, e.target.checked)} /></td>
                       {selectedIntervals.map(interval => (
-                        <td key={interval} className="px-3 py-2 border-r bg-white text-black">
+                        <td key={`${param.id}-${interval}`} className="px-3 py-2 border-r bg-white text-black">
                           {param.name === 'OPT_GR' ? (
                             <select
                               value={String(param.values[interval] ?? param.values['default'] ?? '')}
@@ -225,15 +231,22 @@ export default function VshCalculationParams() {
                             >
                               <option value="LINEAR">LINEAR</option>
                             </select>
-                          ) : param.name === 'OPT_COAL' ? (
-                            <select
-                              value={String(param.values[interval] ?? param.values['default'] ?? '')}
-                              onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
-                              className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-                            >
-                              <option value="Yes">Yes</option>
-                              <option value="No">No</option>
-                            </select>
+                          ) : param.name === 'GR' ? (
+                            (() => {
+                              const filteredOptions: string[] = combinedColumns.filter(col => col.toUpperCase().includes('GR'));
+                              return (
+                                <select
+                                  value={String(param.values[interval] ?? param.values['default'] ?? '')}
+                                  onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                                  className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                                >
+                                  {filteredOptions.length === 0 && <option value="">No match</option>}
+                                  {filteredOptions.map(opt => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                  ))}
+                                </select>
+                              );
+                            })()
                           ) : (
                             <input
                               type="text"

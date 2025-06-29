@@ -26,7 +26,9 @@ const createInitialPorosityParameters = (): ParameterRow[] => {
     { id: 3, location: 'Constant', mode: 'Input', comment: 'Dry Shale Density', unit: 'g/cc', name: 'RHO_DSH', isEnabled: true },
     { id: 4, location: 'Constant', mode: 'Input', comment: 'Shale Neutron Porosity', unit: 'v/v', name: 'NPHI_SH', isEnabled: true },
     { id: 5, location: 'Constant', mode: 'Input', comment: 'Maximum allowed PHIE', unit: 'v/v', name: 'PHIE_MAX', isEnabled: true },
-    { id: 6, location: 'Constant', mode: 'Input', comment: 'Base Rock Matrix Density (Sandstone)', unit: 'g/cc', name: 'RHO_MA_BASE', isEnabled: true },
+    { id: 6, location: 'Constant', mode: 'Input', comment: 'Base Rock Matrix Density (Sandstone)', unit: 'kg/m3', name: 'RHO_MA_BASE', isEnabled: true },
+    { id: 7, location: 'Constant', mode: 'Input', comment: 'Water Density', unit: 'g/cc', name: 'RHO_W', isEnabled: true },
+    { id: 8, location: 'Constant', mode: 'Input', comment: 'Max Extreme Density (Sandstone)', unit: 'kg/m3', name: 'RHO_MAX', isEnabled: true },
   ];
 
     const relevantParamNames = new Set([
@@ -35,7 +37,9 @@ const createInitialPorosityParameters = (): ParameterRow[] => {
       'RHO_DSH',
       'NPHI_SH',
       'PHIE_MAX',
-      'RHO_MA_BASE'
+      'RHO_MA_BASE',
+      'RHO_W',
+      'RHO_MAX'
     ]);
 
   // Definisikan nilai default
@@ -45,7 +49,9 @@ const createInitialPorosityParameters = (): ParameterRow[] => {
     'RHO_DSH': 2.60,
     'NPHI_SH': 0.35,
     'PHIE_MAX': 0.3,
-    'RHO_MA_BASE': 2.71
+    'RHO_MA_BASE': 2.71,
+    'RHO_W': 1.00,
+    'RHO_MAX': 4.00
   };
 
   // Petakan untuk menghasilkan data awal yang benar
