@@ -81,12 +81,18 @@ export default function MyPage({ params }: MyPageProps) {
 
   const renderParameterForm = () => {
     switch (moduleName) {
-      case 'trim-data':
+      case 'trim-data': {
+        console.log('trim-data param rendering...');
         return <TrimDataParams />;
-      case 'depth-matching':
+      }
+      case 'depth-matching': {
+        console.log('trim-data param rendering...');
         return <DepthMatchingPage />;
-      case 'normalization':
+      }
+      case 'normalization': {
+        console.log('trim-data param rendering...');
         return <NormalizationParamsForm />;
+      }
       case 'smoothing':
         return <SmoothingParamsForm />;
       case 'vsh-calculation':
