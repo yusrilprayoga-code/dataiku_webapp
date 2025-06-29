@@ -5,14 +5,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import NormalizationParamsForm from '@/app/normalization/NormalizationParams';
+import NormalizationParamsForm from '@/features/normalization/NormalizationParams';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { type ParameterRow } from '@/types';
-import DepthMatchingPage from '@/app/depth-matching/page';
-import VshCalculationParams from '@/app/vsh-calculation/VshCalculationParams';
-import PorosityCalculationParams from '@/app/porosity/PorosityCalculationParams';
-import GsaCalculationParams from '@/app/rgsa-ngsa-dgsa/GsaCalculationParams';
-import TrimDataParams from '@/app/trim_data/TrimDataParams';
+import DepthMatchingPage from '@/features/depth-matching/page';
+import VshCalculationParams from '@/features/vsh-calculation/VshCalculationParams';
+import PorosityCalculationParams from '@/features/porosity/PorosityCalculationParams';
+import GsaCalculationParams from '@/features/rgsa-ngsa-dgsa/GsaCalculationParams';
+import TrimDataParams from '@/features/trim_data/TrimDataParams';
 
 // Placeholder component for demonstration purposes
 const SmoothingParamsForm = () => (
@@ -81,18 +81,12 @@ export default function MyPage({ params }: MyPageProps) {
 
   const renderParameterForm = () => {
     switch (moduleName) {
-      case 'trim-data': {
-        console.log('trim-data param rendering...');
+      case 'trim-data':
         return <TrimDataParams />;
-      }
-      case 'depth-matching': {
-        console.log('trim-data param rendering...');
+      case 'depth-matching':
         return <DepthMatchingPage />;
-      }
-      case 'normalization': {
-        console.log('trim-data param rendering...');
+      case 'normalization':
         return <NormalizationParamsForm />;
-      }
       case 'smoothing':
         return <SmoothingParamsForm />;
       case 'vsh-calculation':

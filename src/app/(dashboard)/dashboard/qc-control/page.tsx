@@ -1,5 +1,5 @@
 // FILE 3: frontend/src/app/dashboard/qc-control/page.tsx
-import QcRunner from "@/app/quality-control/QcRunner";
+import QcRunner from "@/features/quality-control/QcRunner";
 
 export default function QcControlPage() {
     return (
