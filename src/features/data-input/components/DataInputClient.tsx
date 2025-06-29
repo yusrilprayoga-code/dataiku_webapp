@@ -11,7 +11,7 @@ import { useAppDataStore } from '../../../stores/useAppDataStore';
 import { QCResponse, PreviewableFile, ProcessedFileDataForDisplay, QCResult, QCStatus, StagedStructure } from '@/types';
 import { FileTextIcon, Folder as FolderIcon, Inbox, CheckCircle, Loader2 } from 'lucide-react';
 import DataTablePreview from '@/features/data-input/components/DataTablePreview';
-import { getAllFiles } from '@/lib/db';
+import { getAllWellLogs, saveProcessedWell } from '@/lib/db';
 
 const getStatusRowStyle = (status: QCStatus): string => {
     switch (status) {
@@ -46,9 +46,6 @@ const getStatusBadgeStyle = (status: QCStatus): string => {
     }
 };
 
-
-
-
 export default function DataInputUtamaPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -63,6 +60,7 @@ export default function DataInputUtamaPage() {
     const [selectedFileForPreview, setSelectedFileForPreview] = useState<PreviewableFile | null>(null);
     const [isQcRunning, setIsQcRunning] = useState(false);
     const [qcStatusMessage, setQcStatusMessage] = useState('');
+    const [processedCSVs, setProcessedCSVs] = useState<Record<string, string>>({});
 
     useEffect(() => {
         const initializeData = async () => {
@@ -83,35 +81,19 @@ export default function DataInputUtamaPage() {
                     // This error message is now more accurate
                     throw new Error('No structure name found in URL. Cannot initialize page.');
                 }
+                const filesForProcessing = await getAllWellLogs();
 
-                // The rest of your logic remains exactly the same...
-                const filesFromDb = await getAllFiles();
-                console.log(`[LOG 2] Data retrieved from IndexedDB:`, filesFromDb);
-                if (filesFromDb.length === 0) {
-                    throw new Error("IndexedDB is empty, can't build structure.");
+                if (filesForProcessing.length === 0) {
+                    throw new Error("No well logs found in IndexedDB.");
                 }
 
-                const filesForProcessing: ProcessedFileDataForDisplay[] = [];
-                filesFromDb.forEach(fileData => {
-                    if (fileData.isStructureFromZip) {
-                        const processSubFiles = (subFiles: any[] | undefined, type: 'las-as-csv' | 'csv') => {
-                            subFiles?.forEach(subFile => {
-                                filesForProcessing.push({ id: subFile.id, name: `${fileData.name}/${subFile.name}`, originalName: subFile.name, structurePath: fileData.name, type, content: subFile.content, headers: subFile.headers, rawContentString: subFile.rawContentString });
-                            });
-                        };
-                        processSubFiles(fileData.lasFiles, 'las-as-csv');
-                        processSubFiles(fileData.csvFiles, 'csv');
-                    } else if (fileData.rawFileContent && typeof fileData.rawFileContent === 'string') {
-                        const fileType = fileData.name.toLowerCase().endsWith('.las') ? 'las-as-csv' : 'csv';
-                        filesForProcessing.push({ id: fileData.id, name: fileData.name, type: fileType, content: fileData.content || [], headers: fileData.headers || [], rawContentString: fileData.rawFileContent });
-                    }
-                });
-                console.log(`[LOG 3] Data after transformation:`, filesForProcessing);
+                console.log(`[LOG 2 & 3] Retrieved and transformed data:`, filesForProcessing);
 
                 const reconstructed: StagedStructure = {
                     userDefinedStructureName: structureName,
-                    files: filesForProcessing,
+                    files: filesForProcessing, // The data is already in the correct format!
                 };
+
                 setStagedStructure(reconstructed);
                 console.log(`[LOG 4] Final object to be set in state:`, reconstructed);
 
@@ -149,6 +131,7 @@ export default function DataInputUtamaPage() {
             }
             const initialQcResults: QCResponse = await qcResponse.json();
             setQcResults(initialQcResults);
+            setProcessedCSVs(initialQcResults.output_files || {});
         } catch (error) {
             alert(`Error saat QC: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
@@ -158,8 +141,49 @@ export default function DataInputUtamaPage() {
     };
 
     const handleContinue = () => { setIsNavigating(true); router.push('/dashboard'); };
+    const handleSaveResults = async () => {
+        if (!qcResults || Object.keys(processedCSVs).length === 0) {
+            alert("No processed results to save. Please run QC first.");
+            return;
+        }
 
-    // --- Handler functions are fine, but some were duplicated in DataInputView ---
+        console.log("Filtering results and preparing to save to IndexedDB...");
+
+        const wellsToSave: { wellName: string, csvContent: string }[] = [];
+
+        // Create a map of well names to their QC status for easy lookup
+        const qcStatusMap = new Map(qcResults.qc_summary.map(r => [r.well_name, r.status]));
+
+        for (const [filename, csvContent] of Object.entries(processedCSVs)) {
+            const wellName = filename.replace(/\.csv$/i, '');
+            const status = qcStatusMap.get(wellName);
+
+            // --- THIS IS THE NEW RULE ---
+            // Only include wells that DO NOT have the MISSING_LOGS status.
+            if (status && status !== 'MISSING_LOGS') {
+                wellsToSave.push({ wellName, csvContent });
+            } else {
+                console.log(`Excluding '${wellName}' from save due to status: ${status}`);
+            }
+        }
+
+        if (wellsToSave.length === 0) {
+            alert("No valid wells to save after filtering for QC status.");
+            return;
+        }
+
+        const savePromises = wellsToSave.map(({ wellName, csvContent }) =>
+            saveProcessedWell(wellName, csvContent)
+        );
+
+        try {
+            await Promise.all(savePromises);
+            alert(`Successfully saved ${savePromises.length} processed wells! You can now view them on the dashboard.`);
+        } catch (error) {
+            console.error("Failed to save processed wells to IndexedDB", error);
+            alert("Error saving results to the database.");
+        }
+    };
     const handleSelectInputFile = (file: ProcessedFileDataForDisplay) => {
         setSelectedFileId(file.id);
         setSelectedFileForPreview({
@@ -206,18 +230,21 @@ export default function DataInputUtamaPage() {
                         className={`w-full flex items-center gap-3 p-2 rounded-md text-sm font-medium transition-colors ${activeFolder === 'output' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'} disabled:text-gray-400 disabled:cursor-not-allowed`}>
                         <FolderIcon className="w-5 h-5" /> Output
                     </button>
-                    <button onClick={() => { setActiveFolder('handled'); setSelectedFileForPreview(null); setSelectedFileId(null); }}
+                    {/* <button onClick={() => { setActiveFolder('handled'); setSelectedFileForPreview(null); setSelectedFileId(null); }}
                         disabled={handledFiles.length === 0}
                         className={`w-full flex items-center gap-3 p-2 rounded-md text-sm font-medium transition-colors ${activeFolder === 'handled' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'} disabled:text-gray-400 disabled:cursor-not-allowed`}>
                         <CheckCircle className="w-5 h-5 text-green-500" /> ABB (pass_qc)
-                    </button>
+                    </button> */}
                 </nav>
                 <div className="mt-auto pt-4 space-y-2 border-t">
                     <button onClick={handleRunQcWorkflow} disabled={isQcRunning || isNavigating}
                         className="w-full px-4 py-3 bg-green-500 text-white font-bold rounded hover:bg-green-600 disabled:bg-gray-400 flex items-center justify-center gap-2">
                         {isQcRunning ? (<><Loader2 className="w-5 h-5 animate-spin" />Processing...</>) : "Run Quality Control"}
                     </button>
-                    <button onClick={handleContinue} disabled={isNavigating || isNavigating}
+                    <button onClick={() => {
+                        handleContinue();
+                        // handleSaveResults(); TODO: di comment dulu soale karna masi bingung make idb atau cloud storage kjasjdaskjdnakjsfbaskhb
+                    }} disabled={isNavigating || isNavigating}
                         className="w-full px-4 py-2 bg-blue-500 text-white font-bold rounded hover:bg-blue-600 flex items-center justify-center transition-colors disabled:bg-gray-400 disabled:cursor-wait">
                         {isNavigating ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />Loading...</>) : ("Continue")}
                     </button>
