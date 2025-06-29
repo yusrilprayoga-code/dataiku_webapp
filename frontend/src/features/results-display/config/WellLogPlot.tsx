@@ -52,32 +52,25 @@ export default function WellLogPlot() {
       const endpoint = `${apiUrl}${endpointPath}`;
 
       try {
-        // --- THIS IS THE SIMPLIFICATION ---
-        // We no longer need to fetch data from IndexedDB first.
-        // We simply send the names of the selected wells directly to the backend.
-        // The backend will use these names to find the files on its persistent volume.
-
+        // FIX: Gunakan metode POST dan kirim `selectedWells`
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ selected_wells: selectedWells }), // Send the array of well names
+          body: JSON.stringify({ selected_wells: selectedWells }), // Kirim sebagai objek
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Failed to retrieve data from server' }));
-          throw new Error(errorData.error);
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Gagal mengambil data dari server');
         }
 
-        const plotObject = await response.json();
+        const responseData = await response.json();
+        const plotObject = JSON.parse(responseData);
 
-        if (plotObject && plotObject.data && plotObject.layout) {
-          setPlotData(plotObject.data);
-          setPlotLayout(plotObject.layout);
-        } else {
-          throw new Error("Received invalid plot data structure from server.");
-        }
+        setPlotData(plotObject.data);
+        setPlotLayout(plotObject.layout);
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Terjadi kesalahan tidak dikenal');
