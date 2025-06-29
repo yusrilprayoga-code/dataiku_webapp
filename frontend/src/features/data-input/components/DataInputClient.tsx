@@ -142,18 +142,39 @@ export default function DataInputUtamaPage() {
 
     const handleContinue = () => { setIsNavigating(true); router.push('/dashboard'); };
     const handleSaveResults = async () => {
-        if (Object.keys(processedCSVs).length === 0) {
+        if (!qcResults || Object.keys(processedCSVs).length === 0) {
             alert("No processed results to save. Please run QC first.");
             return;
         }
 
-        console.log("Saving processed data to the final database table...");
+        console.log("Filtering results and preparing to save to IndexedDB...");
 
-        const savePromises = Object.entries(processedCSVs).map(([filename, csvContent]) => {
-            // filename is "WELL-A.csv", we want "WELL-A"
+        const wellsToSave: { wellName: string, csvContent: string }[] = [];
+
+        // Create a map of well names to their QC status for easy lookup
+        const qcStatusMap = new Map(qcResults.qc_summary.map(r => [r.well_name, r.status]));
+
+        for (const [filename, csvContent] of Object.entries(processedCSVs)) {
             const wellName = filename.replace(/\.csv$/i, '');
-            return saveProcessedWell(wellName, csvContent);
-        });
+            const status = qcStatusMap.get(wellName);
+
+            // --- THIS IS THE NEW RULE ---
+            // Only include wells that DO NOT have the MISSING_LOGS status.
+            if (status && status !== 'MISSING_LOGS') {
+                wellsToSave.push({ wellName, csvContent });
+            } else {
+                console.log(`Excluding '${wellName}' from save due to status: ${status}`);
+            }
+        }
+
+        if (wellsToSave.length === 0) {
+            alert("No valid wells to save after filtering for QC status.");
+            return;
+        }
+
+        const savePromises = wellsToSave.map(({ wellName, csvContent }) =>
+            saveProcessedWell(wellName, csvContent)
+        );
 
         try {
             await Promise.all(savePromises);
@@ -220,7 +241,10 @@ export default function DataInputUtamaPage() {
                         className="w-full px-4 py-3 bg-green-500 text-white font-bold rounded hover:bg-green-600 disabled:bg-gray-400 flex items-center justify-center gap-2">
                         {isQcRunning ? (<><Loader2 className="w-5 h-5 animate-spin" />Processing...</>) : "Run Quality Control"}
                     </button>
-                    <button onClick={() => { handleContinue(); handleSaveResults(); }} disabled={isNavigating || isNavigating}
+                    <button onClick={() => {
+                        handleContinue();
+                        // handleSaveResults(); TODO: di comment dulu soale karna masi bingung make idb atau cloud storage kjasjdaskjdnakjsfbaskhb
+                    }} disabled={isNavigating || isNavigating}
                         className="w-full px-4 py-2 bg-blue-500 text-white font-bold rounded hover:bg-blue-600 flex items-center justify-center transition-colors disabled:bg-gray-400 disabled:cursor-wait">
                         {isNavigating ? (<><Loader2 className="mr-2 h-5 w-5 animate-spin" />Loading...</>) : ("Continue")}
                     </button>

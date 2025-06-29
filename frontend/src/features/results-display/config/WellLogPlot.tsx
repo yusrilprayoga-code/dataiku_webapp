@@ -5,8 +5,9 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { type Layout, type Data } from 'plotly.js';
 import { useDashboard } from '@/contexts/DashboardContext';
-import { getProcessedWellData } from '@/lib/db';
 import { Loader2 } from 'lucide-react';
+// REMOVE this import, we no longer get data from the client's DB
+// import { getProcessedWellData } from '@/lib/db';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -51,26 +52,17 @@ export default function WellLogPlot() {
       const endpoint = `${apiUrl}${endpointPath}`;
 
       try {
-        // Step 1: Fetch the CSV content for each selected well from IndexedDB
-        const wellDataMap: { [key: string]: string } = {};
-        for (const wellName of selectedWells) {
-          const csvContent = await getProcessedWellData(wellName);
-          if (csvContent) {
-            wellDataMap[wellName] = csvContent;
-          }
-        }
+        // --- THIS IS THE SIMPLIFICATION ---
+        // We no longer need to fetch data from IndexedDB first.
+        // We simply send the names of the selected wells directly to the backend.
+        // The backend will use these names to find the files on its persistent volume.
 
-        if (Object.keys(wellDataMap).length === 0) {
-          throw new Error("Could not find processed data for selected wells in the browser database.");
-        }
-
-        // --- THIS IS THE FIX ---
-        // Step 2: Send the correct payload to the backend.
         const response = await fetch(endpoint, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          // Send the `well_data` object containing the CSV content, NOT the `selected_wells` array.
-          body: JSON.stringify({ well_data: wellDataMap }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ selected_wells: selectedWells }), // Send the array of well names
         });
 
         if (!response.ok) {
