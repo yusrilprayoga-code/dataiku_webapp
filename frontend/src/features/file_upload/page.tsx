@@ -25,6 +25,7 @@ export default function FileUploadViewer() {
   const [message, setMessage] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const [isReadyToProceed, setIsReadyToProceed] = useState<boolean>(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -45,18 +46,11 @@ export default function FileUploadViewer() {
   }, []);
 
   const handleProceedToNextPage = () => {
-    // 1. Check if there are any files displayed from our database.
-    if (filesForDisplay.length === 0) {
-      setMessage("Please upload some files first.");
-      setTimeout(() => setMessage(''), 3000);
-      return;
-    }
-
-    // 2. Get the name for the structure from the user.
+    // This function can now be much simpler. We don't need to check the file count,
+    // because the button to call this will be disabled until it's ready.
     const structureNameInput = window.prompt("Please enter a name for this data structure/folder:");
-    if (!structureNameInput || structureNameInput.trim() === "") {
-      setMessage("Structure name is required to proceed.");
-      setTimeout(() => setMessage(''), 3000);
+    if (!structureNameInput || !structureNameInput.trim()) {
+      setMessage("Structure name is required.");
       return;
     }
     const name = structureNameInput.trim();
@@ -131,6 +125,7 @@ export default function FileUploadViewer() {
 
   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     await clearAllFiles();
+    setIsReadyToProceed(false);
     const files = event.target.files;
     if (!files || files.length === 0) return;
     setIsUploading(true);
@@ -214,17 +209,24 @@ export default function FileUploadViewer() {
       }
     });
 
-    // Now, save everything to the database
     if (allNewFileDataItems.length > 0) {
       try {
+        setMessage('Saving data to browser database...');
         await addMultipleFiles(allNewFileDataItems);
         await addWellLogs(allWellLogs);
 
+        // --- THIS IS THE CRUCIAL FIX ---
+        // Only after ALL database operations have successfully completed...
+        console.log("SUCCESS: Data has been saved to IndexedDB.");
+        setMessage(`Successfully processed and saved ${allWellLogs.length} log(s). You may now proceed.`);
+        setIsReadyToProceed(true); // ...do we allow the user to proceed.
+
         const updatedFiles = await getAllFiles();
         setFilesForDisplay(updatedFiles);
-        setMessage(`Successfully processed and saved ${allWellLogs.length} log(s)`);
+
       } catch (error) {
-        console.log(`Error occured when trying to save eerything to database`)
+        console.error("Error occurred when trying to save everything to database", error);
+        setMessage("Error: Could not save data to the database.");
       }
     } else {
       setMessage('No new files or structures were processed.');
@@ -274,11 +276,18 @@ export default function FileUploadViewer() {
         <div className="fixed bottom-8 right-8 z-50">
           <button
             onClick={handleProceedToNextPage}
-            title={`Process ${filesForDisplay.length} item(s) and create structure`} // Use filesForDisplay
-            className="bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-xl flex items-center justify-center transition-all duration-150 ease-in-out transform hover:scale-110 focus:outline-none"
+            title={isReadyToProceed ? "Proceed with saved data" : "Please upload and process files first"}
+            // Disable the button until the data is confirmed to be saved
+            disabled={!isReadyToProceed}
+            className={`p-4 rounded-full shadow-xl flex items-center justify-center transition-all duration-150 ease-in-out
+            ${isReadyToProceed
+                ? 'bg-green-500 hover:bg-green-600 transform hover:scale-110'
+                : 'bg-gray-400 cursor-not-allowed'
+              }
+          `}
             aria-label="Proceed with uploaded files"
           >
-            <Plus size={28} />
+            <Plus size={28} className="text-white" />
           </button>
         </div>
       )}
