@@ -1,120 +1,123 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any*/
+// // frontend/src/app/(dashboard)/modules/[moduleName]/page.tsx
+// 'use client';
+
+// import React, { useState } from 'react';
+// import { useRouter } from 'next/navigation';
+// import NormalizationParamsForm from '@/features/normalization/NormalizationParams';
+// import { useAppDataStore } from '@/stores/useAppDataStore';
+// import { type ParameterRow } from '@/types';
+// import DepthMatchingPage from '@/features/depth-matching/page';
+// import VshCalculationParams from '@/features/vsh-calculation/VshCalculationParams';
+// import PorosityCalculationParams from '@/features/porosity/PorosityCalculationParams';
+// import GsaCalculationParams from '@/features/rgsa-ngsa-dgsa/GsaCalculationParams';
+// import TrimDataParams from '@/features/trim_data/TrimDataParams';
+
+// // Placeholder component for demonstration purposes
+// const SmoothingParamsForm = () => (
+//   <div className="p-4 border rounded-lg bg-white shadow-sm">
+//     <h2 className="text-lg font-semibold">Smoothing Parameters</h2>
+//     <p className="text-gray-600 mt-2">This is a placeholder for the smoothing parameters form.</p>
+//   </div>
+// );
+
+// interface MyPageProps {
+//   params: Promise<{ moduleName: string }>;
+// }
+
+// export default async function MyPage({ params }: MyPageProps) {
+//   const { moduleName } = await params;
+//   const router = useRouter();
+//   const { addNormalizationResult } = useAppDataStore();
+//   const [isLoading, setIsLoading] = useState(false);
+//   const [results, setResults] = useState(null);
+
+//   const handleNormalizationSubmit = async (activeParameters: ParameterRow[]) => {
+//     setIsLoading(true);
+
+//     try {
+//       const response = await fetch('/api/get-normalization-plot', {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify(activeParameters),
+//       });
+
+//       if (!response.ok) {
+//         const errorData = await response.json().catch(() => ({ error: 'Server returned a non-JSON response' }));
+//         throw new Error(errorData.error || `Server error: ${response.status}`);
+//       }
+
+//       const plotObject = await response.json();
+//       const resultId = `norm-${Date.now()}`;
+
+//       addNormalizationResult(resultId, plotObject);
+//       router.push(`/dashboard/results/${resultId}`);
+
+//     } catch (error) {
+//       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+//       console.error('Submission Error:', errorMessage);
+//       alert(`Error: ${errorMessage}`);
+//       setIsLoading(false);
+//     }
+//   };
+
+//   const renderParameterForm = () => {
+//     switch (moduleName) {
+//       case 'trim-data':
+//         return <TrimDataParams />;
+//       case 'depth-matching':
+//         return <DepthMatchingPage />;
+//       case 'normalization':
+//         return <NormalizationParamsForm />;
+//       case 'smoothing':
+//         return <SmoothingParamsForm />;
+//       case 'vsh-calculation':
+//         return <VshCalculationParams />;
+//       case 'porosity-calculation':
+//         return <PorosityCalculationParams />;
+//       case 'rgsa-ngsa-dgsa':
+//         return <GsaCalculationParams />;
+//       default:
+//         return (
+//           <div className="p-4 border rounded-lg bg-red-50 text-red-700">
+//             Parameter form for &apos;{moduleName}&apos; not found.
+//           </div>
+//         );
+//     }
+//   };
+
+//   return (
+//     <div className="h-full p-4 md:p-6 bg-gray-50">
+//       <h1 className="text-2xl font-bold mb-4 capitalize text-gray-800">{moduleName} Module</h1>
+//       {renderParameterForm()}
+//     </div>
+//   );
+// }
+
+// This is a Server Component (no 'use client')
+// It can be async!
 // frontend/src/app/(dashboard)/modules/[moduleName]/page.tsx
-/* eslint-disable @typescript-eslint/no-explicit-any */
-'use client';
 
-import React, { use, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { type ParameterRow } from '@/types';
-import NormalizationParamsForm from '@/features/normalization/NormalizationParams';
-import DepthMatchingPage from '@/features/depth-matching/page';
-import VshCalculationParams from '@/features/vsh-calculation/VshCalculationParams';
-import PorosityCalculationParams from '@/features/porosity/PorosityCalculationParams';
-import GsaCalculationParams from '@/features/rgsa-ngsa-dgsa/GsaCalculationParams';
-import TrimDataParams from '@/features/trim_data/TrimDataParams';
-import { Loader2 } from 'lucide-react';
-import { Metadata } from 'next';
+// This is a Server Component, so NO 'use client'
+import React from 'react';
+import ModuleClientView from '../ModuleClientView'; // Import our client component
 
-// A generic placeholder for modules that are not yet implemented
-const NotImplementedModule = ({ moduleName }: { moduleName: string }) => (
-  <div className="p-4 border rounded-lg bg-yellow-50 text-yellow-800 shadow-sm">
-    <h2 className="text-lg font-semibold">Module Not Implemented</h2>
-    <p className="text-gray-600 mt-2">The UI and logic for the &apos;{moduleName}&apos; module have not been created yet.</p>
-  </div>
-);
+// --- FIX: Define the props interface according to Next.js 15 ---
+// The `params` object itself is now a Promise that resolves to the final params.
+interface ModulePageProps {
+  params: Promise<{ moduleName: string }>;
+}
 
-type Params = Promise<{ moduleName: string }>;
+// The page function remains async
+export default async function ModulePage({ params }: ModulePageProps) {
 
-export default function ModulePage(props: { params: Params }) {
-  const params = use(props.params);
-  const moduleName = params.moduleName;
+  // --- FIX: Explicitly await the params Promise ---
+  // We now must 'await' the params before we can access the values inside.
+  const resolvedParams = await params;
+  const { moduleName } = resolvedParams;
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [apiResult, setApiResult] = useState<any>(null);
-
-  const handleFormSubmit = async (payload: any, endpointPath: string) => {
-    setIsLoading(true);
-    setError(null);
-    setApiResult(null);
-
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) throw new Error("API URL is not configured.");
-
-      const endpoint = `${apiUrl}${endpointPath}`;
-      console.log(`Submitting to ${endpoint} with payload:`, payload);
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(responseData.error || `Server error: ${response.status}`);
-      }
-
-      console.log("Received successful response:", responseData);
-      setApiResult(responseData);
-      alert(responseData.message || "Operation completed successfully!");
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
-      console.error('Submission Error:', errorMessage);
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const renderParameterForm = () => {
-    // We pass the generic `handleFormSubmit` function to each child component.
-    switch (moduleName) {
-      case "trim-data":
-        return <TrimDataParams onSubmit={handleFormSubmit} isSubmitting={isLoading} />;
-      // case 'depth-matching':
-      //   return <DepthMatchingPage onSubmit={handleFormSubmit} isSubmitting={isLoading} />;
-      // case 'normalization':
-      //   return <NormalizationParamsForm onSubmit={handleFormSubmit} isSubmitting={isLoading} />;
-      // case 'vsh-calculation':
-      //   return <VshCalculationParams onSubmit={handleFormSubmit} isSubmitting={isLoading} />;
-      // case 'porosity-calculation':
-      //   return <PorosityCalculationParams onSubmit={handleFormSubmit} isSubmitting={isLoading} />;
-      // case 'rgsa-ngsa-dgsa':
-      //   return <GsaCalculationParams onSubmit={handleFormSubmit} isSubmitting={isLoading} />;
-      default:
-        return <NotImplementedModule moduleName={moduleName} />;
-    }
-  };
-
-  return (
-    <div className="h-full p-4 md:p-6 bg-gray-50 space-y-6">
-      <h1 className="text-2xl font-bold capitalize text-gray-800 border-b pb-2">{moduleName.replace(/-/g, ' ')} Module</h1>
-
-      {renderParameterForm()}
-
-      {/* Display area for loading states and results */}
-      {isLoading && (
-        <div className="flex items-center justify-center p-4">
-          <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-          <span>Processing on server...</span>
-        </div>
-      )}
-      {error && (
-        <div className="p-4 border rounded-lg bg-red-100 text-red-700">
-          <h3 className="font-bold">Error</h3>
-          <p>{error}</p>
-        </div>
-      )}
-      {apiResult && (
-        <div className="p-4 border rounded-lg bg-green-100 text-green-800">
-          <h3 className="font-bold">Success</h3>
-          <pre className="text-sm whitespace-pre-wrap break-all mt-2">{JSON.stringify(apiResult, null, 2)}</pre>
-        </div>
-      )}
-    </div>
-  );
+  // The rest of the logic remains the same.
+  // We render the client component and pass the resolved moduleName as a simple prop.
+  return <ModuleClientView moduleName={moduleName} />;
 }
