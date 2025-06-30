@@ -42,62 +42,85 @@ def _klasifikasi_reservoir_numeric(phie):
         return 1  # Non Prospek
 
 
-def calculate_porosity(df: pd.DataFrame, params: dict) -> pd.DataFrame:
+def calculate_porosity(df: pd.DataFrame, params: dict,
+                       marker_column: str = 'MARKER',
+                       target_markers: list = None) -> pd.DataFrame:
     """
-    Menghitung berbagai jenis porositas berdasarkan parameter yang diberikan.
+    Menghitung porositas berdasarkan parameter, hanya pada marker tertentu jika diberikan.
+    Nilai sebelumnya akan dipertahankan di marker lain.
     """
     df_processed = df.copy()
 
-    # Ekstrak parameter dengan nilai default
-    RHO_FL = params.get('rho_fl', 1.00)
-    RHO_W = params.get('rho_w', 1.00)
-    RHO_SH = params.get('rho_sh', 2.45)
-    RHO_DSH = params.get('rho_dsh', 2.60)
-    NPHI_SH = params.get('nphi_sh', 0.35)
-    PHIE_MAX = params.get('phie_max', 0.3)
-    RHO_MA_BASE = params.get('rho_ma_base', 2.71) * 1000
-    RHO_MAX = params.get('rho_max', 4.00) * 1000
+    # Ekstrak parameter
+    RHO_FL = params.get('RHO_FL', 1.00)
+    RHO_W = params.get('RHO_W', 1.00)
+    RHO_SH = params.get('RHO_SH', 2.45)
+    RHO_DSH = params.get('RHO_DSH', 2.60)
+    NPHI_SH = params.get('NPHI_SH', 0.35)
+    PHIE_MAX = params.get('PHIE_MAX', 0.3)
+    RHO_MA_BASE = params.get('RHO_MA_BASE', 2.71) * 1000
+    RHO_MAX = params.get('RHO_MAX', 4.00) * 1000
 
-    # Pastikan kolom VSH ada, jika tidak, hitung terlebih dahulu
     if 'VSH' not in df_processed.columns:
-        # Asumsi VSH_GR adalah representasi VSH utama
         if 'VSH_GR' in df_processed.columns:
             df_processed['VSH'] = df_processed['VSH_GR']
         else:
             raise ValueError("Kolom VSH atau VSH_GR tidak ditemukan.")
 
-    # Perhitungan
-    PHIT_SH = (RHO_DSH - RHO_SH) / (RHO_DSH - RHO_W)
-    df_processed["RHOB_SR"] = (
-        df_processed["RHOB"] - df_processed["VSH"] * RHO_SH) / (1 - df_processed["VSH"])
-    df_processed["NPHI_SR"] = (
-        df_processed["NPHI"] - df_processed["VSH"] * NPHI_SH) / (1 - df_processed["VSH"])
-    df_processed["NPHI_SR"] = df_processed["NPHI_SR"].clip(
-        lower=-0.015, upper=1)
+    # Buat masker berdasarkan marker
+    if target_markers and marker_column in df_processed.columns:
+        mask = df_processed[marker_column].isin(target_markers)
+    else:
+        mask = np.ones(len(df_processed), dtype=bool)
 
-    phix_vals, rma_vals = [], []
-    for i, row in df_processed.iterrows():
-        if pd.notna(row["RHOB_SR"]) and pd.notna(row["NPHI_SR"]):
+    # Inisialisasi/pertahankan nilai lama untuk kolom hasil
+    def keep_or_init(col, default=np.nan):
+        return df_processed[col].copy() if col in df_processed else np.full(len(df_processed), default)
+
+    PHIE_DEN = keep_or_init('PHIE_DEN')
+    PHIT_DEN = keep_or_init('PHIT_DEN')
+    PHIE = keep_or_init('PHIE')
+    PHIT = keep_or_init('PHIT')
+    RHO_MAT = keep_or_init('RHO_MAT')
+    RES_CLASS = df_processed['RESERVOIR_CLASS'].copy(
+    ) if 'RESERVOIR_CLASS' in df_processed else pd.Series([None]*len(df_processed))
+
+    VSH = df_processed['VSH'].clip(0, 1).values
+    RHOB = df_processed['RHOB'].values
+    NPHI = df_processed['NPHI'].values
+
+    RHOB_SR = (RHOB - VSH * RHO_SH) / (1 - VSH)
+    NPHI_SR = (NPHI - VSH * NPHI_SH) / (1 - VSH)
+    NPHI_SR = np.clip(NPHI_SR, -0.015, 1)
+
+    PHIT_SH = (RHO_DSH - RHO_SH) / (RHO_DSH - RHO_W)
+
+    # Perhitungan hanya untuk baris dengan mask = True
+    for i in np.where(mask)[0]:
+        if not np.isnan(RHOB_SR[i]) and not np.isnan(NPHI_SR[i]):
             phix, rma = dn_xplot(
-                row["RHOB_SR"], row["NPHI_SR"], RHO_MA_BASE, RHO_MAX, RHO_FL * 1000)
+                RHOB_SR[i], NPHI_SR[i], RHO_MA_BASE, RHO_MAX, RHO_FL * 1000)
         else:
             phix, rma = np.nan, np.nan
-        phix_vals.append(phix)
-        rma_vals.append(rma)
 
-    df_processed["PHIE_DN"] = np.array(phix_vals) * (1 - df_processed["VSH"])
-    df_processed["PHIT_DN"] = df_processed["PHIE_DN"] + \
-        df_processed["VSH"] * PHIT_SH
-    df_processed["PHIE"] = df_processed["PHIE_DN"].clip(
-        lower=0, upper=PHIE_MAX * (1 - df_processed["VSH"]))
-    df_processed["PHIT"] = df_processed["PHIE"] + df_processed["VSH"] * PHIT_SH
-    df_processed["RHO_MAT"] = np.array(rma_vals) / 1000
+        PHIE_DEN[i] = phix * (1 - VSH[i]) if not np.isnan(phix) else np.nan
+        PHIT_DEN[i] = PHIE_DEN[i] + VSH[i] * \
+            PHIT_SH if not np.isnan(PHIE_DEN[i]) else np.nan
+        PHIE[i] = np.clip(PHIE_DEN[i], 0, PHIE_MAX * (1 - VSH[i])
+                          ) if not np.isnan(PHIE_DEN[i]) else np.nan
+        PHIT[i] = PHIE[i] + VSH[i] * \
+            PHIT_SH if not np.isnan(PHIE[i]) else np.nan
+        RHO_MAT[i] = rma / 1000 if not np.isnan(rma) else np.nan
+        RES_CLASS[i] = _klasifikasi_reservoir_numeric(
+            PHIE[i]) if not np.isnan(PHIE[i]) else None
 
-    df_processed.rename(
-        columns={"PHIE_DN": "PHIE_DEN", "PHIT_DN": "PHIT_DEN"}, inplace=True)
+    # Masukkan kembali ke DataFrame
+    df_processed["PHIE_DEN"] = PHIE_DEN
+    df_processed["PHIT_DEN"] = PHIT_DEN
+    df_processed["PHIE"] = PHIE
+    df_processed["PHIT"] = PHIT
+    df_processed["RHO_MAT"] = RHO_MAT
+    df_processed["RESERVOIR_CLASS"] = RES_CLASS
 
-    df_processed["RESERVOIR_CLASS"] = df_processed["PHIE"].apply(
-        _klasifikasi_reservoir_numeric)
-
-    print("Kolom Porosity baru telah ditambahkan: PHIE, PHIT, PHIE_DN, RHO_MAT")
+    print(f"Porosity dihitung pada marker: {target_markers}")
     return df_processed
