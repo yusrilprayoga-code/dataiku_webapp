@@ -14,6 +14,7 @@ import PorosityCalculationParams from '@/features/porosity/PorosityCalculationPa
 import GsaCalculationParams from '@/features/rgsa-ngsa-dgsa/GsaCalculationParams';
 import TrimDataParams from '@/features/trim_data/TrimDataParams';
 import FillMissingPage from '@/features/fill_missing/page';
+import SmoothingPage from '@/features/smoothing/page';
 
 // Placeholder component for demonstration purposes
 const SmoothingParamsForm = () => (
@@ -70,7 +71,7 @@ export default function ModulePage(props: any) {
       case 'normalization':
         return <NormalizationParamsForm/>;
       case 'smoothing':
-        return <SmoothingParamsForm />;
+        return <SmoothingPage />;
       case 'vsh-calculation':
         return <VshCalculationParams />;
       case 'porosity-calculation':

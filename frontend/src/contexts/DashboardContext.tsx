@@ -53,7 +53,7 @@ const [wellColumns, setWellColumns] = useState<Record<string, string[]>>({});
       if (!response.ok) throw new Error('Network error saat ambil kolom well');
 
       const data = await response.json();
-      setWellColumns(data); // Simpan dalam state
+      setWellColumns(data); 
     } catch (err) {
       console.error('Gagal mengambil kolom well:', err);
     }

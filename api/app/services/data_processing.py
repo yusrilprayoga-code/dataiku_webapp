@@ -79,7 +79,7 @@ def fill_null_values_in_marker_range(df, selected_logs):
 
 def min_max_normalize(log_in,
                       calib_min=40, calib_max=140,
-                      pct_min=3, pct_max=97,
+                      pct_min=5, pct_max=95,
                       cutoff_min=0, cutoff_max=250):
     """
     Geolog-style MIN-MAX normalization using percentiles
@@ -107,7 +107,7 @@ def min_max_normalize(log_in,
 def selective_normalize_handler(df, log_column, marker_column,
                                 target_markers=None,
                                 calib_min=40, calib_max=140,
-                                pct_min=3, pct_max=97,
+                                pct_min=5, pct_max=95,
                                 cutoff_min=0, cutoff_max=250):
 
     # Copy DataFrame untuk menghindari modifikasi original
@@ -191,3 +191,12 @@ def trim_data_depth(df, depth_above=0.0, depth_below=0.0, above=0, below=0, mode
         df = df[(df.index >= depth_above) & (df.index <= depth_below)]
 
     return df
+
+
+def smoothing(df):
+    df_smooth = df.copy()
+    df_smooth["GR_MovingAvg_5"] = df["GR"].rolling(
+        window=5, center=True).mean()
+    df_smooth["GR_MovingAvg_10"] = df["GR"].rolling(
+        window=10, center=True).mean()
+    return df_smooth

@@ -1,7 +1,7 @@
 # /api/app.py
 from flask import Flask, request, jsonify, Response
 from app.services.qc_service import run_full_qc_pipeline
-from app.services.data_processing import fill_null_values_in_marker_range, handle_null_values, selective_normalize_handler, trim_data_depth
+from app.services.data_processing import fill_null_values_in_marker_range, handle_null_values, selective_normalize_handler, smoothing, trim_data_depth
 from app.services.vsh_calculation import calculate_vsh_from_gr
 import logging
 import os
@@ -288,8 +288,8 @@ def run_interval_normalization():
         log_in_col = params.get('LOG_IN', 'GR')
         calib_min = float(params.get('CALIB_MIN', 40))
         calib_max = float(params.get('CALIB_MAX', 140))
-        pct_min = int(params.get('PCT_MIN', 3))
-        pct_max = int(params.get('PCT_MAX', 97))
+        pct_min = int(params.get('PCT_MIN', 5))
+        pct_max = int(params.get('PCT_MAX', 95))
         cutoff_min = float(params.get('CUTOFF_MIN', 0.0))
         cutoff_max = float(params.get('CUTOFF_MAX', 250.0))
 
@@ -332,6 +332,57 @@ def run_interval_normalization():
 
         return jsonify({
             "message": f"Normalisasi selesai untuk {len(processed_dfs)} sumur.",
+            "data": result_json
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/run-smoothing', methods=['POST', 'OPTIONS'])
+def run_smoothing():
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+
+    try:
+        payload = request.get_json()
+        selected_wells = payload.get('selected_wells', [])
+        selected_intervals = payload.get('selected_intervals', [])
+
+        if not selected_wells or not selected_intervals:
+            return jsonify({"error": "Sumur dan interval harus dipilih."}), 400
+
+        print(f"Mulai smoothing untuk {len(selected_wells)} sumur...")
+
+        processed_dfs = []
+
+        for well_name in selected_wells:
+            file_path = os.path.join(WELLS_DIR, f"{well_name}.csv")
+            if not os.path.exists(file_path):
+                print(f"Peringatan: File untuk {well_name} tidak ditemukan.")
+                continue
+
+            df = pd.read_csv(file_path)
+
+            df_smooth = smoothing(df)
+
+            # Simpan kembali ke file
+            df_smooth.to_csv(file_path, index=False)
+            processed_dfs.append(df_smooth)
+
+            print(f"Smoothing selesai untuk {well_name}")
+
+        if not processed_dfs:
+            return jsonify({"error": "Tidak ada file yang berhasil diproses."}), 400
+
+        # Gabungkan semua hasil jika diperlukan
+        final_df = pd.concat(processed_dfs, ignore_index=True)
+        result_json = final_df.to_json(orient='records')
+
+        return jsonify({
+            "message": f"Smoothing selesai untuk {len(processed_dfs)} sumur.",
             "data": result_json
         })
 
@@ -627,20 +678,6 @@ def get_gsa_plot():
             import traceback
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
-
-
-def trim(df, depth_above=0.0, depth_below=0.0, above=0, below=0):
-    depth_above = float(depth_above)
-    depth_below = float(depth_below)
-
-    if above == 1 and below == 0:
-        df = df[df.index >= depth_above]
-    elif above == 0 and below == 1:
-        df = df[df.index <= depth_below]
-    elif above == 1 and below == 1:
-        df = df[(df.index >= depth_above) & (df.index <= depth_below)]
-
-    return df
 
 
 @app.route('/api/trim-data', methods=['POST'])
