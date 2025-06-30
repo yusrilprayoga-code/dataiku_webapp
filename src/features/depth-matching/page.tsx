@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { type Layout, type Data } from 'plotly.js';
-import { config } from 'process';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
