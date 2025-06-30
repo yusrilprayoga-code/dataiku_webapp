@@ -56,6 +56,8 @@ data_col = {
     'GR_DUAL': ['GR', 'GR_NORM'],
     'GR_DUAL_2': ['GR_RAW', 'GR_NORM'],
     'GR_RAW_NORM': ['GR_RAW_NORM'],
+    'GR_MovingAvg_5': ['GR_MovingAvg_5'],
+    'GR_MovingAvg_10': ['GR_MovingAvg_10'],
     'RT': ['RT'],
     'RT_RO': ['RT', 'RO'],
     'X_RT_RO': ['RT_RO'],
@@ -111,6 +113,8 @@ unit_col = {
     'GR_DUAL': ['GAPI', 'GAPI'],
     'GR_DUAL_2': ['GAPI', 'GAPI'],
     'GR_RAW_NORM': ['GAPI'],
+    'GR_MovingAvg_5': ['GAPI'],
+    'GR_MovingAvg_10': ['GAPI'],
     'RT': ['OHMM'],
     'RT_RO': ['OHMM', 'OHMM'],
     'X_RT_RO': ['V/V'],
@@ -167,6 +171,8 @@ color_col = {
     'GR_DUAL': ['darkgreen', 'orange'],
     'GR_DUAL_2': ['darkgreen', 'orange'],
     'GR_RAW_NORM': ['orange'],
+    'GR_MovingAvg_5': ['darkgreen'],
+    'GR_MovingAvg_10': ['darkgreen'],
     'GR': ['darkgreen'],
     'RT': [colors_dict['red']],
     'RT_RO': [colors_dict['red'], colors_dict['purple']],
@@ -256,6 +262,8 @@ range_col = {
     'GR_DUAL': [[0, 250], [0, 250]],
     'GR_DUAL_2': [[0, 250], [0, 250]],
     'GR_RAW_NORM': [[0, 250]],
+    'GR_MovingAvg_5': [[0, 250]],
+    'GR_MovingAvg_10': [[0, 250]],
     'RT': [[0.02, 2000]],
     'RT_RO': [[0.02, 2000], [0.02, 2000]],
     'X_RT_RO': [[0, 4]],
@@ -301,6 +309,8 @@ ratio_plots = {
     'GR_DUAL': 1,
     'GR_DUAL_2': 1,
     'GR_RAW_NORM': 1,
+    'GR_MovingAvg_5': 1,
+    'GR_MovingAvg_10': 1,
     'RT': 0.5,
     'RT_RO': 1,
     'X_RT_RO': 0.5,
@@ -2788,7 +2798,7 @@ def plot_gsa_main(df_well):
 
     fig.update_layout(
         title_text="Gas Show Anomaly (GSA) Analysis",
-        yaxis=dict(autorange='reversed', range=[
+        yaxis=dict(range=[
                    df_well[depth].max(), df_well[depth].min()]),
         hovermode='y unified',
         template='plotly_white',
@@ -2796,4 +2806,68 @@ def plot_gsa_main(df_well):
         height=1600,
     )
 
+    return fig
+
+# @title
+
+
+def plot_smoothing(df, df_marker, df_well_marker):
+    sequence = ['MARKER', 'GR', 'GR_MovingAvg_5', 'GR_MovingAvg_10']
+    plot_sequence = {i+1: v for i, v in enumerate(sequence)}
+    print(plot_sequence)
+
+    ratio_plots_seq = []
+    for key in plot_sequence.values():
+        ratio_plots_seq.append(ratio_plots[key])
+
+    subplot_col = len(plot_sequence.keys())
+
+    fig = make_subplots(
+        rows=1, cols=subplot_col,
+        shared_yaxes=True,
+        column_widths=ratio_plots_seq,
+        horizontal_spacing=0.0
+    )
+
+    counter = 0
+    axes = {}
+    for i in plot_sequence.values():
+        axes[i] = []
+
+    for n_seq, col in plot_sequence.items():
+        if col == 'GR':
+            fig, axes = plot_line(
+                df, fig, axes, base_key='GR', n_seq=n_seq, col=col, label=col)
+        elif col == 'GR_MovingAvg_5':
+            fig, axes = plot_line(
+                df, fig, axes, base_key='GR', n_seq=n_seq, col=col, label=col)
+        elif col == 'GR_MovingAvg_10':
+            fig, axes = plot_line(
+                df, fig, axes, base_key='GR', n_seq=n_seq, col=col, label=col)
+        elif col == 'MARKER':
+            fig, axes = plot_flag(df_well_marker, fig, axes, col, n_seq)
+            fig, axes = plot_texts_marker(
+                df_marker, df_well_marker['DEPTH'].max(), fig, axes, col, n_seq)
+
+    fig = layout_range_all_axis(fig, axes, plot_sequence)
+
+    fig.update_layout(
+        margin=dict(l=20, r=20, t=40, b=20), height=1300,
+        paper_bgcolor='white',
+        plot_bgcolor='white',
+        showlegend=False,
+        hovermode='y unified', hoverdistance=-1,
+        title_text="Well Log ABB-036",
+        title_x=0.5,
+        modebar_remove=['lasso', 'autoscale', 'zoom',
+                        'zoomin', 'zoomout', 'pan', 'select']
+    )
+
+    fig.update_yaxes(showspikes=True,  # tickangle=90,
+                     range=[df[depth].max(), df[depth].min()])
+    fig.update_traces(yaxis='y')
+
+    fig = layout_draw_lines(fig, ratio_plots_seq, df, xgrid_intv=0)
+
+    fig = layout_axis(fig, axes, ratio_plots_seq, plot_sequence)
     return fig

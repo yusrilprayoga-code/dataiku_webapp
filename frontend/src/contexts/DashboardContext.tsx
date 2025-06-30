@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 
-export type PlotType = 'default' | 'normalization' | 'porosity' | 'gsa';
+export type PlotType = 'default' | 'normalization' | 'smoothing' | 'porosity' | 'gsa';
 
 interface DashboardContextType {
   availableWells: string[];

@@ -78,8 +78,8 @@ def fill_null_values_in_marker_range(df, selected_logs):
 
 
 def min_max_normalize(log_in,
-                      calib_min=40, calib_max=140,
-                      pct_min=5, pct_max=95,
+                      low_ref=40, high_ref=140,
+                      low_in=5, high_in=95,
                       cutoff_min=0, cutoff_max=250):
     """
     Geolog-style MIN-MAX normalization using percentiles
@@ -91,23 +91,23 @@ def min_max_normalize(log_in,
     if cutoff_max is not None:
         log[log > cutoff_max] = np.nan
 
-    min_pnt = np.nanpercentile(log, pct_min)
-    max_pnt = np.nanpercentile(log, pct_max)
+    # low_in = np.nanpercentile(log, pct_min)
+    # high_in = np.nanpercentile(log, pct_max)
 
     # Hindari pembagian dengan nol jika semua data sama
-    if max_pnt == min_pnt:
-        return np.full_like(log, calib_min)
+    if high_in == low_in:
+        return np.full_like(log, low_ref)
 
-    m = (calib_max - calib_min) / (max_pnt - min_pnt)
-    log_out = calib_min + m * (log - min_pnt)
+    m = (high_ref - low_ref) / (high_in - low_in)
+    log_out = low_ref + m * (log - low_in)
 
     return log_out
 
 
 def selective_normalize_handler(df, log_column, marker_column,
                                 target_markers=None,
-                                calib_min=40, calib_max=140,
-                                pct_min=5, pct_max=95,
+                                low_ref=40, high_ref=140,
+                                low_in=5, high_in=95,
                                 cutoff_min=0, cutoff_max=250):
 
     # Copy DataFrame untuk menghindari modifikasi original
@@ -140,10 +140,10 @@ def selective_normalize_handler(df, log_column, marker_column,
 
             # PANGGIL FUNCTION ASLI min_max_normalize
             normalized_target = min_max_normalize(target_data,
-                                                  calib_min=calib_min,
-                                                  calib_max=calib_max,
-                                                  pct_min=pct_min,
-                                                  pct_max=pct_max,
+                                                  low_ref=low_ref,
+                                                  high_ref=high_ref,
+                                                  low_in=low_in,
+                                                  high_in=high_in,
                                                   cutoff_min=cutoff_min,
                                                   cutoff_max=cutoff_max)
 
@@ -185,9 +185,7 @@ def trim_data_depth(df, depth_above=0.0, depth_below=0.0, above=0, below=0, mode
         df = df[df.index >= depth_above]
     elif above == 0 and below == 1:
         df = df[df.index <= depth_below]
-    elif above == 1 and below == 1 and mode == 'OUT_RANGE':
-        df = df[~((df.index >= depth_above) & (df.index <= depth_below))]
-    elif above == 1 and below == 1 and mode == 'IN_RANGE':
+    elif above == 1 and below == 1 and mode == 'CUSTOM_TRIM':
         df = df[(df.index >= depth_above) & (df.index <= depth_below)]
 
     return df

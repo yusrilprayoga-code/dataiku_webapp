@@ -88,8 +88,9 @@ export default function LeftSidebar() {
           >
             <option value="default">Plot Default</option>
             <option value="normalization">Plot Normalisasi</option>
+            <option value="smoothing">Plot Smoothing</option>
             <option value="porosity">Plot Porosity</option>
-            <option value="gsa">GSA Plot</option>
+            <option value="gsa">Plot GSA</option>
           </select>
         </div>
       </div>

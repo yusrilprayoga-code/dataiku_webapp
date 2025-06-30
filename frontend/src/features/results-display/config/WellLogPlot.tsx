@@ -35,6 +35,9 @@ const WellLogPlot: React.FC<WellLogPlotProps> = () => {
         case 'normalization':
           endpoint = 'http://127.0.0.1:5001/api/get-normalization-plot';
           break;
+        case 'smoothing':
+          endpoint = 'http://127.0.0.1:5001/api/get-smoothing-plot';
+          break;
         case 'porosity':
           endpoint = 'http://127.0.0.1:5001/api/get-porosity-plot';
           break;

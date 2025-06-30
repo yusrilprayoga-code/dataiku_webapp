@@ -14,7 +14,8 @@ from app.services.plotting_service import (
     plot_log_default,
     plot_normalization,
     plot_phie_den,
-    plot_gsa_main
+    plot_gsa_main,
+    plot_smoothing
 )
 from app.services.porosity import calculate_porosity
 from app.services.depth_matching import depth_matching, plot_depth_matching_results
@@ -286,10 +287,10 @@ def run_interval_normalization():
 
         # Ambil parameter normalisasi
         log_in_col = params.get('LOG_IN', 'GR')
-        calib_min = float(params.get('CALIB_MIN', 40))
-        calib_max = float(params.get('CALIB_MAX', 140))
-        pct_min = int(params.get('PCT_MIN', 5))
-        pct_max = int(params.get('PCT_MAX', 95))
+        low_ref = float(params.get('LOW_REF', 40))
+        high_ref = float(params.get('HIGH_REF', 140))
+        low_in = int(params.get('LOW_IN', 5))
+        high_in = int(params.get('HIGH_IN', 95))
         cutoff_min = float(params.get('CUTOFF_MIN', 0.0))
         cutoff_max = float(params.get('CUTOFF_MAX', 250.0))
 
@@ -309,10 +310,10 @@ def run_interval_normalization():
                 log_column=log_in_col,
                 marker_column='MARKER',
                 target_markers=selected_intervals,
-                calib_min=calib_min,
-                calib_max=calib_max,
-                pct_min=pct_min,
-                pct_max=pct_max,
+                low_ref=low_ref,
+                high_ref=high_ref,
+                low_in=low_in,
+                high_in=high_in,
                 cutoff_min=cutoff_min,
                 cutoff_max=cutoff_max
             )
@@ -751,6 +752,49 @@ def run_trim_well_log():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/get-smoothing-plot', methods=['POST', 'OPTIONS'])
+def get_smoothing_plot():
+    """
+    Endpoint untuk membuat dan menampilkan plot hasil kalkulasi porositas.
+    """
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+
+    if request.method == 'POST':
+        try:
+            request_data = request.get_json()
+            selected_wells = request_data.get('selected_wells', [])
+
+            if not selected_wells:
+                return jsonify({"error": "Tidak ada sumur yang dipilih."}), 400
+
+            # Baca dan gabungkan data dari sumur yang dipilih
+            df_list = [pd.read_csv(os.path.join(
+                WELLS_DIR, f"{well}.csv")) for well in selected_wells]
+            df = pd.concat(df_list, ignore_index=True)
+
+            # Validasi: Pastikan kolom hasil kalkulasi sebelumnya (VSH, PHIE) sudah ada
+            required_cols = ['GR', 'GR_MovingAvg_5', 'GR_MovingAvg_10']
+            if not all(col in df.columns for col in required_cols):
+                return jsonify({"error": "Data belum lengkap. Jalankan kalkulasi Smoothing GR terlebih dahulu."}), 400
+
+            df_marker_info = extract_markers_with_mean_depth(df)
+
+            # Panggil fungsi plotting yang baru
+            fig_result = plot_smoothing(
+                df=df,
+                df_marker=df_marker_info,
+                df_well_marker=df
+            )
+
+            return jsonify(fig_result.to_json())
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
 
 
 # This is for local development testing, Vercel will use its own server

@@ -23,24 +23,24 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
     { id: 1, location: 'Parameter', mode: 'Input', comment: 'Normalization: Min-Max', unit: 'ALPHA*15', name: 'NORMALIZE_OPT', isEnabled: true },
     // { id: 3, location: 'Parameter', mode: 'Input', comment: 'Normalization Report Name', unit: 'REPORT_FILE', name: 'REPORT_FILE', isEnabled: true },
     // { id: 4, location: 'Constant', mode: 'Input', comment: 'Number of Bins to Use', unit: 'BINS', name: 'BINS', isEnabled: true },
-    { id: 2, location: 'Constant', mode: 'Input', comment: 'Lo Cumulative Percentile, eg 5', unit: '', name: 'PCT_MIN', isEnabled: true },
-    { id: 3, location: 'Constant', mode: 'Input', comment: 'Hi Cumulative Percentile, eg 95', unit: '', name: 'PCT_MAX', isEnabled: true },
+    { id: 2, location: 'Constant', mode: 'Input', comment: 'Input low log value', unit: '', name: 'LOW_IN', isEnabled: true },
+    { id: 3, location: 'Constant', mode: 'Input', comment: 'Input high log value', unit: '', name: 'HIGH_IN', isEnabled: true },
     // { id: 4, location: 'Constant', mode: 'Input', comment: 'Minimum Cutoff to Force Missing', unit: '', name: 'CUTOFF_MIN', isEnabled: true },
     // { id: 5, location: 'Constant', mode: 'Input', comment: 'Maximum Cutoff to Force Missing', unit: '', name: 'CUTOFF_MAX', isEnabled: true },
-    { id: 4, location: 'Constant', mode: 'Input', comment: 'Minimum Gamma Ray Value', unit: '', name: 'GR_MIN', isEnabled: true },
-    { id: 5, location: 'Constant', mode: 'Input', comment: 'Maximum Gamma Ray Value', unit: '', name: 'GR_MAX', isEnabled: true },
-    // {
-    //   id: 8, location: 'Log', mode: 'Input', comment: 'Input Log', unit: 'LOG_IN', isEnabled: true,
-    //   name: 'LOG_IN'
-    // },
-    // { id: 9, location: 'Log', mode: 'Output', comment: 'Output Log Name', unit: 'LOG_OUT', name: 'LOG_OUT', isEnabled: true },
+    { id: 4, location: 'Constant', mode: 'Input', comment: 'Reference log low value', unit: '', name: 'LOW_REF', isEnabled: true },
+    { id: 5, location: 'Constant', mode: 'Input', comment: 'Reference log high value', unit: '', name: 'HIGH_REF', isEnabled: true },
+    {
+      id: 6, location: 'Log', mode: 'Input', comment: 'Input Log', unit: 'LOG_IN', isEnabled: true,
+      name: 'LOG_IN'
+    },
+    { id: 7, location: 'Log', mode: 'Output', comment: 'Output Log Name', unit: 'LOG_OUT', name: 'LOG_OUT', isEnabled: true },
   ];
 
-  const relevantParamNames = new Set(['NORMALIZE_OPT','LOG_IN', 'LOG_OUT', 'GR_MIN', 'GR_MAX', 'PCT_MIN', 'PCT_MAX', 'CUTOFF_MIN', 'CUTOFF_MAX']);
+  const relevantParamNames = new Set(['NORMALIZE_OPT','LOG_IN', 'LOG_OUT', 'LOW_REF', 'HIGH_REF', 'LOW_IN', 'HIGH_IN', 'CUTOFF_MIN', 'CUTOFF_MAX']);
   
   const defaultValues: Record<string, string | number> = {
-    'NORMALIZE_OPT': 'MIN-MAX', 'LOG_IN': 'GR', 'LOG_OUT': 'GR_NORM', 'GR_MIN': 40, 'GR_MAX': 140,
-    'PCT_MIN': 5, 'PCT_MAX': 95, 'CUTOFF_MIN': '0', 'CUTOFF_MAX': 250
+    'NORMALIZE_OPT': 'MIN-MAX', 'LOG_IN': 'GR', 'LOG_OUT': 'GR_NORM', 'LOW_REF': 40, 'HIGH_REF': 140,
+    'LOW_IN': 5, 'HIGH_IN': 95, 'CUTOFF_MIN': '0', 'CUTOFF_MAX': 250
   };
 
   return allPossibleParams

@@ -22,7 +22,7 @@ const createInitialTrimParameters = (): ParameterRow[] => {
       id: 1,
       location: 'Parameter',
       mode: 'Input',
-      comment: 'Trim mode (AUTO, DEPTH_BELOW, DEPTH_ABOVE, IN_RANGE, OUT_RANGE)',
+      comment: 'Trim mode',
       unit: 'MODE',
       name: 'TRIM_MODE',
       isEnabled: true,
@@ -31,7 +31,7 @@ const createInitialTrimParameters = (): ParameterRow[] => {
       id: 2,
       location: 'Parameter',
       mode: 'Input',
-      comment: 'Upper limit of depth to trim data',
+      comment: 'Trim above this depth',
       unit: 'm',
       name: 'DEPTH_ABOVE',
       isEnabled: true,
@@ -40,7 +40,7 @@ const createInitialTrimParameters = (): ParameterRow[] => {
       id: 3,
       location: 'Parameter',
       mode: 'Input',
-      comment: 'Lower limit of depth to trim data',
+      comment: 'Trim below this depth',
       unit: 'm',
       name: 'DEPTH_BELOW',
       isEnabled: true,
@@ -153,7 +153,7 @@ export default function TrimDataParams() {
 };
 
 const trimModeParam = parameters.find(p => p.name === 'TRIM_MODE');
-const currentTrimMode = trimModeParam?.values['default'] || 'AUTO';
+const currentTrimMode = trimModeParam?.values['default'] || 'DEPTH_BELOW';
 
 
   const tableHeaders = ['#', 'Location', 'Mode', 'Comment', 'Unit', 'Name'];
@@ -197,8 +197,8 @@ const currentTrimMode = trimModeParam?.values['default'] || 'AUTO';
                   const mode = parameters.find(p => p.name === 'TRIM_MODE')?.values.default;
 
                   const shouldShowInput =
-                    param.name === 'DEPTH_ABOVE' && (mode === 'DEPTH_ABOVE' || mode === 'IN_RANGE' || mode === 'OUT_RANGE') ||
-                    param.name === 'DEPTH_BELOW' && (mode === 'DEPTH_BELOW' || mode === 'IN_RANGE' || mode === 'OUT_RANGE') ||
+                    param.name === 'DEPTH_ABOVE' && (mode === 'DEPTH_ABOVE' || mode === 'CUSTOM_TRIM') ||
+                    param.name === 'DEPTH_BELOW' && (mode === 'DEPTH_BELOW' || mode === 'CUSTOM_TRIM') ||
                     !['DEPTH_ABOVE', 'DEPTH_BELOW'].includes(param.name);
 
                   return shouldShowInput ? (
@@ -217,11 +217,11 @@ const currentTrimMode = trimModeParam?.values['default'] || 'AUTO';
                                 disabled={!param.isEnabled}
                                 className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
                             >
-                                <option value="AUTO">AUTO</option>
+                                <option value="">Choose Method</option>
                                 <option value="DEPTH_BELOW">DEPTH_BELOW</option>
                                 <option value="DEPTH_ABOVE">DEPTH_ABOVE</option>
-                                <option value="IN_RANGE">IN_RANGE</option>
-                                <option value="OUT_RANGE">OUT_RANGE</option>
+                                <option value="CUSTOM_TRIM">CUSTOM_TRIM</option>
+                                {/* <option value="OUT_RANGE">OUT_RANGE</option> */}
                             </select>
                             ) : (
                             <input
