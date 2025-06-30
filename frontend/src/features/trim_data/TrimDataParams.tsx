@@ -95,8 +95,12 @@ export default function TrimDataParams() {
       selected_wells: selectedWells,
     };
 
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const endpoint = `${apiUrl}/api/trim-data`;
+
     try {
-      const response = await fetch('http://127.0.0.1:5001/api/trim-data', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
