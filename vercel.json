@@ -14,11 +14,5 @@
       "src": "/(.*)",
       "dest": "/frontend/$1"
     }
-  ],
-  "rewrites": [
-    {
-      "source": "frontend/dashboard/modules/:path*",
-      "destination": "frontend/dashboard/modules/:path*"
-    }
   ]
 }
