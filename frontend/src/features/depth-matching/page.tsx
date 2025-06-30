@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { type Layout, type Data } from 'plotly.js';
+import { config } from 'process';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -12,6 +13,8 @@ export default function DepthMatchingPage() {
   const [plot, setPlot] = useState<{ data: Data[], layout: Partial<Layout> } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const endpoint = `${apiUrl}/api/run-depth-matching`;
 
   // useEffect akan berjalan otomatis saat komponen pertama kali dimuat
   useEffect(() => {
@@ -20,7 +23,7 @@ export default function DepthMatchingPage() {
       setError(null);
 
       try {
-        const response = await fetch('http://127.0.0.1:5001/api/run-depth-matching', {
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}), // Kirim body kosong untuk memicu request
@@ -49,7 +52,7 @@ export default function DepthMatchingPage() {
     if (isLoading) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
-          <Loader2 className="animate-spin h-12 w-12 text-blue-600"/>
+          <Loader2 className="animate-spin h-12 w-12 text-blue-600" />
           <p className="mt-4 text-lg font-semibold">Running Depth Matching...</p>
           <p className="text-sm">Proses ini mungkin memakan waktu beberapa saat.</p>
         </div>
@@ -57,9 +60,9 @@ export default function DepthMatchingPage() {
     }
 
     if (error) {
-       return (
+      return (
         <div className="flex flex-col items-center justify-center h-full text-center text-red-600 p-4">
-          <AlertTriangle className="h-12 w-12 mb-4"/>
+          <AlertTriangle className="h-12 w-12 mb-4" />
           <h3 className="text-lg font-bold">An Error Occurred</h3>
           <p className="text-sm mt-2">{error}</p>
         </div>
@@ -82,7 +85,7 @@ export default function DepthMatchingPage() {
 
   return (
     <div className="flex-grow min-h-0 border rounded-lg shadow-inner">
-        {renderContent()}
+      {renderContent()}
     </div>
   );
 }
