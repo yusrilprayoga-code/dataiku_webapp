@@ -1,3 +1,5 @@
+// frontend/src/features/trim_data/TrimDataParams.tsx
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -93,8 +95,12 @@ export default function TrimDataParams() {
       selected_wells: selectedWells,
     };
 
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const endpoint = `${apiUrl}/api/trim-data`;
+
     try {
-      const response = await fetch('http://127.0.0.1:5001/api/trim-data', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -122,20 +128,20 @@ export default function TrimDataParams() {
 
       case 'Constant':
         if (mode === 'Input') {
-          return 'bg-yellow-300'; 
-        } else { 
+          return 'bg-yellow-300';
+        } else {
           return 'bg-yellow-100';
         }
 
       case 'Log':
         if (mode === 'Input') {
-          return 'bg-cyan-400'; 
-        } else { 
-          return 'bg-cyan-200'; 
+          return 'bg-cyan-400';
+        } else {
+          return 'bg-cyan-200';
         }
-        
+
       case 'Output':
-          return 'bg-yellow-600';
+        return 'bg-yellow-600';
 
       case 'Interval':
         return 'bg-green-400';

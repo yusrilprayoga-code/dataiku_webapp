@@ -5,24 +5,22 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { type Layout, type Data } from 'plotly.js';
 import { useDashboard } from '@/contexts/DashboardContext';
-
+import { Loader2 } from 'lucide-react';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
-type WellLogPlotProps = unknown
 
-const WellLogPlot: React.FC<WellLogPlotProps> = () => {
+export default function WellLogPlot() {
   const [plotData, setPlotData] = useState<Data[]>([]);
   const [plotLayout, setPlotLayout] = useState<Partial<Layout>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const { selectedWells, plotType } = useDashboard();
 
   useEffect(() => {
     if (selectedWells.length === 0) {
       setIsLoading(false);
-      setPlotData([]); 
-      setPlotLayout({ title: { text: 'Pilih satu atau lebih sumur dari sidebar untuk memulai' } });
+      setPlotData([]);
+      setPlotLayout({ title: { text: 'Please select one or more wells from the sidebar to begin.' } });
       return;
     }
 
@@ -30,26 +28,34 @@ const WellLogPlot: React.FC<WellLogPlotProps> = () => {
       setIsLoading(true);
       setError(null);
 
-            let endpoint = '';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) {
+        setError("API URL is not configured.");
+        setIsLoading(false);
+        return;
+      }
+
+      let endpointPath = '';
       switch (plotType) {
         case 'normalization':
-          endpoint = 'http://127.0.0.1:5001/api/get-normalization-plot';
+          endpointPath = '/api/get-normalization-plot';
           break;
         case 'smoothing':
           endpoint = 'http://127.0.0.1:5001/api/get-smoothing-plot';
           break;
         case 'porosity':
-          endpoint = 'http://127.0.0.1:5001/api/get-porosity-plot';
+          endpointPath = '/api/get-porosity-plot';
           break;
         case 'gsa':
-          endpoint = 'http://127.0.0.1:5001/api/get-gsa-plot';
+          endpointPath = '/api/get-gsa-plot';
           break;
         case 'default':
-        default: 
-          endpoint = 'http://127.0.0.1:5001/api/get-plot';
+        default:
+          endpointPath = '/api/get-plot';
           break;
       }
-      
+      const endpoint = `${apiUrl}${endpointPath}`;
+
       try {
         // FIX: Gunakan metode POST dan kirim `selectedWells`
         const response = await fetch(endpoint, {
@@ -59,12 +65,12 @@ const WellLogPlot: React.FC<WellLogPlotProps> = () => {
           },
           body: JSON.stringify({ selected_wells: selectedWells }), // Kirim sebagai objek
         });
-        
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Gagal mengambil data dari server');
         }
-        
+
         const responseData = await response.json();
         const plotObject = JSON.parse(responseData);
 
@@ -83,7 +89,12 @@ const WellLogPlot: React.FC<WellLogPlotProps> = () => {
   }, [selectedWells, plotType]);
 
   if (isLoading) {
-    return <p>Memuat Plot dari Server Python...</p>;
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="mr-2 h-8 w-8 animate-spin" />
+        <span>Loading Plot from Server...</span>
+      </div>
+    );
   }
 
   if (error) {
@@ -91,7 +102,7 @@ const WellLogPlot: React.FC<WellLogPlotProps> = () => {
   }
 
   return (
-    <div style={{ border: '1px solid #ccc', padding: '1rem', background: 'white', borderRadius: '8px' }}>
+    <div style={{ border: '1px solid #ccc', padding: '1rem', background: 'white', borderRadius: '8px', height: '100%', width: '100%' }}>
       <Plot
         data={plotData}
         layout={plotLayout}
@@ -101,5 +112,3 @@ const WellLogPlot: React.FC<WellLogPlotProps> = () => {
     </div>
   );
 };
-
-export default WellLogPlot;

@@ -183,9 +183,6 @@ def get_plot():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-
-# Di dalam file backend/app.py
-
 @app.route('/api/get-normalization-plot', methods=['POST', 'OPTIONS'])
 def get_normalization_plot():
     if request.method == 'OPTIONS':

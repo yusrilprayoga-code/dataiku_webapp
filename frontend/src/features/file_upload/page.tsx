@@ -1,9 +1,10 @@
 // src/features/file_upload/components/page.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
+
 "use client";
 
-import React, { useState, ChangeEvent } from 'react';
+import React, { useState, ChangeEvent, useEffect } from 'react'; // Import useEffect
 import JSZip from 'jszip';
 
 import { ParsedSubFile, FileData, ProcessedFileDataForDisplay, StagedStructure } from './types';
@@ -11,103 +12,49 @@ import { readFileContent, readFileAsArrayBuffer } from './utils/fileUtils';
 import { parseLASFile, parseCSVFile, parseXLSXFileWithSheetJS } from './utils/fileParser';
 import FileList from './components/FileList';
 import FilePreview from './components/FilePreview';
-import { useRouter } from 'next/navigation'; // For navigation
-import { useAppDataStore } from '@/stores/useAppDataStore'; // Correct path to your store
+import { useRouter } from 'next/navigation';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 import { DownloadCloud, Plus, UploadCloud } from 'lucide-react';
+import { addMultipleFiles, getAllFiles, deleteFile as dbDeleteFile, clearAllFiles, addWellLogs, getAllWellLogs } from '../../lib/db';
 
 export default function FileUploadViewer() {
-  const [uploadedFiles, setUploadedFiles] = useState<FileData[]>([]);
+  const [filesForDisplay, setFilesForDisplay] = useState<FileData[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileData | null>(null);
   const [selectedSubFile, setSelectedSubFile] = useState<ParsedSubFile | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
-
-  // --- FIX: Get the action from the store and the router hook ---
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const [isReadyToProceed, setIsReadyToProceed] = useState<boolean>(false);
   const router = useRouter();
-  const setStagedStructure = useAppDataStore((state) => state.setStagedStructure);
+
+  useEffect(() => {
+    const loadFilesFromDb = async () => {
+      setMessage('Loading saved files...');
+      try {
+        const savedFiles = await getAllFiles();
+        setFilesForDisplay(savedFiles);
+      } catch (error) {
+        console.error("Failed to load files from database:", error);
+        setMessage("Error: Could not load saved files.");
+      } finally {
+        setMessage('');
+        setIsInitialized(true);
+      }
+    };
+    loadFilesFromDb();
+  }, []);
 
   const handleProceedToNextPage = () => {
-    if (uploadedFiles.length === 0) {
-      setMessage("Please upload some files first.");
-      setTimeout(() => setMessage(''), 3000);
-      return;
-    }
-
+    // This function can now be much simpler. We don't need to check the file count,
+    // because the button to call this will be disabled until it's ready.
     const structureNameInput = window.prompt("Please enter a name for this data structure/folder:");
-    if (!structureNameInput || structureNameInput.trim() === "") {
-      setMessage("Structure name is required to proceed.");
-      setTimeout(() => setMessage(''), 3000);
+    if (!structureNameInput || !structureNameInput.trim()) {
+      setMessage("Structure name is required.");
       return;
     }
-
-    const filesForNextPage: ProcessedFileDataForDisplay[] = [];
-    uploadedFiles.forEach(fileData => {
-      // Case 1: Files from a processed ZIP structure
-      if (fileData.isStructureFromZip) {
-        fileData.lasFiles?.forEach(subFile => {
-          filesForNextPage.push({
-            id: subFile.id,
-            name: `${fileData.name}/${subFile.name}`,
-            originalName: subFile.name,
-            structurePath: fileData.name,
-            type: 'las-as-csv',
-            content: subFile.content,
-            headers: subFile.headers,
-            rawContentString: subFile.rawContentString,
-          });
-        });
-        fileData.csvFiles?.forEach(subFile => {
-          filesForNextPage.push({
-            id: subFile.id,
-            name: `${fileData.name}/${subFile.name}`,
-            originalName: subFile.name,
-            structurePath: fileData.name,
-            type: 'csv',
-            content: subFile.content,
-            headers: subFile.headers,
-            rawContentString: subFile.rawContentString,
-          });
-        });
-      }
-      // Case 2: Single uploaded LAS or CSV files
-      else if (fileData.rawFileContent && typeof fileData.rawFileContent === 'string') {
-        let fileType: 'las-as-csv' | 'csv' | null = null;
-        if (fileData.name.toLowerCase().endsWith('.las')) {
-          fileType = 'las-as-csv';
-        } else if (fileData.name.toLowerCase().endsWith('.csv')) {
-          fileType = 'csv';
-        }
-
-        if (fileType) {
-          filesForNextPage.push({
-            id: fileData.id,
-            name: fileData.name,
-            type: fileType,
-            content: fileData.content || [],
-            headers: fileData.headers || [],
-            rawContentString: fileData.rawFileContent,
-          });
-        }
-      }
-    });
-
-
-    if (filesForNextPage.length === 0) {
-      setMessage("No relevant LAS or CSV files found to proceed.");
-      setTimeout(() => setMessage(''), 3000);
-      return;
-    }
-
-    const newStructureForNextPage: StagedStructure = {
-      userDefinedStructureName: structureNameInput.trim(),
-      files: filesForNextPage,
-    };
-
-    setStagedStructure(newStructureForNextPage);
-
-    setMessage('');
-    router.push('/data-input');
+    const name = structureNameInput.trim();
+    router.push(`/data-input?structureName=${encodeURIComponent(name)}`);
   };
 
   const processZipFile = async (
@@ -177,61 +124,70 @@ export default function FileUploadViewer() {
   };
 
   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    await clearAllFiles();
+    setIsReadyToProceed(false);
     const files = event.target.files;
     if (!files || files.length === 0) return;
-
     setIsUploading(true);
     setMessage('Processing files...');
+
     const allNewFileDataItems: FileData[] = [];
 
     for (const file of Array.from(files)) {
       try {
-        const commonFileProps = {
-          id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-          name: file.name,
-          size: file.size,
-          originalFileType: file.type || 'application/octet-stream',
-          lastModified: file.lastModified,
-        };
-
         if (file.name.toLowerCase().endsWith('.zip')) {
+          // Your ZIP processing logic is already correct.
+          // It creates structures with the right structurePath.
           const arrayBufferContent = await readFileAsArrayBuffer(file);
           const structuresFromZip = await processZipFile(file, arrayBufferContent);
-          if (structuresFromZip.length === 0) {
-            setMessage(`Warning: ZIP file ${file.name} did not yield any structures with LAS/CSV files.`);
+          if (structuresFromZip.length > 0) {
+            allNewFileDataItems.push(...structuresFromZip);
           }
-          const zipFileData = structuresFromZip.map(s => ({ ...s, rawFileContent: arrayBufferContent }));
-          allNewFileDataItems.push(...zipFileData);
-
         } else {
+          // --- THIS LOGIC FOR SINGLE FILES IS NEW AND CORRECTED ---
           let parsedData: { headers: string[], data: any[] };
-          let rawFileContentForSingleFile: string | ArrayBuffer;
+          const fileContentString = await readFileContent(file);
+          const fileBaseName = file.name.replace(/\.[^/.]+$/, ""); // "my_well.las" -> "my_well"
 
-          if (file.name.toLowerCase().endsWith('.csv')) {
-            const fileContentString = await readFileContent(file);
-            rawFileContentForSingleFile = fileContentString;
-            parsedData = await parseCSVFile(fileContentString);
-          } else if (file.name.toLowerCase().endsWith('.las')) {
-            const fileContentString = await readFileContent(file);
-            rawFileContentForSingleFile = fileContentString;
+          let type: 'las-as-csv' | 'csv' | null = null;
+
+          if (file.name.toLowerCase().endsWith('.las')) {
             parsedData = parseLASFile(fileContentString);
-          } else if (file.name.toLowerCase().endsWith('.xlsx')) {
-            const arrayBufferContent = await readFileAsArrayBuffer(file);
-            rawFileContentForSingleFile = arrayBufferContent;
-            parsedData = parseXLSXFileWithSheetJS(arrayBufferContent);
+            type = 'las-as-csv';
+          } else if (file.name.toLowerCase().endsWith('.csv')) {
+            parsedData = await parseCSVFile(fileContentString);
+            type = 'csv';
           } else {
-            throw new Error('Unsupported individual file type.');
+            // Skip unsupported single file types like .xlsx for this logic
+            continue;
           }
 
-          if (parsedData.data.length === 0 && parsedData.headers.length === 0) {
-            setMessage(`Warning: File ${file.name} seems empty or unparsable.`);
-          }
+          // Create the display item for the upload list
           allNewFileDataItems.push({
-            ...commonFileProps,
+            id: file.name, // Use name as ID for single files
+            name: file.name,
+            size: file.size,
+            originalFileType: file.type,
+            lastModified: file.lastModified,
             isStructureFromZip: false,
             content: parsedData.data.slice(0, 1000),
             headers: parsedData.headers,
-            rawFileContent: rawFileContentForSingleFile,
+            rawFileContent: fileContentString,
+          });
+
+          const allWellLogs = await getAllWellLogs();
+
+          // Create the individual log record for the 'well-logs' database
+          allWellLogs.push({
+            id: file.name,
+            name: file.name,
+            originalName: file.name,
+            // The crucial change: the "well name" is the filename without extension.
+            structurePath: fileBaseName,
+            type: type,
+            content: parsedData.data,
+            headers: parsedData.headers,
+            rawContentString: fileContentString,
           });
         }
       } catch (error) {
@@ -239,308 +195,102 @@ export default function FileUploadViewer() {
         setMessage(`Error processing ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
+    // 1. Create a flattened list of individual logs from the processed data
+    const allWellLogs: ProcessedFileDataForDisplay[] = [];
+    allNewFileDataItems.forEach(fileData => {
+      if (fileData.isStructureFromZip) {
+        const extractLogs = (subFiles: any[] | undefined, type: 'las-as-csv' | 'csv') => {
+          subFiles?.forEach(subFile => {
+            allWellLogs.push({ id: subFile.id, name: `${fileData.name}/${subFile.name}`, originalName: subFile.name, structurePath: fileData.name, type, content: subFile.content, headers: subFile.headers, rawContentString: subFile.rawContentString });
+          });
+        };
+        extractLogs(fileData.lasFiles, 'las-as-csv');
+        extractLogs(fileData.csvFiles, 'csv');
+      }
+    });
 
-    setUploadedFiles(prev => [...prev, ...allNewFileDataItems]);
-    setIsUploading(false);
-    if (allNewFileDataItems.length > 0 && !message.startsWith('Error') && !message.startsWith('Warning')) {
-      setMessage(`Successfully processed ${allNewFileDataItems.length} item(s)`);
-    } else if (allNewFileDataItems.length === 0 && !message.startsWith('Error') && !message.startsWith('Warning')) {
+    if (allNewFileDataItems.length > 0) {
+      try {
+        setMessage('Saving data to browser database...');
+        await addMultipleFiles(allNewFileDataItems);
+        await addWellLogs(allWellLogs);
+
+        // --- THIS IS THE CRUCIAL FIX ---
+        // Only after ALL database operations have successfully completed...
+        console.log("SUCCESS: Data has been saved to IndexedDB.");
+        setMessage(`Successfully processed and saved ${allWellLogs.length} log(s). You may now proceed.`);
+        setIsReadyToProceed(true); // ...do we allow the user to proceed.
+
+        const updatedFiles = await getAllFiles();
+        setFilesForDisplay(updatedFiles);
+
+      } catch (error) {
+        console.error("Error occurred when trying to save everything to database", error);
+        setMessage("Error: Could not save data to the database.");
+      }
+    } else {
       setMessage('No new files or structures were processed.');
     }
-    setTimeout(() => {
-      if (message.startsWith('Successfully') || message.startsWith('No new files') || message.startsWith('Warning')) setMessage('');
-    }, 5000);
+
+    setIsUploading(false);
+    setTimeout(() => { if (!message.startsWith('Error')) setMessage(''); }, 5000);
     if (event.target) event.target.value = '';
+  };
+
+
+  const handleDeleteFile = async (id: string) => {
+    try {
+      await dbDeleteFile(id);
+      if (selectedFile?.id === id) {
+        setSelectedFile(null); // Clear selection if the deleted file was selected
+      }
+      const updatedFiles = await getAllFiles();
+      setFilesForDisplay(updatedFiles);
+    } catch (error) {
+      console.error("Failed to delete file from database:", error);
+      setMessage("Error: Could not delete the file.");
+    }
   };
 
   return (
     <div className="flex h-screen bg-gray-50">
       <FileList
-        uploadedFiles={uploadedFiles}
-        filteredFiles={uploadedFiles.filter(file => file.name.toLowerCase().includes(searchTerm.toLowerCase()))}
+        // Pass the display state and the new delete handler
+        uploadedFiles={filesForDisplay}
+        filteredFiles={filesForDisplay.filter(file => file.name.toLowerCase().includes(searchTerm.toLowerCase()))}
         selectedFile={selectedFile}
-        isUploading={isUploading}
+        isUploading={isUploading || !isInitialized} // Show loading state on initial load too
         message={message}
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         onFileUpload={handleFileUpload}
         onFileSelect={setSelectedFile}
-        onDeleteFile={(id) => {
-          setUploadedFiles(prev => prev.filter(f => f.id !== id));
-          if (selectedFile?.id === id) setSelectedFile(null);
-        }}
+        onDeleteFile={handleDeleteFile} // Use the new handler
       />
       <FilePreview
         selectedFile={selectedFile}
         selectedSubFile={selectedSubFile}
         onSelectSubFile={setSelectedSubFile}
       />
-      {uploadedFiles.length > 0 && (
+      {filesForDisplay.length > 0 && ( // Use filesForDisplay
         <div className="fixed bottom-8 right-8 z-50">
           <button
             onClick={handleProceedToNextPage}
-            title={`Process ${uploadedFiles.length} item(s) and create structure`}
-            className="bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-xl flex items-center justify-center transition-all duration-150 ease-in-out transform hover:scale-110 focus:outline-none"
+            title={isReadyToProceed ? "Proceed with saved data" : "Please upload and process files first"}
+            // Disable the button until the data is confirmed to be saved
+            disabled={!isReadyToProceed}
+            className={`p-4 rounded-full shadow-xl flex items-center justify-center transition-all duration-150 ease-in-out
+            ${isReadyToProceed
+                ? 'bg-green-500 hover:bg-green-600 transform hover:scale-110'
+                : 'bg-gray-400 cursor-not-allowed'
+              }
+          `}
             aria-label="Proceed with uploaded files"
           >
-            <Plus size={28} />
+            <Plus size={28} className="text-white" />
           </button>
         </div>
       )}
     </div>
   );
 }
-
-// frontend/src/features/file_upload/components/FileUploadViewer.tsx
-// 'use client';
-
-// import React, { useState, ChangeEvent } from 'react';
-// import JSZip from 'jszip';
-// import { useRouter } from 'next/navigation';
-// import { useAppDataStore } from '@/stores/useAppDataStore';
-// import { Plus } from 'lucide-react';
-
-// import { ParsedSubFile, FileData, ProcessedFileDataForDisplay, StagedStructure } from './types';
-// import { readFileContent, readFileAsArrayBuffer } from './utils/fileUtils';
-// import { parseLASFile, parseCSVFile, parseXLSXFileWithSheetJS } from './utils/fileParser';
-// import FileList from './components/FileList';
-// import FilePreview from './components/FilePreview';
-
-
-// export default function FileUploadViewer() {
-//   const router = useRouter();
-//   // Kita hanya butuh action 'setStagedStructure' dari store di sini
-//   const setStagedStructure = useAppDataStore((state) => state.setStagedStructure);
-
-//   const [uploadedFiles, setUploadedFiles] = useState<FileData[]>([]);
-//   const [selectedFile, setSelectedFile] = useState<FileData | null>(null);
-//   const [selectedSubFile, setSelectedSubFile] = useState<ParsedSubFile | null>(null);
-//   const [isUploading, setIsUploading] = useState<boolean>(false);
-//   const [message, setMessage] = useState<string>('');
-//   const [searchTerm, setSearchTerm] = useState<string>('');
-
-//   // --- FUNGSI NAVIGASI YANG SUDAH DIPERBAIKI ---
-//   const handleProceedToNextPage = () => {
-//     if (uploadedFiles.length === 0) {
-//       setMessage("Silakan upload file terlebih dahulu.");
-//       setTimeout(() => setMessage(''), 3000);
-//       return;
-//     }
-
-//     const structureNameInput = window.prompt("Masukkan nama untuk struktur data ini:", `Sesi ${new Date().toLocaleTimeString()}`);
-//     if (!structureNameInput || structureNameInput.trim() === "") {
-//       setMessage("Nama struktur wajib diisi.");
-//       setTimeout(() => setMessage(''), 3000);
-//       return;
-//     }
-
-//     // Logika Anda untuk mem-filter dan menyiapkan file sudah bagus, kita pertahankan.
-//     const filesForNextPage: ProcessedFileDataForDisplay[] = [];
-//     uploadedFiles.forEach(fileData => {
-//       if (fileData.isStructureFromZip) {
-//         fileData.lasFiles?.forEach(subFile => filesForNextPage.push({ id: subFile.id, name: `${fileData.name}/${subFile.name}`, originalName: subFile.name, structurePath: fileData.name, type: 'las-as-csv', content: subFile.content, headers: subFile.headers, rawContentString: subFile.rawContentString, }));
-//         fileData.csvFiles?.forEach(subFile => filesForNextPage.push({ id: subFile.id, name: `${fileData.name}/${subFile.name}`, originalName: subFile.name, structurePath: fileData.name, type: 'csv', content: subFile.content, headers: subFile.headers, rawContentString: subFile.rawContentString, }));
-//       } else if (fileData.rawFileContent && typeof fileData.rawFileContent === 'string') {
-//         let fileType: 'las-as-csv' | 'csv' | null = null;
-//         if (fileData.name.toLowerCase().endsWith('.las')) fileType = 'las-as-csv';
-//         else if (fileData.name.toLowerCase().endsWith('.csv')) fileType = 'csv';
-//         if (fileType) filesForNextPage.push({ id: fileData.id, name: fileData.name, type: fileType, content: fileData.content || [], headers: fileData.headers || [], rawContentString: fileData.rawFileContent, });
-//       }
-//     });
-
-//     if (filesForNextPage.length === 0) {
-//       setMessage("Tidak ada file LAS atau CSV yang relevan untuk diproses.");
-//       setTimeout(() => setMessage(''), 3000);
-//       return;
-//     }
-
-//     const newStructureForNextPage: StagedStructure = {
-//       userDefinedStructureName: structureNameInput.trim(),
-//       files: filesForNextPage,
-//     };
-
-//     // --- INTI PERBAIKAN ---
-//     try {
-//       // 1. Simpan data ke sessionStorage agar bisa "selamat" saat pindah halaman.
-//       // Gunakan kunci yang unik.
-//       sessionStorage.setItem('stagedStructureForProcessing', JSON.stringify(newStructureForNextPage));
-
-//       // 2. Kita tidak perlu menyimpan ke Zustand di halaman ini. Halaman berikutnya yang akan melakukannya.
-
-//       // 3. Arahkan ke halaman berikutnya.
-//       setMessage('');
-//       router.push('/data-input'); // Ganti ke path halaman kedua Anda
-//     } catch (e) {
-//       console.error("Gagal menyimpan ke sessionStorage:", e);
-//       alert("Terjadi error saat mempersiapkan data. Mungkin data terlalu besar untuk disimpan.");
-//     }
-//   };
-
-//   const processZipFile = async (
-//     originalZipFile: globalThis.File,
-//     arrayBuffer: ArrayBuffer
-//   ): Promise<FileData[]> => {
-//     const zip = await JSZip.loadAsync(arrayBuffer);
-//     const structuresMap: Map<string, { lasFiles: ParsedSubFile[], csvFiles: ParsedSubFile[] }> = new Map();
-//     const fileProcessingPromises: Promise<void>[] = [];
-
-//     zip.forEach((relativePath, zipEntry) => {
-//       if (zipEntry.dir) return;
-//       const pathParts = relativePath.split('/');
-//       const structureName = pathParts.length > 1 ? pathParts[0] : "_ROOT_FILES_IN_ZIP_";
-//       const fileNameInStructure = pathParts.length > 1 ? pathParts.slice(1).join('/') : relativePath;
-
-//       if (!structuresMap.has(structureName)) {
-//         structuresMap.set(structureName, { lasFiles: [], csvFiles: [] });
-//       }
-//       const currentStructure = structuresMap.get(structureName)!;
-//       const fileId = `${structureName}_${fileNameInStructure}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-
-//       if (fileNameInStructure.toLowerCase().endsWith('.las')) {
-//         const promise = zipEntry.async('string').then(rawLasContent => {
-//           const parsed = parseLASFile(rawLasContent);
-//           currentStructure.lasFiles.push({
-//             id: fileId, name: fileNameInStructure, type: 'las',
-//             rawContentString: rawLasContent,
-//             content: parsed.data, headers: parsed.headers,
-//           });
-//         }).catch(err => console.error(`Failed to process LAS ${relativePath}:`, err));
-//         fileProcessingPromises.push(promise);
-//       } else if (fileNameInStructure.toLowerCase().endsWith('.csv')) {
-//         const promise = zipEntry.async('string').then(async rawCsvContent => {
-//           const parsed = await parseCSVFile(rawCsvContent);
-//           currentStructure.csvFiles.push({
-//             id: fileId, name: fileNameInStructure, type: 'csv',
-//             rawContentString: rawCsvContent,
-//             content: parsed.data, headers: parsed.headers,
-//           });
-//         }).catch(err => console.error(`Failed to process CSV ${relativePath}:`, err));
-//         fileProcessingPromises.push(promise);
-//       }
-//     });
-
-//     await Promise.all(fileProcessingPromises);
-
-//     const resultStructures: FileData[] = [];
-//     for (const [structureNameFromMap, files] of structuresMap.entries()) {
-//       if (files.lasFiles.length > 0 || files.csvFiles.length > 0) {
-//         resultStructures.push({
-//           id: `${originalZipFile.name}_${structureNameFromMap}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-//           name: structureNameFromMap === "_ROOT_FILES_IN_ZIP_" ? `${originalZipFile.name} (Root Files)` : structureNameFromMap,
-//           originalZipName: originalZipFile.name,
-//           size: originalZipFile.size,
-//           originalFileType: originalZipFile.type,
-//           lastModified: originalZipFile.lastModified,
-//           isStructureFromZip: true,
-//           lasFiles: files.lasFiles.sort((a, b) => a.name.localeCompare(b.name)),
-//           csvFiles: files.csvFiles.sort((a, b) => a.name.localeCompare(b.name)),
-//           content: [], headers: [],
-//         });
-//       }
-//     }
-//     resultStructures.sort((a, b) => a.name.localeCompare(b.name));
-//     return resultStructures;
-//   };
-
-//   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-//     const files = event.target.files;
-//     if (!files || files.length === 0) return;
-
-//     setIsUploading(true);
-//     setMessage('Processing files...');
-//     const allNewFileDataItems: FileData[] = [];
-
-//     for (const file of Array.from(files)) {
-//       try {
-//         const commonFileProps = {
-//           id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-//           name: file.name,
-//           size: file.size,
-//           originalFileType: file.type || 'application/octet-stream',
-//           lastModified: file.lastModified,
-//         };
-
-//         if (file.name.toLowerCase().endsWith('.zip')) {
-//           const arrayBufferContent = await readFileAsArrayBuffer(file);
-//           const structuresFromZip = await processZipFile(file, arrayBufferContent);
-//           if (structuresFromZip.length === 0) {
-//             setMessage(`Warning: ZIP file ${file.name} did not yield any structures with LAS/CSV files.`);
-//           }
-//           const zipFileData = structuresFromZip.map(s => ({ ...s, rawFileContent: arrayBufferContent }));
-//           allNewFileDataItems.push(...zipFileData);
-
-//         } else {
-//           let parsedData: { headers: string[], data: any[] };
-//           let rawFileContentForSingleFile: string | ArrayBuffer;
-
-//           if (file.name.toLowerCase().endsWith('.csv')) {
-//             const fileContentString = await readFileContent(file);
-//             rawFileContentForSingleFile = fileContentString;
-//             parsedData = await parseCSVFile(fileContentString);
-//           } else if (file.name.toLowerCase().endsWith('.las')) {
-//             const fileContentString = await readFileContent(file);
-//             rawFileContentForSingleFile = fileContentString;
-//             parsedData = parseLASFile(fileContentString);
-//           } else if (file.name.toLowerCase().endsWith('.xlsx')) {
-//             const arrayBufferContent = await readFileAsArrayBuffer(file);
-//             rawFileContentForSingleFile = arrayBufferContent;
-//             parsedData = parseXLSXFileWithSheetJS(arrayBufferContent);
-//           } else {
-//             throw new Error('Unsupported individual file type.');
-//           }
-
-//           if (parsedData.data.length === 0 && parsedData.headers.length === 0) {
-//             setMessage(`Warning: File ${file.name} seems empty or unparsable.`);
-//           }
-//           allNewFileDataItems.push({
-//             ...commonFileProps,
-//             isStructureFromZip: false,
-//             content: parsedData.data.slice(0, 1000),
-//             headers: parsedData.headers,
-//             rawFileContent: rawFileContentForSingleFile,
-//           });
-//         }
-//       } catch (error) {
-//         console.error(`Error processing ${file.name}:`, error);
-//         setMessage(`Error processing ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-//       }
-//     }
-//   }
-
-//   return (
-//     <div className="flex h-screen bg-gray-50">
-//       <FileList
-//         uploadedFiles={uploadedFiles}
-//         filteredFiles={uploadedFiles.filter(file => file.name.toLowerCase().includes(searchTerm.toLowerCase()))}
-//         selectedFile={selectedFile}
-//         isUploading={isUploading}
-//         message={message}
-//         searchTerm={searchTerm}
-//         onSearchTermChange={setSearchTerm}
-//         onFileUpload={handleFileUpload}
-//         onFileSelect={setSelectedFile}
-//         onDeleteFile={(id) => {
-//           setUploadedFiles(prev => prev.filter(f => f.id !== id));
-//           if (selectedFile?.id === id) setSelectedFile(null);
-//         }}
-//       />
-//       <FilePreview
-//         selectedFile={selectedFile}
-//         selectedSubFile={selectedSubFile}
-//         onSelectSubFile={setSelectedSubFile}
-//       />
-//       {uploadedFiles.length > 0 && (
-//         <div className="fixed bottom-8 right-8 z-50">
-//           <button
-//             onClick={handleProceedToNextPage}
-//             title={`Proses ${uploadedFiles.length} file dan buat struktur`}
-//             className="bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-xl flex items-center justify-center transition-all duration-150 ease-in-out transform hover:scale-110 focus:outline-none"
-//             aria-label="Lanjutkan dengan file yang diupload"
-//           >
-//             <Plus size={28} />
-//           </button>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
