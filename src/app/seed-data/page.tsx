@@ -1,3 +1,5 @@
+//route ini hanya digunakan untuk populate data bar ke dalam volyme deploy yangnantinya akan bersifat persistent pada cloud storage
+
 'use client';
 
 import React, { useState, ChangeEvent } from 'react';

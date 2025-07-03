@@ -23,16 +23,16 @@ import { useEffect, useState } from 'react';
 // };
 
 export default function LeftSidebar() {
-  const { availableWells, selectedWells, toggleWellSelection, selectedIntervals, toggleInterval, plotType, 
+  const { availableWells, selectedWells, toggleWellSelection, selectedIntervals, toggleInterval, plotType,
     setPlotType } = useDashboard();
-  
+
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const intervals: string[] = 
-  ["MEF", "ABF","GUF", "BTL", "Lower_BTL", "Upper_BTS", "BTS", "A", "B", "B1", "C", "D", "E", "E1", "BSMT"];
+  const intervals: string[] =
+    ["MEF", "ABF", "GUF", "BTL", "Lower_BTL", "Upper_BTS", "BTS", "A", "B", "B1", "C", "D", "E", "E1", "BSMT"];
 
   return (
     <aside className="w-52 bg-gray-100 p-4 flex flex-col gap-6 border-r border-gray-300 overflow-y-auto">
@@ -49,8 +49,8 @@ export default function LeftSidebar() {
           ) : (
             availableWells.map(well => (
               <label key={well} className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-200 cursor-pointer">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   className="h-4 w-4 rounded border-gray-400 text-blue-600 focus:ring-blue-500"
                   checked={selectedWells.includes(well)}
                   // PASTIKAN: onChange di sini HANYA memanggil toggleWellSelection
@@ -67,8 +67,8 @@ export default function LeftSidebar() {
         <div className="flex flex-col gap-1.5">
           {intervals.map(interval => (
             <label key={interval} className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-200 cursor-pointer">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 className="h-4 w-4 rounded"
                 checked={selectedIntervals.includes(interval)}
                 onChange={() => toggleInterval(interval)}
@@ -81,13 +81,14 @@ export default function LeftSidebar() {
       <div>
         <h3 className="text-sm font-bold text-gray-800 mb-2 pb-1 border-b border-gray-300">Plot Display</h3>
         <div className="flex flex-col gap-1.5">
-          <select 
+          <select
             value={plotType}
             onChange={(e) => setPlotType(e.target.value as PlotType)}
             className="text-sm p-2 w-full bg-white border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="default">Plot Default</option>
             <option value="normalization">Plot Normalisasi</option>
+            <option value="smoothing">Plot Smoothing</option>
             <option value="porosity">Plot Porosity</option>
             <option value="gsa">GSA Plot</option>
           </select>
