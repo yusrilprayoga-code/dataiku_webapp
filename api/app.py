@@ -231,6 +231,40 @@ def get_normalization_plot():
             return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/list-intervals', methods=['GET'])
+def list_intervals():
+    """
+    Membaca file data utama, menemukan semua nilai unik di kolom 'MARKER',
+    dan mengembalikannya sebagai daftar JSON.
+    """
+    try:
+        # FIX: Baca file data utama (master) menggunakan DATA_PATH
+        # DATA_PATH seharusnya sudah didefinisikan di atas, misal:
+        # DATA_PATH = os.path.join(PROJECT_ROOT, 'sample_data', 'pass_qc.csv')
+
+        if not os.path.exists(WELLS_DIR):
+            return jsonify({"error": f"File data utama tidak ditemukan di {WELLS_DIR}"}), 404
+
+        df = pd.read_csv(WELLS_DIR)
+
+        # FIX: Pastikan kolom 'MARKER' ada di DataFrame yang baru dibaca
+        if 'MARKER' not in df.columns:
+            return jsonify({"error": "Kolom 'MARKER' tidak ditemukan dalam file CSV."}), 404
+
+        # FIX: Ambil nilai unik dari KOLOM 'MARKER' di DataFrame, bukan dari daftar file
+        unique_markers = df['MARKER'].dropna().unique().tolist()
+        unique_markers.sort()
+
+        print(f"Mengirim {len(unique_markers)} interval unik ke frontend.")
+
+        return jsonify(unique_markers)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/list-wells', methods=['GET'])
 def list_wells():
     try:

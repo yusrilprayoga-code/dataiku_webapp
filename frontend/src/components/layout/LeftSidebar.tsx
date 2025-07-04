@@ -23,16 +23,13 @@ import { useEffect, useState } from 'react';
 // };
 
 export default function LeftSidebar() {
-  const { availableWells, selectedWells, toggleWellSelection, selectedIntervals, toggleInterval, plotType, 
+  const { availableWells, selectedWells, toggleWellSelection, availableIntervals, selectedIntervals, toggleInterval, plotType, 
     setPlotType } = useDashboard();
   
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  const intervals: string[] = 
-  ["MEF", "ABF","GUF", "BTL", "Lower_BTL", "Upper_BTS", "BTS", "A", "B", "B1", "C", "D", "E", "E1", "BSMT"];
 
   return (
     <aside className="w-52 bg-gray-100 p-4 flex flex-col gap-6 border-r border-gray-300 overflow-y-auto">
@@ -65,7 +62,7 @@ export default function LeftSidebar() {
       <div>
         <h3 className="text-sm font-bold text-gray-800 mb-2 pb-1 border-b border-gray-300">Interval</h3>
         <div className="flex flex-col gap-1.5">
-          {intervals.map(interval => (
+          {availableIntervals.map(interval => (
             <label key={interval} className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-200 cursor-pointer">
               <input 
                 type="checkbox" 

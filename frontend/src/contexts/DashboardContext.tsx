@@ -12,6 +12,7 @@ interface DashboardContextType {
   setPlotType: (type: PlotType) => void;
   wellColumns: Record<string, string[]>;
   fetchWellColumns: (wells: string[]) => Promise<void>;
+  availableIntervals: string[];
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -21,7 +22,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [selectedWells, setSelectedWells] = useState<string[]>(['ABB-035']);
   const [selectedIntervals, setSelectedIntervals] = useState<string[]>(['B1', 'GUF']);
   const [plotType, setPlotType] = useState<PlotType>('default');
-const [wellColumns, setWellColumns] = useState<Record<string, string[]>>({});
+  const [wellColumns, setWellColumns] = useState<Record<string, string[]>>({});
+  const [availableIntervals, setAvailableIntervals] = useState<string[]>([]);
 
     useEffect(() => {
     const fetchWells = async () => {
@@ -39,9 +41,20 @@ const [wellColumns, setWellColumns] = useState<Record<string, string[]>>({});
       } catch (error) {
         console.error("Gagal mengambil daftar sumur:", error);
       }
+
+      try {
+        const intervalsResponse = await fetch('http://127.0.0.1:5001/api/list-intervals');
+        if (!intervalsResponse.ok) throw new Error('Gagal mengambil daftar interval');
+        const intervalsData = await intervalsResponse.json();
+        if (Array.isArray(intervalsData)) {
+          setAvailableIntervals(intervalsData);
+        }
+      } catch (error) {
+        console.error("Error fetching intervals:", error);
+      }
     };
     fetchWells();
-  }, [selectedWells.length]);
+  }, [selectedWells.length, selectedIntervals.length]);
 
     const fetchWellColumns = async (wells: string[]) => {
     try {
@@ -79,7 +92,7 @@ const [wellColumns, setWellColumns] = useState<Record<string, string[]>>({});
     );
   };
 
-  const value = { availableWells, selectedWells, toggleWellSelection, selectedIntervals, toggleInterval, plotType, setPlotType, wellColumns, fetchWellColumns };
+  const value = { availableWells, selectedWells, toggleWellSelection, availableIntervals, selectedIntervals, toggleInterval, plotType, setPlotType, wellColumns, fetchWellColumns };
 
   return (
     <DashboardContext.Provider value={value}>
