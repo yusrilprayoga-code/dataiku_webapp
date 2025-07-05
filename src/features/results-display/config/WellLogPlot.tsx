@@ -40,6 +40,9 @@ export default function WellLogPlot() {
         case 'normalization':
           endpointPath = '/api/get-normalization-plot';
           break;
+        case 'smoothing':
+          endpointPath = '/api/get-smoothing-plot';
+          break;
         case 'porosity':
           endpointPath = '/api/get-porosity-plot';
           break;
