@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 
 export type PlotType = 'default' | 'normalization' | 'smoothing' | 'porosity' | 'gsa';
 
@@ -56,7 +56,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     fetchWells();
   }, [selectedWells.length, selectedIntervals.length]);
 
-    const fetchWellColumns = async (wells: string[]) => {
+    const fetchWellColumns = useCallback(async (wells: string[]) => {
     try {
       const response = await fetch('http://127.0.0.1:5001/api/get-well-columns', {
         method: 'POST',
@@ -70,13 +70,21 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     } catch (err) {
       console.error('Gagal mengambil kolom well:', err);
     }
-  };
+  }, []);
+
+  const [hasFetchedColumns, setHasFetchedColumns] = useState(false);
 
   useEffect(() => {
-    if (selectedWells.length > 0) {
+    if (selectedWells.length > 0 && !hasFetchedColumns) {
       fetchWellColumns(selectedWells);
+      setHasFetchedColumns(true);
     }
+  }, [selectedWells, hasFetchedColumns, fetchWellColumns]);
+
+  useEffect(() => {
+    setHasFetchedColumns(false);
   }, [selectedWells]);
+
 
   const toggleWellSelection = (well: string) => {
     setSelectedWells(prev =>

@@ -15,6 +15,7 @@ import GsaCalculationParams from '@/features/rgsa-ngsa-dgsa/GsaCalculationParams
 import TrimDataParams from '@/features/trim_data/TrimDataParams';
 import FillMissingPage from '@/features/fill_missing/page';
 import SmoothingPage from '@/features/smoothing/page';
+import HistogramParams from '@/features/histogram/HistogramParams';
 
 // Placeholder component for demonstration purposes
 const SmoothingParamsForm = () => (
@@ -78,6 +79,8 @@ export default function ModulePage(props: any) {
         return <PorosityCalculationParams />;
       case 'rgsa-ngsa-dgsa':
         return <GsaCalculationParams />;
+      case 'histogram':
+        return <HistogramParams />;
       default:
         return (
           <div className="p-4 border rounded-lg bg-red-50 text-red-700">

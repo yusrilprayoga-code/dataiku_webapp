@@ -44,7 +44,7 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
 const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
 
   // const module1Buttons: string[] = ['ADD PLOT', 'OPEN CROSS PLOT'];
-  const qualityControlButtons: string[] = ['TRIM DATA', 'DEPTH MATCHING', 'FILL MISSING', 'SMOOTHING', 'NORMALIZATION'];
+  const qualityControlButtons: string[] = ['HISTOGRAM', 'TRIM DATA', 'DEPTH MATCHING', 'FILL MISSING', 'SMOOTHING', 'NORMALIZATION'];
   const logInterpretationButtons: string[] = ['VSH CALCULATION', 'POROSITY CALCULATION', 'SW CALCULATION', 'WATER RESISTIVITY CALCULATION'];
   const gowsButtons: string[] = ['RGSA-NGSA-DGSA', 'RGBE-RPBE', 'SWGRAD', 'DNS-DNSV', 'RT R0'];
 

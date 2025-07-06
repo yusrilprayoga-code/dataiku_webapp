@@ -22,6 +22,7 @@ from app.services.depth_matching import depth_matching, plot_depth_matching_resu
 from app.services.rgsa import process_all_wells_rgsa
 from app.services.dgsa import process_all_wells_dgsa
 from app.services.ngsa import process_all_wells_ngsa
+from app.services.histogram import plot_histogram
 
 app = Flask(__name__)
 
@@ -238,20 +239,32 @@ def list_intervals():
     dan mengembalikannya sebagai daftar JSON.
     """
     try:
-        # FIX: Baca file data utama (master) menggunakan DATA_PATH
-        # DATA_PATH seharusnya sudah didefinisikan di atas, misal:
-        # DATA_PATH = os.path.join(PROJECT_ROOT, 'sample_data', 'pass_qc.csv')
-
         if not os.path.exists(WELLS_DIR):
             return jsonify({"error": f"File data utama tidak ditemukan di {WELLS_DIR}"}), 404
 
-        df = pd.read_csv(WELLS_DIR)
+        files = [f for f in os.listdir(WELLS_DIR) if f.endswith('.csv')]
+        if not files:
+            return jsonify({"error": "Tidak ada file CSV ditemukan di folder 'wells'."}), 404
 
-        # FIX: Pastikan kolom 'MARKER' ada di DataFrame yang baru dibaca
+        data = []
+
+        for filename in files:
+            file_path = os.path.join(WELLS_DIR, filename)
+            try:
+                df_temp = pd.read_csv(file_path)
+                data.append(df_temp)
+            except Exception as read_error:
+                print(
+                    f"Peringatan: Gagal membaca file {file_path}. Error: {read_error}")
+
+        df = pd.concat(data, ignore_index=True)
+
         if 'MARKER' not in df.columns:
             return jsonify({"error": "Kolom 'MARKER' tidak ditemukan dalam file CSV."}), 404
 
-        # FIX: Ambil nilai unik dari KOLOM 'MARKER' di DataFrame, bukan dari daftar file
+        if df.empty:
+            return jsonify({"error": "Data gabungan kosong setelah memproses semua file."}), 500
+
         unique_markers = df['MARKER'].dropna().unique().tolist()
         unique_markers.sort()
 
@@ -822,6 +835,41 @@ def get_smoothing_plot():
                 df_marker=df_marker_info,
                 df_well_marker=df
             )
+
+            return jsonify(fig_result.to_json())
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/get-histogram-plot', methods=['POST', 'OPTIONS'])
+def get_histogram_plot():
+    """
+    Endpoint untuk membuat plot histogram berdasarkan sumur dan parameter
+    yang dipilih oleh pengguna.
+    """
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+
+    if request.method == 'POST':
+        try:
+            payload = request.get_json()
+            selected_wells = payload.get('selected_wells', [])
+            log_to_plot = payload.get('log_column')
+            num_bins = int(payload.get('bins', 50))
+
+            if not selected_wells:
+                return jsonify({"error": "Tidak ada sumur yang dipilih."}), 400
+            if not log_to_plot:
+                return jsonify({"error": "Tidak ada log yang dipilih untuk dianalisis."}), 400
+
+            df_list = [pd.read_csv(os.path.join(
+                WELLS_DIR, f"{well}.csv")) for well in selected_wells]
+            df = pd.concat(df_list, ignore_index=True)
+
+            fig_result = plot_histogram(df, log_to_plot, num_bins)
 
             return jsonify(fig_result.to_json())
 
