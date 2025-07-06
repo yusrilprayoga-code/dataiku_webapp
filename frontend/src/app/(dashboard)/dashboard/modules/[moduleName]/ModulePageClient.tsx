@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any*/
 // frontend/src/app/(dashboard)/dashboard/modules/[moduleName]/ModulePageClient.tsx
 'use client';
 
