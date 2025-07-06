@@ -78,7 +78,7 @@ export default function VshCalculationParams() {
       })
     );
   };
-  
+
   // Handler untuk checkbox di kolom "P"
   const handleRowToggle = (id: number, enabled: boolean) => {
     setRowSync(prev => ({ ...prev, [id]: enabled }));
@@ -88,7 +88,7 @@ export default function VshCalculationParams() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     const formParams = parameters
     .filter(p => p.isEnabled)
     .reduce((acc, param) => {
@@ -96,16 +96,17 @@ export default function VshCalculationParams() {
       acc[param.name] = isNaN(Number(value)) ? value : Number(value);
       return acc;
     }, {} as Record<string, string | number>);
-
-    
     const payload = {
       params: formParams,
       selected_wells: selectedWells,
       selected_intervals: selectedIntervals,
     };
-    
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const endpoint = `${apiUrl}/api/run-vsh-calculation`;
+
     try {
-      const response = await fetch('http://127.0.0.1:5001/api/run-vsh-calculation', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -134,20 +135,20 @@ export default function VshCalculationParams() {
 
       case 'Constant':
         if (mode === 'Input') {
-          return 'bg-yellow-300'; 
-        } else { 
+          return 'bg-yellow-300';
+        } else {
           return 'bg-yellow-100';
         }
 
       case 'Log':
         if (mode === 'Input') {
-          return 'bg-cyan-400'; 
-        } else { 
-          return 'bg-cyan-200'; 
+          return 'bg-cyan-400';
+        } else {
+          return 'bg-cyan-200';
         }
-        
+
       case 'Output':
-          return 'bg-yellow-600';
+        return 'bg-yellow-600';
 
       case 'Interval':
         return 'bg-green-400';
@@ -156,24 +157,24 @@ export default function VshCalculationParams() {
         return 'bg-white';
     }
   };
-  
+
   const tableHeaders = ['#', 'Location', 'Mode', 'Comment', 'Unit', 'Name', 'P'];
 
   return (
     <div className="p-4 md:p-6 h-full flex flex-col bg-white rounded-lg shadow-md">
       <h2 className="text-xl font-bold mb-4 text-gray-800 flex-shrink-0">Volume of shale by gamma ray method</h2>
-      
+
       <form onSubmit={handleSubmit} className="flex-grow flex flex-col min-h-0">
         {/* Bagian Konfigurasi Atas */}
         <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50 flex flex-col gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-4 items-start">
-                {/* Baris informasi */}
-                <div className="md:col-span-4">
-                    <p className="text-sm font-medium text-gray-700">Well: {selectedWells + ', ' || 'N/A'} / Intervals: {selectedIntervals.length} selected</p>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-4 items-start">
+            {/* Baris informasi */}
+            <div className="md:col-span-4">
+              <p className="text-sm font-medium text-gray-700">Well: {selectedWells + ', ' || 'N/A'} / Intervals: {selectedIntervals.length} selected</p>
+            </div>
 
-                {/* Baris input */}
-                {/* <FormField label="Input Set">
+            {/* Baris input */}
+            {/* <FormField label="Input Set">
                     <button type="button" onClick={() => alert('Popup pilihan Input Set')} className="text-sm p-2 w-full bg-white border border-gray-300 rounded-md text-left shadow-sm hover:border-blue-500">WIRE</button>
                 </FormField>
                 <FormField label="Output Set">
@@ -191,13 +192,13 @@ export default function VshCalculationParams() {
                         <option>TVD</option>
                     </select>
                 </FormField> */}
-            </div>
-            <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-                <button type="button" className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
-                <button type="submit" className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="animate-spin" /> : 'Start'}
-                </button>
-            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+            <button type="button" className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
+            <button type="submit" className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="animate-spin" /> : 'Start'}
+            </button>
+          </div>
         </div>
 
         {/* Tabel Parameter */}
@@ -207,8 +208,8 @@ export default function VshCalculationParams() {
             <table className="min-w-full text-sm table-auto">
               <thead className="bg-gray-200 sticky top-0 z-10">
                 <tr>
-                  {tableHeaders.map(header => ( <th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th> ))}
-                  {selectedIntervals.map(header => ( <th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th> ))}
+                  {tableHeaders.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th>))}
+                  {selectedIntervals.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th>))}
                 </tr>
               </thead>
               <tbody className="bg-white">

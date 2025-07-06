@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any*/
-// frontend/src/app/(dashboard)/modules/[moduleName]/page.tsx
-'use client';
+// frontend/src/app/(dashboard)/dashboard/modules/[moduleName]/page.tsx
+import React, { Suspense } from 'react';
+import ModulePageClient from './ModulePageClient';
 
+<<<<<<< HEAD
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import NormalizationParamsForm from '@/features/normalization/NormalizationParams';
@@ -89,11 +91,49 @@ export default function ModulePage(props: any) {
         );
     }
   };
+=======
+interface MyPageProps {
+  params: Promise<{ moduleName: string }>;
+}
 
+// List of valid module names to prevent invalid routes
+const VALID_MODULES = [
+  'trim-data',
+  'depth-matching',
+  'normalization',
+  'smoothing',
+  'vsh-calculation',
+  'porosity-calculation',
+  'rgsa-ngsa-dgsa',
+  'fill-missing',
+  'sw-calculation',
+  'water-resistivity-calculation'
+];
+>>>>>>> fcdb261c48a67549b4f8a2e2f1d85aace3ccc2dc
+
+export default async function MyPage({ params }: MyPageProps) {
+  const resolvedParams = await params;
+  const moduleName = resolvedParams.moduleName;
   return (
-    <div className="h-full p-4 md:p-6 bg-gray-50">
-      <h1 className="text-2xl font-bold mb-4 capitalize text-gray-800">{moduleName} Module</h1>
-      {renderParameterForm()}
-    </div>
+    <Suspense fallback={
+      <div className="h-full p-4 md:p-6 bg-gray-50">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="ml-4 text-gray-600">Loading module...</div>
+        </div>
+      </div>
+    }>
+      <ModulePageClient
+        moduleName={moduleName}
+        validModules={VALID_MODULES}
+      />
+    </Suspense>
   );
+}
+
+// This helps with static generation and prevents 404s
+export async function generateStaticParams() {
+  return VALID_MODULES.map((moduleName) => ({
+    moduleName: moduleName,
+  }));
 }
