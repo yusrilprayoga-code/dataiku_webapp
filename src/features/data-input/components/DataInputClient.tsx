@@ -119,6 +119,7 @@ export default function DataInputUtamaPage() {
         try {
             const filesToProcess = stagedStructure.files.map(file => ({ name: file.originalName || file.name, content: file.rawContentString }));
             const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+            console.log("apiUrl:", apiUrl);
             const endpoint = `${apiUrl}/api/run-qc`;
             console.log(`Sending QC request to: ${endpoint}`);
             const qcResponse = await fetch(endpoint, {
