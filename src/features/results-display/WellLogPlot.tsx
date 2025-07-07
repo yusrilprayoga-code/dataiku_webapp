@@ -105,7 +105,7 @@ export default function WellLogPlot() {
     try {
       // Transform the plot data into log curves, handling both x/y and customdata formats
       const logCurves: LogCurve[] = plotData.reduce((accumulator: LogCurve[], trace: any) => {
-        const traceData = trace as {
+        const traceData = trace as { 
           customdata?: any[],
           x?: number[],
           y?: number[],
@@ -121,13 +121,13 @@ export default function WellLogPlot() {
             .filter(point => !isNaN(point[0]));
 
           if (data.length > 0) {
-            accumulator.push({
-              curveName,
+            accumulator.push({ 
+              curveName, 
               unit: traceData.meta?.unit || 'N/A',
               data
             });
           }
-        }
+        } 
         else if (Array.isArray(traceData.y) && Array.isArray(traceData.x)) {
           const curveName = traceData.name || 'UnknownCurve';
           const data = traceData.y
@@ -135,7 +135,7 @@ export default function WellLogPlot() {
             .filter(([depth]) => !isNaN(depth));
 
           if (data.length > 0) {
-            accumulator.push({
+            accumulator.push({ 
               curveName,
               unit: traceData.meta?.unit || 'N/A',
               data
