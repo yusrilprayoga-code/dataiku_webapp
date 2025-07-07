@@ -3,8 +3,8 @@
 'use client';
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-// REMOVE this import, we no longer get data from the client's DB
-// import { getProcessedWellList } from '@/lib/db'; 
+import { type Data } from 'plotly.js';
+import { type LogCurve } from '@/lib/db';
 
 export type PlotType = 'default' | 'normalization' | 'smoothing' | 'porosity' | 'gsa';
 
@@ -18,6 +18,9 @@ interface DashboardContextType {
   wellColumns: Record<string, string[]>;
   setPlotType: (type: PlotType) => void;
   fetchWellColumns: (wells: string[]) => Promise<void>;
+  plotData: Data[];
+  setPlotData: (data: Data[]) => void;
+  getCurrentLogs: () => LogCurve[];
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -28,11 +31,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [selectedIntervals, setSelectedIntervals] = useState<string[]>(['B1', 'GUF']);
   const [plotType, setPlotType] = useState<PlotType>('default');
   const [wellColumns, setWellColumns] = useState<Record<string, string[]>>({});
+  const [plotData, setPlotData] = useState<Data[]>([]);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
-    // --- THIS IS THE NEW LOGIC ---
-    // This function now fetches the well list directly from your stateful backend API.
     const fetchWellsFromServer = async () => {
       try {
         if (!apiUrl) {
@@ -102,7 +104,102 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  const value = { availableWells, selectedWells, toggleWellSelection, selectedIntervals, toggleInterval, plotType, setPlotType, wellColumns, fetchWellColumns };
+  const getCurrentLogs = (): LogCurve[] => {
+    console.log("Getting current logs from plot data:", plotData);
+
+    // First, identify all valid log curves (type: scattergl)
+    const logTraces = plotData.filter((trace) => {
+      const t = trace as any;
+      return t.type === 'scattergl' &&
+        t.name &&
+        !t.name.toLowerCase().includes('xover') &&
+        t.name !== 'MARKER';
+    });
+
+    console.log("Found log curves:", logTraces.map(t => (t as any).name));
+
+    const logs: LogCurve[] = [];
+
+    for (const trace of logTraces) {
+      const t = trace as any;
+      if (!t.name) continue;
+
+      try {
+        // Get the x and y data arrays, handling both direct arrays and objects with _inputArray
+        let xData: number[] = [];
+        let yData: number[] = [];
+
+        // Extract x values
+        if (t.x && t.x._inputArray instanceof Float64Array) {
+          xData = Array.from(t.x._inputArray);
+        } else if (Array.isArray(t.x)) {
+          xData = t.x;
+        } else if (t.x && Array.isArray(t.x.data)) {
+          xData = t.x.data;
+        }
+
+        // Extract y values
+        if (t.y && t.y._inputArray instanceof Float64Array) {
+          yData = Array.from(t.y._inputArray);
+        } else if (Array.isArray(t.y)) {
+          yData = t.y;
+        } else if (t.y && Array.isArray(t.y.data)) {
+          yData = t.y.data;
+        }
+
+        if (xData.length === 0 || yData.length === 0) {
+          console.log(`No valid data arrays for log ${t.name}`);
+          continue;
+        }
+
+        // Create pairs of depth (y) and value (x)
+        const pairs: [number, number | null][] = [];
+        for (let i = 0; i < yData.length; i++) {
+          const depth = Number(yData[i]);
+          const value = xData[i];
+          const numValue = value !== undefined && value !== null ? Number(value) : null;
+
+          if (!isNaN(depth) && (numValue === null || !isNaN(numValue))) {
+            pairs.push([depth, numValue]);
+          }
+        }
+
+        if (pairs.length === 0) {
+          console.log(`No valid data points found for log ${t.name}`);
+          continue;
+        }
+
+        console.log(`Processed ${pairs.length} points for log ${t.name}`);
+
+        logs.push({
+          curveName: t.name,
+          data: pairs,
+          wellName: selectedWells[0] || 'Unknown Well',
+          plotData: plotData
+        });
+      } catch (err) {
+        console.error(`Error processing log ${t.name}:`, err);
+      }
+    }
+
+    console.log("Transformed logs:", logs);
+    return logs;
+  };
+
+  const value = {
+    availableWells,
+    selectedWells,
+    toggleWellSelection,
+    selectedIntervals,
+    toggleInterval,
+    plotType,
+    setPlotType,
+    wellColumns,
+    fetchWellColumns,
+    plotData,
+    setPlotData,
+    getCurrentLogs
+  };
 
   return (
     <DashboardContext.Provider value={value}>

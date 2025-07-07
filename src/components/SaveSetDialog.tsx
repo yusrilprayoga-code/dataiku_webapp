@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getSetNamesForWell } from '@/lib/db'; // Import your DB function
+import { getSetsForWell } from '@/lib/db'; // Import your DB function
 
 interface SaveSetDialogProps {
     isOpen: boolean;
@@ -19,10 +19,11 @@ export default function SaveSetDialog({ isOpen, onClose, onSave, wellName }: Sav
     // Fetch the list of existing sets for the current well when the dialog opens
     useEffect(() => {
         if (isOpen && wellName) {
-            getSetNamesForWell(wellName).then(sets => {
-                setExistingSets(sets);
-                if (sets.length > 0) {
-                    setSelectedSet(sets[0]);
+            getSetsForWell(wellName).then(sets => {
+                const setNames = sets.map(set => set.setName);
+                setExistingSets(setNames);
+                if (setNames.length > 0) {
+                    setSelectedSet(setNames[0]);
                 }
             });
         }

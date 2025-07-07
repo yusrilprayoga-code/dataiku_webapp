@@ -2,22 +2,67 @@
 
 import { PlotType, useDashboard } from '@/contexts/DashboardContext';
 import { useEffect, useState } from 'react';
-import { getSetNamesForWell, getWellDataSet, LogCurve } from '@/lib/db';
-import { ArrowLeft, BarChart3, List } from 'lucide-react';
+import { getSetsForWell, WellDataSet, LogCurve, addLogsToSet, saveWellDataSet, getWellDataSet } from '@/lib/db';
+import { ArrowLeft, BarChart3, List, Plus, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+interface SetListItem {
+  setName: string;
+  wells: string[];
+  isSelected: boolean;
+}
 
 export default function LeftSidebar() {
   const { availableWells, selectedWells, toggleWellSelection, selectedIntervals, toggleInterval, plotType,
-    setPlotType } = useDashboard();
+    setPlotType, getCurrentLogs } = useDashboard();
 
   const [isMounted, setIsMounted] = useState(false);
-  const [savedSets, setSavedSets] = useState<string[]>([]);
-  const [selectedSetLogs, setSelectedSetLogs] = useState<LogCurve[] | null>(null);
-  const [selectedSetName, setSelectedSetName] = useState<string | null>(null);
+  const [availableSets, setAvailableSets] = useState<SetListItem[]>([]);
+  const [selectedSet, setSelectedSet] = useState<WellDataSet | null>(null);
+  const [isAddingNewSet, setIsAddingNewSet] = useState(false);
+  const [newSetName, setNewSetName] = useState('');
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Fetch available sets when selected wells change
+  useEffect(() => {
+    const fetchSets = async () => {
+      if (selectedWells.length > 0) {
+        try {
+          // Fetch sets for all selected wells
+          const allSets = await Promise.all(
+            selectedWells.map(well => getSetsForWell(well))
+          );
+          console.log('Fetched sets:', allSets);
+
+          // Combine and deduplicate sets
+          const uniqueSets = Array.from(
+            new Map(
+              allSets.flat().map(set => [
+                set.setName,
+                {
+                  setName: set.setName,
+                  wells: set.wells,
+                  isSelected: selectedSet?.setName === set.setName
+                }
+              ])
+            ).values()
+          );
+
+          console.log('Unique sets to display:', uniqueSets);
+          setAvailableSets(uniqueSets);
+        } catch (error) {
+          console.error('Error fetching sets:', error);
+        }
+      } else {
+        setAvailableSets([]);
+      }
+    };
+
+    fetchSets();
+  }, [selectedWells, selectedSet?.setName]);
 
   const handleSelectAllWells = (checked: boolean) => {
     if (checked) {
@@ -43,34 +88,131 @@ export default function LeftSidebar() {
     }
   };
 
-  const handleViewSetLogs = async (setName: string) => {
-    if (selectedWells.length === 1) {
-      const setData = await getWellDataSet(selectedWells[0], setName);
-      if (setData) {
-        setSelectedSetLogs(setData.logs);
-        setSelectedSetName(setName);
-      }
+  const handleViewSet = async (setName: string) => {
+    const setData = await getWellDataSet(setName);
+    if (setData) {
+      setSelectedSet(setData);
     }
   };
 
   const handleBackToSets = () => {
-    setSelectedSetLogs(null);
-    setSelectedSetName(null);
-  };
+    setSelectedSet(null);
+  }; const handleCreateNewSet = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSetName.trim()) {
+      alert('Please enter a name for the set');
+      return;
+    }
 
-  // Fetch saved sets when selected well changes
-  useEffect(() => {
-    const fetchSavedSets = async () => {
-      if (selectedWells.length === 1) {
-        const sets = await getSetNamesForWell(selectedWells[0]);
-        setSavedSets(sets);
-      } else {
-        setSavedSets([]);
+    if (selectedWells.length === 0) {
+      alert('Please select a well first');
+      return;
+    }
+
+    if (selectedWells.length > 1) {
+      alert('Please select only one well to create a set');
+      return;
+    }
+
+    try {
+      // Get current plot logs from the dashboard context
+      const logCurves = getCurrentLogs();
+      console.log("Got log curves:", logCurves);
+
+      if (logCurves.length === 0) {
+        alert('No logs found in current plot. Please ensure there is data displayed in the plot.');
+        return;
       }
-    };
 
-    fetchSavedSets();
-  }, [selectedWells]);
+      // Save the set with the well name
+      const setName = newSetName.trim();
+      await saveWellDataSet(setName, logCurves);
+
+      // Success feedback
+      alert(`Successfully saved set "${setName}" with ${logCurves.length} logs`);
+
+      setIsAddingNewSet(false);
+      setNewSetName('');
+
+      // Select the newly created set
+      const newSet = await getWellDataSet(setName);
+      if (newSet) {
+        setSelectedSet(newSet);
+      }
+
+      // Refresh the sets list
+      if (selectedWells.length > 0) {
+        const sets = await Promise.all(selectedWells.map(well => getSetsForWell(well)));
+        const uniqueSets = Array.from(
+          new Map(
+            sets.flat().map(set => [
+              set.setName,
+              {
+                setName: set.setName,
+                wells: set.wells,
+                isSelected: false
+              }
+            ])
+          ).values()
+        );
+        setAvailableSets(uniqueSets);
+      }
+    } catch (error) {
+      console.error('Failed to create new set:', error);
+    }
+  }; const handleAddToSet = async (setName: string) => {
+    if (selectedWells.length === 0) {
+      alert('Please select a well first');
+      return;
+    }
+
+    if (selectedWells.length > 1) {
+      alert('Please select only one well to add to a set');
+      return;
+    }
+
+    try {
+      const logCurves = getCurrentLogs();
+      console.log("Got log curves for adding to set:", logCurves);
+
+      if (logCurves.length === 0) {
+        alert('No logs found in current plot. Please ensure there is data displayed in the plot.');
+        return;
+      }
+
+      // Add the logs to the set
+      await addLogsToSet(setName, logCurves);
+
+      // Success feedback
+      alert(`Successfully added ${logCurves.length} logs to set "${setName}"`);
+
+      // Refresh both the selected set and the available sets list
+      const updatedSet = await getWellDataSet(setName);
+      if (updatedSet) {
+        setSelectedSet(updatedSet);
+      }
+
+      // Refresh the available sets list
+      if (selectedWells.length > 0) {
+        const sets = await Promise.all(selectedWells.map(well => getSetsForWell(well)));
+        const uniqueSets = Array.from(
+          new Map(
+            sets.flat().map(set => [
+              set.setName,
+              {
+                setName: set.setName,
+                wells: set.wells,
+                isSelected: selectedSet?.setName === set.setName
+              }
+            ])
+          ).values()
+        );
+        setAvailableSets(uniqueSets);
+      }
+    } catch (error) {
+      console.error('Failed to add to set:', error);
+    }
+  };
 
   const intervals: string[] =
     ["MEF", "ABF", "GUF", "BTL", "Lower_BTL", "Upper_BTS", "BTS", "A", "B", "B1", "C", "D", "E", "E1", "BSMT"];
@@ -144,7 +286,7 @@ export default function LeftSidebar() {
       {/* Saved Sets Section */}
       <div className="flex flex-col min-h-0">
         <div className="flex items-center gap-2 mb-2 pb-1 border-b border-gray-300">
-          {selectedSetLogs ? (
+          {selectedSet ? (
             <button
               onClick={handleBackToSets}
               className="p-1 hover:bg-gray-200 rounded-md"
@@ -152,51 +294,105 @@ export default function LeftSidebar() {
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
-          ) : null}
+          ) : (
+            <button
+              onClick={() => setIsAddingNewSet(true)}
+              className="p-1 hover:bg-gray-200 rounded-md"
+              title="Create new set"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          )}
           <h3 className="text-sm font-bold text-gray-800 flex-1">
-            {selectedSetLogs
-              ? `Logs in ${selectedSetName}`
-              : `Saved Sets ${selectedWells.length === 1 ? `(${selectedWells[0]})` : ''}`}
+            {selectedSet
+              ? `Logs in ${selectedSet.setName}`
+              : 'Saved Sets'}
           </h3>
         </div>
         <div className="overflow-y-auto min-h-0 flex-1 max-h-[25vh]">
-          {selectedSetLogs ? (
+          {isAddingNewSet ? (
+            <form onSubmit={handleCreateNewSet} className="p-2">
+              <input
+                type="text"
+                value={newSetName}
+                onChange={(e) => setNewSetName(e.target.value)}
+                placeholder="Enter set name..."
+                className="w-full p-1 text-sm border rounded"
+                autoFocus
+              />
+              <div className="flex gap-2 mt-2">
+                <button
+                  type="submit"
+                  className="flex-1 px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Create
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingNewSet(false);
+                    setNewSetName('');
+                  }}
+                  className="flex-1 px-2 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : selectedSet ? (
             <div className="flex flex-col gap-1.5">
-              {selectedSetLogs.map((log, index) => (
-                <div key={index} className="flex items-center gap-2 p-2 rounded-md">
+              {selectedSet.logs.map((log, index) => (
+                <div key={index} className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-200">
                   <span className="text-sm flex-1">{log.curveName}</span>
-                  <span className="text-xs text-gray-500">{log.unit}</span>
                 </div>
               ))}
             </div>
-          ) : selectedWells.length === 1 ? (
-            savedSets.length > 0 ? (
-              <div className="flex flex-col gap-1.5">
-                {savedSets.map(set => (
-                  <div key={set}
-                    className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-200 group">
-                    <span className="text-sm flex-1">{set}</span>
-                    <button
-                      onClick={() => handleViewSetLogs(set)}
-                      className="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-300 rounded"
-                      title="View logs list"
-                    >
-                      <List className="h-4 w-4" />
-                    </button>
-                    <button
-                      className="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-300 rounded"
-                      title="View log plot"
-                    >
-                      <BarChart3 className="h-4 w-4" />
-                    </button>
+          ) : availableSets.length > 0 ? (
+            <div className="flex flex-col gap-1.5">
+              {availableSets.map(set => (
+                <div key={set.setName}
+                  className={cn(
+                    "flex items-center gap-2 p-2 rounded-md hover:bg-gray-200 group",
+                    set.isSelected && "bg-blue-50"
+                  )}
+                >
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{set.setName}</div>
+                    <div className="text-xs text-gray-500">
+                      Wells: {set.wells.length}
+                    </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 p-2">No saved sets for this well</p>
-            )
+                  <button
+                    onClick={() => handleViewSet(set.setName)}
+                    className="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-300 rounded"
+                    title="View logs list"
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                  <button
+                    className="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-300 rounded"
+                    title="View log plot"
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                  </button>
+                  {!set.isSelected && (
+                    <button
+                      onClick={() => handleAddToSet(set.setName)}
+                      className="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-300 rounded"
+                      title="Add current logs to set"
+                    >
+                      <Save className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           ) : (
-            <p className="text-sm text-gray-500 p-2">Select a single well to view saved sets</p>
+            <p className="text-sm text-gray-500 p-2">
+              {selectedWells.length === 0
+                ? "Select wells to view available sets"
+                : "No saved sets found. Click + to create one."}
+            </p>
           )}
         </div>
       </div>
