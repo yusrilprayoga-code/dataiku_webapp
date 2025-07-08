@@ -27,6 +27,8 @@ export interface WellDataSet {
     wells: string[]; // List of wells included in this set
     logs: LogCurve[];
     createdAt: Date;
+    displayedLogs?: string[]; // Track which logs are currently displayed
+    lastModified?: Date; // Track when the set was last modified
     markers?: { // Optional markers for visualization
         [key: string]: {
             x: number;
@@ -104,10 +106,12 @@ const initDB = () => {
 
             // Version 5 updates the schema for multi-well support
             if (oldVersion < 5) {
+                // Recreate the store with proper indexing
                 if (db.objectStoreNames.contains(STORE_WELL_SETS)) {
                     db.deleteObjectStore(STORE_WELL_SETS);
                 }
                 const wellSetsStore = db.createObjectStore(STORE_WELL_SETS, { keyPath: 'setName' });
+                // Create an index that will match individual well names from the wells array
                 wellSetsStore.createIndex('by-well', 'wells', { multiEntry: true });
             }
         },
@@ -133,19 +137,32 @@ export const saveWellDataSet = async (
 ): Promise<void> => {
     const db = await initDB();
 
-    // Get unique well names from logs
-    const wells = [...new Set(logs.map(log => log.wellName))];
+    try {
+        // Get unique well names from logs
+        const wells = [...new Set(logs.map(log => log.wellName))];
+        console.log('Saving set with wells:', wells);
 
-    const dataSet: WellDataSet = {
-        setName,
-        wells,
-        logs,
-        createdAt: new Date(),
-        ...(options?.markers && { markers: options.markers }),
-        ...(options?.selectedLogs && { selectedLogs: options.selectedLogs })
-    };
+        const dataSet: WellDataSet = {
+            setName,
+            wells,
+            logs,
+            createdAt: new Date(),
+            lastModified: new Date(),
+            ...(options?.markers && { markers: options.markers }),
+            ...(options?.selectedLogs && { selectedLogs: options.selectedLogs }),
+            displayedLogs: logs.map(log => log.curveName)
+        };
 
-    await db.put(STORE_WELL_SETS, dataSet);
+        console.log('Saving dataset:', dataSet);
+        await db.put(STORE_WELL_SETS, dataSet);
+
+        // Verify the save
+        const saved = await db.get(STORE_WELL_SETS, setName);
+        console.log('Verified saved set:', saved);
+    } catch (error) {
+        console.error('Error saving well data set:', error);
+        throw error;
+    }
 };
 
 /**
@@ -162,10 +179,15 @@ export const addLogsToSet = async (setName: string, newLogs: LogCurve[]): Promis
         const allLogs = [...existingSet.logs, ...newLogs];
         const wells = [...new Set([...existingSet.wells, ...newLogs.map(log => log.wellName)])];
 
+        // Keep track of newly added logs as displayed
+        const displayedLogs = [...(existingSet.displayedLogs || []), ...newLogs.map(log => log.curveName)];
+
         await db.put(STORE_WELL_SETS, {
             ...existingSet,
             wells,
-            logs: allLogs
+            logs: allLogs,
+            displayedLogs,
+            lastModified: new Date()
         });
     } else {
         // Create new set if it doesn't exist
@@ -180,7 +202,22 @@ export const addLogsToSet = async (setName: string, newLogs: LogCurve[]): Promis
  */
 export const getSetsForWell = async (wellName: string): Promise<WellDataSet[]> => {
     const db = await initDB();
-    return db.getAllFromIndex(STORE_WELL_SETS, 'by-well', [wellName]);
+    try {
+        // First try to get all sets
+        const allSets = await db.getAll(STORE_WELL_SETS);
+        console.log('All sets in DB:', allSets);
+
+        // Then filter for the ones that include this well
+        const setsForWell = allSets.filter(set =>
+            set.wells.includes(wellName)
+        );
+        console.log(`Sets found for well ${wellName}:`, setsForWell);
+
+        return setsForWell;
+    } catch (error) {
+        console.error('Error getting sets for well:', error);
+        return [];
+    }
 };
 
 /**
@@ -193,17 +230,45 @@ export const getWellDataSet = async (setName: string): Promise<WellDataSet | und
 };
 
 /**
+ * Gets all logs from a specific well within a set
+ * @param setName - The name of the set
+ * @param wellName - The name of the well
+ * @returns Array of LogCurve objects for the specified well
+ */
+export const getWellLogsFromSet = async (setName: string, wellName: string): Promise<LogCurve[]> => {
+    const db = await initDB();
+    const set = await db.get(STORE_WELL_SETS, setName);
+
+    if (!set) return [];
+
+    return set.logs.filter(log => log.wellName === wellName);
+};
+
+/**
  * Updates the selected logs for a set
  * @param setName - The name of the set
  * @param selectedLogs - Array of selected log names
  */
+export const updateSetDisplayedLogs = async (setName: string, displayedLogs: string[]): Promise<void> => {
+    const db = await initDB();
+    const existingSet = await db.get(STORE_WELL_SETS, setName);
+    if (existingSet) {
+        await db.put(STORE_WELL_SETS, {
+            ...existingSet,
+            displayedLogs,
+            lastModified: new Date()
+        });
+    }
+};
+
 export const updateSetSelectedLogs = async (setName: string, selectedLogs: string[]): Promise<void> => {
     const db = await initDB();
     const existingSet = await db.get(STORE_WELL_SETS, setName);
     if (existingSet) {
         await db.put(STORE_WELL_SETS, {
             ...existingSet,
-            selectedLogs
+            selectedLogs,
+            lastModified: new Date()
         });
     }
 };
@@ -212,6 +277,57 @@ export const updateSetSelectedLogs = async (setName: string, selectedLogs: strin
  * Deletes a set by name
  * @param setName - The name of the set to delete
  */
+/**
+ * Removes specific logs from a set
+ * @param setName - The name of the set
+ * @param logNames - Array of log names to remove
+ * @param wellName - Optional well name to ensure we remove the correct logs
+ */
+export const removeLogsFromSet = async (
+    setName: string,
+    logNames: string[],
+    wellName?: string
+): Promise<void> => {
+    const db = await initDB();
+    const existingSet = await db.get(STORE_WELL_SETS, setName);
+
+    if (existingSet) {
+        // Filter out the logs to remove
+        const filteredLogs = existingSet.logs.filter(log => {
+            if (wellName) {
+                return !(logNames.includes(log.curveName) && log.wellName === wellName);
+            }
+            return !logNames.includes(log.curveName);
+        });
+
+        // Update wells list based on remaining logs
+        const remainingWells = [...new Set(filteredLogs.map(log => log.wellName))];
+
+        // Update displayed logs
+        const displayedLogs = (existingSet.displayedLogs || [])
+            .filter(logName => !logNames.includes(logName));
+
+        // Update selected logs
+        const selectedLogs = (existingSet.selectedLogs || [])
+            .filter(logName => !logNames.includes(logName));
+
+        // If there are still logs in the set, update it
+        if (filteredLogs.length > 0) {
+            await db.put(STORE_WELL_SETS, {
+                ...existingSet,
+                logs: filteredLogs,
+                wells: remainingWells,
+                displayedLogs,
+                selectedLogs,
+                lastModified: new Date()
+            });
+        } else {
+            // If no logs remain, delete the entire set
+            await db.delete(STORE_WELL_SETS, setName);
+        }
+    }
+};
+
 export const deleteWellDataSet = async (setName: string): Promise<void> => {
     const db = await initDB();
     await db.delete(STORE_WELL_SETS, setName);

@@ -2,8 +2,8 @@
 
 import { PlotType, useDashboard } from '@/contexts/DashboardContext';
 import { useEffect, useState } from 'react';
-import { getSetsForWell, WellDataSet, LogCurve, addLogsToSet, saveWellDataSet, getWellDataSet } from '@/lib/db';
-import { ArrowLeft, BarChart3, List, Plus, Save } from 'lucide-react';
+import { getSetsForWell, WellDataSet, LogCurve, addLogsToSet, saveWellDataSet, getWellDataSet, deleteWellDataSet, removeLogsFromSet } from '@/lib/db';
+import { ArrowLeft, BarChart3, List, Plus, Save, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SetListItem {
@@ -97,7 +97,72 @@ export default function LeftSidebar() {
 
   const handleBackToSets = () => {
     setSelectedSet(null);
-  }; const handleCreateNewSet = async (e: React.FormEvent) => {
+  };
+
+  const handleDeleteSet = async (setName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm(`Are you sure you want to delete the set "${setName}"?`)) {
+      await deleteWellDataSet(setName);
+
+      // Refresh sets list
+      if (selectedWells.length > 0) {
+        const sets = await Promise.all(selectedWells.map(well => getSetsForWell(well)));
+        const uniqueSets = Array.from(
+          new Map(
+            sets.flat().map(set => [
+              set.setName,
+              {
+                setName: set.setName,
+                wells: set.wells,
+                isSelected: false
+              }
+            ])
+          ).values()
+        );
+        setAvailableSets(uniqueSets);
+      }
+
+      // If we're viewing this set, go back to the sets list
+      if (selectedSet?.setName === setName) {
+        setSelectedSet(null);
+      }
+    }
+  };
+
+  const handleDeleteLog = async (log: LogCurve) => {
+    if (selectedSet && confirm(`Are you sure you want to delete the log "${log.curveName}" from this set?`)) {
+      await removeLogsFromSet(selectedSet.setName, [log.curveName], log.wellName);
+
+      // Refresh the selected set view
+      const updatedSet = await getWellDataSet(selectedSet.setName);
+      if (updatedSet) {
+        setSelectedSet(updatedSet);
+      } else {
+        // If all logs were removed, the set was deleted, so go back to sets list
+        setSelectedSet(null);
+      }
+
+      // Refresh the available sets list
+      if (selectedWells.length > 0) {
+        const sets = await Promise.all(selectedWells.map(well => getSetsForWell(well)));
+        const uniqueSets = Array.from(
+          new Map(
+            sets.flat().map(set => [
+              set.setName,
+              {
+                setName: set.setName,
+                wells: set.wells,
+                isSelected: false
+              }
+            ])
+          ).values()
+        );
+        setAvailableSets(uniqueSets);
+      }
+    }
+  };
+
+  const handleCreateNewSet = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSetName.trim()) {
       alert('Please enter a name for the set');
@@ -342,8 +407,15 @@ export default function LeftSidebar() {
           ) : selectedSet ? (
             <div className="flex flex-col gap-1.5">
               {selectedSet.logs.map((log, index) => (
-                <div key={index} className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-200">
+                <div key={index} className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-200 group">
                   <span className="text-sm flex-1">{log.curveName}</span>
+                  <button
+                    onClick={() => handleDeleteLog(log)}
+                    className="p-1 opacity-0 group-hover:opacity-100 hover:bg-red-200 rounded text-red-600"
+                    title="Delete log from set"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               ))}
             </div>
@@ -384,6 +456,13 @@ export default function LeftSidebar() {
                       <Save className="h-4 w-4" />
                     </button>
                   )}
+                  <button
+                    onClick={(e) => handleDeleteSet(set.setName, e)}
+                    className="p-1 opacity-0 group-hover:opacity-100 hover:bg-red-200 rounded text-red-600"
+                    title="Delete set"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               ))}
             </div>
