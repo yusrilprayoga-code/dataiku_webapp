@@ -7,6 +7,9 @@ import { useRouter } from 'next/navigation';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { type ParameterRow } from '@/types';
 import dynamic from 'next/dynamic';
+import HistogramParams from '@/features/histogram/HistogramParams';
+import CrossplotViewerRHOB_NPHI from '@/features/crossplot/CrossPlotRHOB-NPHI';
+import CrossplotViewerGR_NPHI from '@/features/crossplot/CrossPlotGR-NPHI';
 
 // Dynamic imports to prevent SSR issues and improve loading
 const NormalizationParamsForm = dynamic(() => import('@/features/normalization/NormalizationParams'), {
@@ -114,6 +117,24 @@ export default function ModulePageClient({ moduleName, validModules }: ModulePag
                 return (
                     <Suspense fallback={<div className="p-4">Loading trim data parameters...</div>}>
                         <TrimDataParams />
+                    </Suspense>
+                );
+            case 'histogram':
+                return (
+                    <Suspense fallback={<div className="p-4">Loading histogram parameters...</div>}>
+                        <HistogramParams />
+                    </Suspense>
+                );
+            case 'crossplot-nphi-rhob':
+                return (
+                    <Suspense fallback={<div className="p-4">Loading crossplot parameters...</div>}>
+                        <CrossplotViewerRHOB_NPHI />
+                    </Suspense>
+                );
+            case 'crossplot-gr-nphi':
+                return (
+                    <Suspense fallback={<div className="p-4">Loading crossplot parameters...</div>}>
+                        <CrossplotViewerGR_NPHI />
                     </Suspense>
                 );
             case 'depth-matching':

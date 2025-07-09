@@ -1,10 +1,11 @@
 # FILE 3: api/app/routes/qc_routes.py
 # File ini khusus menangani rute-rute yang berhubungan dengan Quality Control.
 from flask import Blueprint, request, jsonify, current_app, Response
-from ..services import qc_service # Impor service yang relevan
+from ..services import qc_service  # Impor service yang relevan
 
 # Buat Blueprint. 'qc' adalah nama blueprint.
 qc_bp = Blueprint('qc', __name__)
+
 
 @qc_bp.route('/run', methods=['POST'])
 def run_qc_endpoint():
@@ -19,7 +20,8 @@ def run_qc_endpoint():
 
         # Panggil fungsi dari service untuk melakukan pekerjaan berat
         # FIX: Panggil fungsi yang benar, `run_quality_control`, dan teruskan logger.
-        results = qc_service.run_quality_control(files_to_process, current_app.logger)
+        results = qc_service.run_full_qc_pipeline(
+            files_to_process, current_app.logger)
         return jsonify(results)
 
     except Exception as e:
@@ -43,5 +45,6 @@ def handle_nulls_endpoint():
             headers={"Content-disposition": "attachment; filename=cleaned_data.csv"}
         )
     except Exception as e:
-        current_app.logger.error(f"Error di /api/qc/handle-nulls: {e}", exc_info=True)
+        current_app.logger.error(
+            f"Error di /api/qc/handle-nulls: {e}", exc_info=True)
         return jsonify({"error": "Gagal memproses data CSV."}), 500

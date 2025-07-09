@@ -49,7 +49,7 @@ const createInitialPorosityParameters = (): ParameterRow[] => {
     'RHO_DSH': 2.60,
     'NPHI_SH': 0.35,
     'PHIE_MAX': 0.3,
-    'RHO_MA_BASE': 2.71,
+    'RHO_MA_BASE': 2.65,
     'RHO_W': 1.00,
     'RHO_MAX': 4.00
   };

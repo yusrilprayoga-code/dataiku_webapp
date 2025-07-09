@@ -9,6 +9,9 @@ interface MyPageProps {
 
 // List of valid module names to prevent invalid routes
 const VALID_MODULES = [
+  'histogram',
+  'crossplot-nphi-rhob',
+  'crossplot-gr-nphi',
   'trim-data',
   'depth-matching',
   'normalization',

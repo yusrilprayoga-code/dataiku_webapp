@@ -7,6 +7,7 @@ import logging
 import os
 from flask_cors import CORS
 import pandas as pd
+from app.routes.qc_routes import qc_bp
 from app.services.plotting_service import (
     extract_markers_with_mean_depth,
     normalize_xover,
@@ -23,6 +24,7 @@ from app.services.rgsa import process_all_wells_rgsa
 from app.services.dgsa import process_all_wells_dgsa
 from app.services.ngsa import process_all_wells_ngsa
 from app.services.histogram import plot_histogram
+from app.services.crossplot import generate_crossplot
 
 app = Flask(__name__)
 
@@ -31,6 +33,7 @@ CORS(app)
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
+app.register_blueprint(qc_bp, url_prefix='/api/qc')
 
 
 @app.route('/')
@@ -39,7 +42,6 @@ def home():
     return "Flask backend is running!"
 
 
-@app.route('/api/run-qc', methods=['POST'])
 def qc_route():
     """
     Receives a list of files, runs the QC process, and returns the results.
@@ -65,7 +67,6 @@ def qc_route():
         return jsonify({"error": "An internal server error occurred."}), 500
 
 
-@app.route('/api/handle-nulls', methods=['POST'])
 def handle_nulls_route():
     """
     Receives CSV content as plain text, processes it, and returns the cleaned CSV.
@@ -183,6 +184,7 @@ def get_plot():
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/api/get-normalization-plot', methods=['POST', 'OPTIONS'])
 def get_normalization_plot():
@@ -874,6 +876,33 @@ def get_histogram_plot():
             import traceback
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/get-crossplot', methods=['POST', 'OPTIONS'])
+def get_crossplot():
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+
+    try:
+        payload = request.get_json()
+        selected_wells = payload.get('selected_wells', [])
+        x_col = payload.get('x_col', 'NPHI')
+        y_col = payload.get('y_col', 'RHOB')
+
+        if not selected_wells:
+            return jsonify({'error': 'Well belum dipilih'}), 400
+
+        df_list = [pd.read_csv(os.path.join(
+            WELLS_DIR, f"{w}.csv")) for w in selected_wells]
+        df = pd.concat(df_list, ignore_index=True)
+
+        fig = generate_crossplot(df, x_col, y_col)
+        return jsonify(fig.to_dict())
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 
 # This is for local development testing, Vercel will use its own server
