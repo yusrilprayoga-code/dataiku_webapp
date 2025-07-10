@@ -86,7 +86,10 @@ export default function LeftSidebar() {
             <option value="default">Plot Default</option>
             <option value="normalization">Plot Normalisasi</option>
             <option value="smoothing">Plot Smoothing</option>
+            <option value="vsh">Plot VSH</option>
             <option value="porosity">Plot Porosity</option>
+            <option value="sw">Plot Water Saturation</option>
+            <option value="rwa">Plot Water Resistivity</option>
             <option value="gsa">Plot GSA</option>
           </select>
         </div>

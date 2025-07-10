@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -14,6 +15,7 @@ export default function CrossplotNPHI_GR() {
   const [plotResult, setPlotResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [circleShapes, setCircleShapes] = useState<any[]>([]);
+  const { vshParams } = useAppDataStore();
 
   const handleClick = (event: any) => {
     const x = event.points[0].x;
@@ -58,6 +60,8 @@ export default function CrossplotNPHI_GR() {
           selected_wells: selectedWells,
           x_col: 'NPHI',
           y_col: 'GR',
+          GR_MA: vshParams.gr_ma,
+          GR_SH: vshParams.gr_sh,
         }),
       });
 

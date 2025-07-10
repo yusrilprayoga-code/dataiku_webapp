@@ -5,31 +5,39 @@ import { useRouter } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
-import HistogramParams from '../histogram/HistogramParams';
-import { useAppDataStore } from '@/stores/useAppDataStore';
 
-const createInitialVshParameters = (): ParameterRow[] => {
-  // Untuk VSH, nilai parameter tidak bergantung pada interval, jadi kita hardcode 'default'
+const createInitialSWParameters = (): ParameterRow[] => {
+  // Untuk SW, nilai parameter tidak bergantung pada interval, jadi kita hardcode 'default'
   const createValues = (val: string | number) => ({ 'default': val });
 
-  // Definisikan master list parameter yang relevan untuk VSH
+  // Definisikan master list parameter yang relevan untuk SW
   const allPossibleParams: Omit<ParameterRow, 'values'>[] = [
-    { id: 1, location: 'Interval', mode: 'In_Out', comment: 'Option for VSH from gamma ray', unit: 'ALPHA*8', name: 'OPT_GR', isEnabled: true },
-    { id: 2, location: 'Interval', mode: 'In_Out', comment: 'Gamma ray matrix (clean)', unit: 'GAPI', name: 'GR_MA', isEnabled: true },
-    { id: 3, location: 'Interval', mode: 'In_Out', comment: 'Gamma ray shale', unit: 'GAPI', name: 'GR_SH', isEnabled: true },
-    // { id: 4, location: 'Interval', mode: 'In_Out', comment: 'Option to allow coal logic', unit: 'LOGICAL', name: 'OPT_COAL', isEnabled: true },
-    { id: 4, location: 'Log', mode: 'Input', comment: 'Gamma ray log', unit: 'GAPI', name: 'GR', isEnabled: true },
-    { id: 5, location: 'Log', mode: 'Output', comment: 'VSH from gamma ray', unit: 'V/V', name: 'VSH_GR', isEnabled: true },
+    { id: 1, location: 'Interval', mode: 'In_Out', comment: 'Tortuosity constant', unit: '', name: 'A', isEnabled: true },
+    { id: 2, location: 'Interval', mode: 'In_Out', comment: 'Cementation Factor', unit: '', name: 'M', isEnabled: true },
+    { id: 3, location: 'Interval', mode: 'In_Out', comment: 'Saturation exponent', unit: '', name: 'N', isEnabled: true },
+    { id: 4, location: 'Interval', mode: 'In_Out', comment: 'Resistivity of formation water', unit: 'OHMM', name: 'RWS', isEnabled: true },
+    { id: 5, location: 'Interval', mode: 'In_Out', comment: 'Temperature of RWS value', unit: 'DEGC', name: 'RWT', isEnabled: true },
+    { id: 6, location: 'Interval', mode: 'In_Out', comment: 'Shale resistivity', unit: 'OHMM', name: 'RT_SH', isEnabled: true },
+    { id: 7, location: 'Log', mode: 'Input', comment: 'True formation resistivity', unit: 'OHMM', name: 'RT', isEnabled: true },
+    { id: 8, location: 'Log', mode: 'Input', comment: 'Limited effective porosity', unit: 'V/V', name: 'PHIE', isEnabled: true },
+    { id: 9, location: 'Log', mode: 'Input', comment: 'Limited volume of shale', unit: 'V/V', name: 'VSH', isEnabled: true },
+    { id: 10, location: 'Log', mode: 'Input', comment: 'Formation temperature', unit: 'DEGF', name: 'FTEMP', isEnabled: true },
+    { id: 11, location: 'Log', mode: 'Output', comment: 'SW from Indonesia', unit: 'V/V', name: 'SW', isEnabled: true },
   ];
 
-  // Definisikan nilai default
   const defaultValues: Record<string, string | number> = {
-    'OPT_GR': 'LINEAR',
-    'GR_MA': 30,
-    'GR_SH': 120,
-    'GR': 'GR',
-    'VSH_GR': 'VSH_GR',
-  };
+    RWS: 0.529,
+    RWT: 227,
+    FTEMP: 80,
+    RT_SH: 2.2,
+    A: 1.0,
+    M: 2.0,
+    N: 2.0,
+    RT: 'RT',
+    PHIE: 'PHIE',
+    SW: 'SW',
+    VSH: 'VSH'
+    };
 
   // Petakan untuk menghasilkan data awal yang benar
   return allPossibleParams.map(p => ({
@@ -38,18 +46,15 @@ const createInitialVshParameters = (): ParameterRow[] => {
   }));
 };
 
-export default function VshCalculationParams() {
+export default function SWCalculationParams() {
   const { selectedIntervals, selectedWells, wellColumns } = useDashboard();
   const router = useRouter();
   const [parameters, setParameters] = useState<ParameterRow[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
-  const [showHistogram, setShowHistogram] = useState(false);
-  const [showCrossplot, setShowCrossplot] = useState(false);
-  const { setVshParams } = useAppDataStore();
 
   useEffect(() => {
-    setParameters(createInitialVshParameters());
+    setParameters(createInitialSWParameters());
   }, []);
 
   const combinedColumns = selectedWells.flatMap(well => wellColumns[well] || []);
@@ -92,11 +97,6 @@ export default function VshCalculationParams() {
       return acc;
     }, {} as Record<string, string | number>);
 
-    setVshParams({
-        gr_ma: Number(formParams.GR_MA),
-        gr_sh: Number(formParams.GR_SH)
-    });
-
     const payload = {
       params: formParams,
       selected_wells: selectedWells,
@@ -104,7 +104,7 @@ export default function VshCalculationParams() {
     };
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    const endpoint = `${apiUrl}/api/run-vsh-calculation`;
+    const endpoint = `${apiUrl}api/run-sw-calculation`;
 
     try {
       const response = await fetch(endpoint, {
@@ -119,7 +119,7 @@ export default function VshCalculationParams() {
       }
 
       const result = await response.json();
-      alert(result.message || "Proses kalkulasi VSH berhasil!");
+      alert(result.message || "Proses kalkulasi SW berhasil!");
       router.push('/dashboard');
 
     } catch (error) {
@@ -163,7 +163,7 @@ export default function VshCalculationParams() {
 
   return (
     <div className="p-4 md:p-6 h-full flex flex-col bg-white rounded-lg shadow-md">
-      <h2 className="text-xl font-bold mb-4 text-gray-800 flex-shrink-0">Volume of shale by gamma ray method</h2>
+      <h2 className="text-xl font-bold mb-4 text-gray-800 flex-shrink-0">Water Saturation Input Parameters</h2>
 
       <form onSubmit={handleSubmit} className="flex-grow flex flex-col min-h-0">
         {/* Bagian Konfigurasi Atas */}
@@ -266,48 +266,8 @@ export default function VshCalculationParams() {
           </div>
         </div>
       </form>
-        <div className="flex justify-end gap-2 mt-2">
-          <button
-            type="button"
-            className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold"
-            onClick={() => setShowHistogram(true)}
-          >
-            Histogram
-          </button>
-          <button
-            type="button"
-            className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold"
-            onClick={() => setShowCrossplot(true)}
-          >
-            Crossplot
-          </button>
-      </div>
-
-      {showHistogram && (
-        <div className="mt-6">
-          <HistogramParams />
-        </div>
-      )}
-
-      {showCrossplot && (
-        <div className="mt-6">
-          <CrossplotViewer onClose={function (): void {
-            throw new Error('Function not implemented.');
-          } } />
-        </div>
-      )}
     </div>
   );
 }
 
-const CrossplotViewer = ({ onClose }: { onClose: () => void }) => {
-  return (
-    <div className="p-4 border rounded bg-gray-100 mt-4">
-      <div className="flex justify-between items-center mb-2">
-        <h4 className="font-semibold text-lg">Crossplot Viewer</h4>
-        <button onClick={onClose} className="text-red-500 font-semibold">Close</button>
-      </div>
-      <p>Visualisasi crossplot akan ditampilkan di sini.</p>
-    </div>
-  );
-};
+

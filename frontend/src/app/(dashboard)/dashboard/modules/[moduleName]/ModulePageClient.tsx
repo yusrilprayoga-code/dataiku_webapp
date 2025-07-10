@@ -32,6 +32,16 @@ const PorosityCalculationParams = dynamic(() => import('@/features/porosity/Poro
     ssr: false
 });
 
+const SWCalculationParams = dynamic(() => import('@/features/sw-calculation/WaterSaturationParams'), {
+    loading: () => <div className="p-4">Loading water saturation calculation parameters...</div>,
+    ssr: false
+});
+
+const RWACalculationParams = dynamic(() => import('@/features/water-resistivity-calculation/WaterResistivityParams'), {
+    loading: () => <div className="p-4">Loading RWA calculation parameters...</div>,
+    ssr: false
+});
+
 const GsaCalculationParams = dynamic(() => import('@/features/rgsa-ngsa-dgsa/GsaCalculationParams'), {
     loading: () => <div className="p-4">Loading GSA calculation parameters...</div>,
     ssr: false
@@ -161,6 +171,18 @@ export default function ModulePageClient({ moduleName, validModules }: ModulePag
                 return (
                     <Suspense fallback={<div className="p-4">Loading porosity calculation parameters...</div>}>
                         <PorosityCalculationParams />
+                    </Suspense>
+                );
+            case 'sw-calculation':
+                return (
+                    <Suspense fallback={<div className="p-4">Loading water saturation calculation parameters...</div>}>
+                        <SWCalculationParams />
+                    </Suspense>
+                );
+            case 'water-resistivity-calculation':
+                return (
+                    <Suspense fallback={<div className="p-4">Loading Water Resistivity calculation parameters...</div>}>
+                        <RWACalculationParams />
                     </Suspense>
                 );
             case 'rgsa-ngsa-dgsa':

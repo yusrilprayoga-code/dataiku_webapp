@@ -20,7 +20,7 @@ const VALID_MODULES = [
   'porosity-calculation',
   'rgsa-ngsa-dgsa',
   'fill-missing',
-  'sw-calculation',
+  'water-resistivity-calculation',
   'water-resistivity-calculation'
 ];
 

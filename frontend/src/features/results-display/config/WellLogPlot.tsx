@@ -49,6 +49,15 @@ export default function WellLogPlot() {
         case 'gsa':
           endpointPath = '/api/get-gsa-plot';
           break;
+        case 'vsh':
+          endpointPath = '/api/get-vsh-plot';
+          break;
+        case 'sw':
+          endpointPath = '/api/get-sw-plot';
+          break;
+        case 'rwa':
+          endpointPath = '/api/get-rwa-plot';
+          break;
         case 'default':
         default:
           endpointPath = '/api/get-plot';
@@ -57,7 +66,6 @@ export default function WellLogPlot() {
       const endpoint = `${apiUrl}${endpointPath}`;
 
       try {
-        // FIX: Gunakan metode POST dan kirim `selectedWells`
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {

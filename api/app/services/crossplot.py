@@ -5,7 +5,7 @@ from collections import Counter
 import math
 
 
-def generate_crossplot(df: pd.DataFrame, x_col: str, y_col: str):
+def generate_crossplot(df: pd.DataFrame, x_col: str, y_col: str, gr_ma: float, gr_sh: float):
     df_clean = df[[x_col, y_col]].dropna()
 
     if df_clean.empty:
@@ -154,22 +154,22 @@ def generate_crossplot(df: pd.DataFrame, x_col: str, y_col: str):
         fig.add_shape(
             type="line",
             x0=1, y0=0,
-            x1=-0.02, y1=30,
+            x1=-0.02, y1=gr_ma,  # y1 digantikan input user GR_MA kalau ada, jika tidak ada tetap 30
             xref='x', yref='y',
             line=dict(color="black", width=2, dash="solid"),
             layer='above'
         )
         fig.add_shape(
             type="line",
-            x0=-0.02, y0=30,
-            x1=0.4, y1=120,
+            x0=-0.02, y0=gr_ma,  # y0 digantikan input user GR_MA kalau ada, jika tidak ada tetap 30
+            x1=0.4, y1=gr_sh,  # y1 digantikan input user GR_SH kalau ada, jika tidak ada tetap 120
             xref='x', yref='y',
             line=dict(color="black", width=2, dash="solid"),
             layer='above'
         )
         fig.add_shape(
             type="line",
-            x0=0.4, y0=120,
+            x0=0.4, y0=gr_sh,  # y0 digantikan input user GR_SH kalau ada, jika tidak ada tetap 120
             x1=1, y1=0,
             xref='x', yref='y',
             line=dict(color="black", width=2, dash="solid"),

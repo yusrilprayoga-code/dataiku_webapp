@@ -6,7 +6,7 @@ import React, { createContext, useState, useContext, ReactNode, useEffect, useCa
 // REMOVE this import, we no longer get data from the client's DB
 // import { getProcessedWellList } from '@/lib/db'; 
 
-export type PlotType = 'default' | 'normalization' | 'smoothing' | 'porosity' | 'gsa';
+export type PlotType = 'default' | 'normalization' | 'smoothing' | 'porosity' | 'sw' | 'vsh' | 'rwa' | 'gsa';
 
 interface DashboardContextType {
   availableWells: string[];
