@@ -9,7 +9,6 @@ import { type PlotData, type ParameterRow } from '@/types';
 import { useRouter } from 'next/navigation';
 import SworadParams from './components/SworadParams';
 
-const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 export default function SworadPage() {
     const { selectedWells, selectedIntervals } = useDashboard();
@@ -17,7 +16,7 @@ export default function SworadPage() {
     const [error, setError] = useState<string | null>(null);
     const [plot, setPlot] = useState<PlotData | null>(null);
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    const endpoint = `${apiUrl}/api/get-sworad-plot`;
+    const endpoint = `${apiUrl}/api/run-swgrad`;
     const createInitialParameters = (intervals: string[]): ParameterRow[] => {
         const createValues = (val: string | number) => Object.fromEntries(intervals.map(i => [i, val]));
 
@@ -174,30 +173,6 @@ export default function SworadPage() {
                 <h3 className="text-lg font-semibold mb-2 flex-shrink-0">Parameters</h3>
                 <SworadParams parameters={parameters} onParameterChange={handleParameterChange} />
             </div>
-
-            {plot && (
-                <div className="mt-6 flex-grow">
-                    <h3 className="text-lg font-semibold mb-2">Results</h3>
-                    <div className="h-[400px] border rounded-lg">
-                        <Plot
-                            data={plot.data}
-                            layout={{
-                                ...plot.layout,
-                                autosize: true,
-                                height: undefined,
-                                width: undefined,
-                            }}
-                            style={{ width: '100%', height: '100%' }}
-                            useResizeHandler={true}
-                            config={{
-                                displaylogo: false,
-                                responsive: true,
-                                scrollZoom: true,
-                            }}
-                        />
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

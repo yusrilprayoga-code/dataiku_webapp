@@ -490,6 +490,10 @@ export default function LeftSidebar() {
             <option value="smoothing">Plot Smoothing</option>
             <option value="porosity">Plot Porosity</option>
             <option value="gsa">GSA Plot</option>
+            <option value="rpbe-rgbe">RPBE RGBE Plot</option>
+            <option value="sworad">SWORAD Plot</option>
+            <option value="dns-dnsv">DNS-DNSV Plot</option>
+            <option value="rt-ro">RT-RO Plot</option>
           </select>
         </div>
       </div>

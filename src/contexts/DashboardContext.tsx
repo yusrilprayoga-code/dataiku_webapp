@@ -6,7 +6,7 @@ import React, { createContext, useState, useContext, ReactNode, useEffect } from
 import { type Data } from 'plotly.js';
 import { type LogCurve } from '@/lib/db';
 
-export type PlotType = 'default' | 'normalization' | 'smoothing' | 'porosity' | 'gsa';
+export type PlotType = 'default' | 'normalization' | 'smoothing' | 'porosity' | 'gsa' | 'rpbe-rgbe' | 'sworad' | 'dns-dnsv' | 'rt-ro';
 
 interface DashboardContextType {
   availableWells: string[];

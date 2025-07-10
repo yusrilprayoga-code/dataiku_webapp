@@ -48,6 +48,18 @@ export default function WellLogPlot() {
         case 'gsa':
           endpointPath = '/api/get-gsa-plot';
           break;
+        case 'rpbe-rgbe':
+          endpointPath = '/api/get-rgbe-rpbe-plot';
+          break;
+        case 'sworad':
+          endpointPath = '/api/get-swgrad-plot';
+          break;
+        case 'dns-dnsv':
+          endpointPath = '/api/get-dns-dnsv-plot';
+          break;
+        case 'rt-ro':
+          endpointPath = '/api/get-rt-ro-plot';
+          break;
         case 'default':
         default:
           endpointPath = '/api/get-plot';
