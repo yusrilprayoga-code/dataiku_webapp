@@ -45,7 +45,7 @@ export default function DnsDnsvCalculationPage() {
                 alert("✅ " + result.message);
 
                 // Redirect to the dashboard or the plot page after completion
-                router.push('/dashboard/dns-dnsv-plot');
+                router.push('/dashboard');
 
             } catch (error) {
                 alert(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);

@@ -58,7 +58,7 @@ export default function WellLogPlot() {
           endpointPath = '/api/get-dns-dnsv-plot';
           break;
         case 'rt-ro':
-          endpointPath = '/api/get-rt-ro-plot';
+          endpointPath = '/api/get-rt-r0-plot';
           break;
         case 'default':
         default:

@@ -20,7 +20,7 @@ const DnsDnsvPage = dynamic(() => import('@/features/dns-dnsv/page'), {
     loading: () => <p>Loading DNS-DNSV analysis...</p>, ssr: false
 });
 const RtRoPage = dynamic(() => import('@/features/rt-ro/page'), {
-    loading: () => <p>Loading RT-RO analysis...</p>, ssr: false
+    loading: () => <p>Loading RT-R0 analysis...</p>, ssr: false
 });
 
 // Other dynamic module imports
@@ -168,7 +168,7 @@ export default function ModulePageClient({ moduleName, validModules }: ModulePag
                 );
             case 'rt-ro':
                 return (
-                    <Suspense fallback={<p>Loading RT-RO analysis...</p>}>
+                    <Suspense fallback={<p>Loading RT-R0 analysis...</p>}>
                         <RtRoPage />
                     </Suspense>
                 );
