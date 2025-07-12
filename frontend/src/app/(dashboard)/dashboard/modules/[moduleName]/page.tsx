@@ -21,7 +21,7 @@ const VALID_MODULES = [
   'rgsa-ngsa-dgsa',
   'fill-missing',
   'water-resistivity-calculation',
-  'water-resistivity-calculation'
+  'sw-calculation'
 ];
 
 export default async function MyPage({ params }: MyPageProps) {
