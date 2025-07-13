@@ -22,15 +22,15 @@ export default function DashboardLayout({
 }
 
 // Komponen baru untuk layout yang menggunakan client-side hooks
-function DashboardView({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const activeModule = pathname.split('/').pop()?.toUpperCase().replace(/-/g, ' ') || null;
-
-  return (
-    <div className="flex h-screen w-full bg-gray-100 font-sans text-gray-800">
-      <LeftSidebar />
-      <MainContent>{children}</MainContent>
-      <RightSidebar activeButton={activeModule} />
-    </div>
-  );
+function DashboardView({ children }: { children: React.ReactNode }) {    
+    const pathname = usePathname();
+    const activeModule = pathname.split('/').pop()?.toUpperCase().replace(/-/g, ' ') || null;
+    
+    return (
+        <div className="flex h-screen w-full bg-gray-100 font-sans text-gray-800">
+            <LeftSidebar />
+            <MainContent>{children}</MainContent>
+            <RightSidebar activeButton={activeModule} />
+        </div>
+    );
 }

@@ -9,7 +9,6 @@ import { QcApiResponse, QcSummaryItem } from './types';
 
 export default function QcRunner() {
     // Ambil data yang sudah disiapkan dari Zustand store
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     const { stagedStructure, setQcResults } = useAppDataStore();
     const [isLoading, setIsLoading] = useState(false);
     const [apiResponse, setApiResponse] = useState<QcApiResponse | null>(null);
@@ -32,10 +31,8 @@ export default function QcRunner() {
                 content: file.rawContentString,
             }));
 
-            console.log("apiUrl:", apiUrl);
-
             // Panggil endpoint QC yang baru dan bersih
-            const response = await fetch(`${apiUrl}/api/run-qc`, {
+            const response = await fetch('/api/qc/run', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ files: filesToProcess }),

@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any*/
+
 // frontend/src/app/(dashboard)/dashboard/modules/[moduleName]/page.tsx
 import React, { Suspense } from 'react';
 import ModulePageClient from './ModulePageClient';
@@ -10,6 +9,9 @@ interface MyPageProps {
 
 // List of valid module names to prevent invalid routes
 const VALID_MODULES = [
+  'histogram',
+  'crossplot-nphi-rhob',
+  'crossplot-gr-nphi',
   'trim-data',
   'depth-matching',
   'normalization',
@@ -18,18 +20,13 @@ const VALID_MODULES = [
   'porosity-calculation',
   'rgsa-ngsa-dgsa',
   'fill-missing',
-  'sw-calculation',
   'water-resistivity-calculation',
-  'rpbe-rgbe',
-  'sworad',
-  'dns-dnsv',
-  'rt-ro'
+  'sw-calculation'
 ];
 
 export default async function MyPage({ params }: MyPageProps) {
   const resolvedParams = await params;
   const moduleName = resolvedParams.moduleName;
-
   return (
     <Suspense fallback={
       <div className="h-full p-4 md:p-6 bg-gray-50">

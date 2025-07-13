@@ -3,17 +3,18 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { type Layout } from 'plotly.js';
+import { type Layout, type Data } from 'plotly.js';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { Loader2 } from 'lucide-react';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 export default function WellLogPlot() {
+  const [plotData, setPlotData] = useState<Data[]>([]);
   const [plotLayout, setPlotLayout] = useState<Partial<Layout>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { selectedWells, plotType, setPlotData, plotData } = useDashboard();
+  const { selectedWells, plotType } = useDashboard();
 
   useEffect(() => {
     if (selectedWells.length === 0) {
@@ -48,17 +49,14 @@ export default function WellLogPlot() {
         case 'gsa':
           endpointPath = '/api/get-gsa-plot';
           break;
-        case 'rpbe-rgbe':
-          endpointPath = '/api/get-rgbe-rpbe-plot';
+        case 'vsh':
+          endpointPath = '/api/get-vsh-plot';
           break;
-        case 'sworad':
-          endpointPath = '/api/get-swgrad-plot';
+        case 'sw':
+          endpointPath = '/api/get-sw-plot';
           break;
-        case 'dns-dnsv':
-          endpointPath = '/api/get-dns-dnsv-plot';
-          break;
-        case 'rt-ro':
-          endpointPath = '/api/get-rt-r0-plot';
+        case 'rwa':
+          endpointPath = '/api/get-rwa-plot';
           break;
         case 'default':
         default:
@@ -108,11 +106,11 @@ export default function WellLogPlot() {
   }
 
   if (error) {
-    return <p className="text-red-500 p-4">Error: {error}</p>;
+    return <p style={{ color: 'red' }}>Error: {error}</p>;
   }
 
   return (
-    <div className="border-1 border-gray-200 p-4 bg-white rounded-lg shadow-md h-full w-full">
+    <div style={{ border: '1px solid #ccc', padding: '1rem', background: 'white', borderRadius: '8px', height: '100%', width: '100%' }}>
       <Plot
         data={plotData}
         layout={plotLayout}

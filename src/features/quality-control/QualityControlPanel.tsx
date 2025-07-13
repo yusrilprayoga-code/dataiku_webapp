@@ -110,10 +110,7 @@ export default function QualityControlPanel() {
 
             setProcessingMessage(`Menjalankan QC pada ${filesToProcess.length} file...`);
 
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-            console.log("apiUrl:", apiUrl);
-
-            const response = await fetch(`${apiUrl}/api/run-qc`, {
+            const response = await fetch('/api/qc/run', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ files: filesToProcess }),
