@@ -3,18 +3,17 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { type Layout, type Data } from 'plotly.js';
+import { type Layout } from 'plotly.js';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { Loader2 } from 'lucide-react';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 export default function WellLogPlot() {
-  const [plotData, setPlotData] = useState<Data[]>([]);
   const [plotLayout, setPlotLayout] = useState<Partial<Layout>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { selectedWells, plotType } = useDashboard();
+  const { selectedWells, plotType, setPlotData, plotData } = useDashboard();
 
   useEffect(() => {
     if (selectedWells.length === 0) {
@@ -49,6 +48,18 @@ export default function WellLogPlot() {
         case 'gsa':
           endpointPath = '/api/get-gsa-plot';
           break;
+        case 'rpbe-rgbe':
+          endpointPath = '/api/get-rgbe-rpbe-plot';
+          break;
+        case 'sworad':
+          endpointPath = '/api/get-swgrad-plot';
+          break;
+        case 'dns-dnsv':
+          endpointPath = '/api/get-dns-dnsv-plot';
+          break;
+        case 'rt-ro':
+          endpointPath = '/api/get-rt-r0-plot';
+          break;
         case 'default':
         default:
           endpointPath = '/api/get-plot';
@@ -57,7 +68,6 @@ export default function WellLogPlot() {
       const endpoint = `${apiUrl}${endpointPath}`;
 
       try {
-        // FIX: Gunakan metode POST dan kirim `selectedWells`
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
@@ -98,11 +108,11 @@ export default function WellLogPlot() {
   }
 
   if (error) {
-    return <p style={{ color: 'red' }}>Error: {error}</p>;
+    return <p className="text-red-500 p-4">Error: {error}</p>;
   }
 
   return (
-    <div style={{ border: '1px solid #ccc', padding: '1rem', background: 'white', borderRadius: '8px', height: '100%', width: '100%' }}>
+    <div className="border-1 border-gray-200 p-4 bg-white rounded-lg shadow-md h-full w-full">
       <Plot
         data={plotData}
         layout={plotLayout}

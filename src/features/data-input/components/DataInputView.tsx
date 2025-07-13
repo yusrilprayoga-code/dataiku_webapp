@@ -47,13 +47,15 @@ export default function DataInputView() {
     setActiveFolder('output');
     setSelectedFileForPreview(null);
     setSelectedFileId(null);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
     try {
+      console.log("apiUrl:", apiUrl);
       const filesToProcess = stagedStructure.files.map(file => ({
         name: file.originalName || file.name,
         content: file.rawContentString
       }));
-      const qcResponse = await fetch('/api/run-qc', {
+      const qcResponse = await fetch(`${apiUrl}/api/run-qc`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ files: filesToProcess }),

@@ -19,7 +19,11 @@ const VALID_MODULES = [
   'rgsa-ngsa-dgsa',
   'fill-missing',
   'sw-calculation',
-  'water-resistivity-calculation'
+  'water-resistivity-calculation',
+  'rpbe-rgbe',
+  'sworad',
+  'dns-dnsv',
+  'rt-ro'
 ];
 
 export default async function MyPage({ params }: MyPageProps) {

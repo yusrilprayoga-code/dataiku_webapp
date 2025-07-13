@@ -60,6 +60,7 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
       ...p,
       values: createValues(defaultValues[p.name] || '')
     }));
+
 };
 
 export default function GsaCalculationParams() {

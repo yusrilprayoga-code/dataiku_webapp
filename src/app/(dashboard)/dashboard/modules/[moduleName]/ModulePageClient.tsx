@@ -9,6 +9,20 @@ import { useAppDataStore } from '@/stores/useAppDataStore';
 import { type ParameterRow } from '@/types';
 import dynamic from 'next/dynamic';
 
+// GOWS module imports
+const RgbeRpbePage = dynamic(() => import('@/features/rgbe-rpbe/page'), {
+    loading: () => <p>Loading RGBE-RPBE analysis...</p>, ssr: false
+});
+const SworadPage = dynamic(() => import('@/features/sworad/page'), {
+    loading: () => <p>Loading SWORAD analysis...</p>, ssr: false
+});
+const DnsDnsvPage = dynamic(() => import('@/features/dns-dnsv/page'), {
+    loading: () => <p>Loading DNS-DNSV analysis...</p>, ssr: false
+});
+const RtRoPage = dynamic(() => import('@/features/rt-ro/page'), {
+    loading: () => <p>Loading RT-R0 analysis...</p>, ssr: false
+});
+
 // Other dynamic module imports
 const NormalizationParamsForm = dynamic(() => import('@/features/normalization/NormalizationParams'), {
     loading: () => <p>Loading normalization parameters...</p>, ssr: false
@@ -132,6 +146,30 @@ export default function ModulePageClient({ moduleName, validModules }: ModulePag
                 return (
                     <Suspense fallback={<p>Loading GSA calculation parameters...</p>}>
                         <GsaCalculationParams />
+                    </Suspense>
+                );
+            case 'rpbe-rgbe':
+                return (
+                    <Suspense fallback={<p>Loading RPBE-RGBE analysis...</p>}>
+                        <RgbeRpbePage />
+                    </Suspense>
+                );
+            case 'sworad':
+                return (
+                    <Suspense fallback={<p>Loading SWORAD analysis...</p>}>
+                        <SworadPage />
+                    </Suspense>
+                );
+            case 'dns-dnsv':
+                return (
+                    <Suspense fallback={<p>Loading DNS-DNSV analysis...</p>}>
+                        <DnsDnsvPage />
+                    </Suspense>
+                );
+            case 'rt-ro':
+                return (
+                    <Suspense fallback={<p>Loading RT-R0 analysis...</p>}>
+                        <RtRoPage />
                     </Suspense>
                 );
             default:
