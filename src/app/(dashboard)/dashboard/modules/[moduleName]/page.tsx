@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any*/
+=======
+
+>>>>>>> module-2-fixed
 // frontend/src/app/(dashboard)/dashboard/modules/[moduleName]/page.tsx
 import React, { Suspense } from 'react';
 import ModulePageClient from './ModulePageClient';
@@ -13,6 +17,7 @@ const VALID_MODULES = [
   'histogram',
   'crossplot-nphi-rhob',
   'crossplot-gr-nphi',
+<<<<<<< HEAD
   'crossplot-rhob-gr',
   'crossplot-rhob-dt',
   'crossplot-rhob-dphi',
@@ -22,11 +27,14 @@ const VALID_MODULES = [
   'crossplot-rhob-rl-porosity',
   'crossplot-rhob-rl-vsh',
   'crossplot-rhob-rl-sw',
+=======
+>>>>>>> module-2-fixed
   'trim-data',
   'depth-matching',
   'normalization',
   'smoothing',
   'vsh-calculation',
+<<<<<<< HEAD
   'porosity-calculation',
   'rgsa-ngsa-dgsa',
   'fill-missing',
@@ -36,12 +44,23 @@ const VALID_MODULES = [
   'swgrad',
   'dns-dnsv',
   'rt-ro'
+=======
+  'vsh-dn-calculation',
+  'porosity-calculation',
+  'rgsa-ngsa-dgsa',
+  'fill-missing',
+  'water-resistivity-calculation',
+  'sw-calculation'
+>>>>>>> module-2-fixed
 ];
 
 export default async function MyPage({ params }: MyPageProps) {
   const resolvedParams = await params;
   const moduleName = resolvedParams.moduleName;
+<<<<<<< HEAD
 
+=======
+>>>>>>> module-2-fixed
   return (
     <Suspense fallback={
       <div className="h-full p-4 md:p-6 bg-gray-50">

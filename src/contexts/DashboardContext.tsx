@@ -1,3 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // /src/contexts/DashboardContext.tsx
 
 'use client';
@@ -5,11 +8,8 @@
 import { LogCurve } from '@/lib/db';
 import { Data } from 'plotly.js';
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
-// REMOVE this import, we no longer get data from the client's DB
-// import { getProcessedWellList } from '@/lib/db'; 
 
 export type PlotType = 'default' | 'normalization' | 'smoothing' | 'porosity' | 'sw' | 'vsh' | 'rwa' | 'gsa' | 'rpbe-rgbe' | 'swgrad' | 'dns-dnsv' | 'rt-ro';
-
 
 interface DashboardContextType {
   availableWells: string[];
@@ -38,6 +38,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     const fetchWellsFromServer = async () => {
       try {
         if (!apiUrl) {
@@ -181,7 +182,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           plotData: plotData
         });
       } catch (err) {
-        console.error(`Error processing log ${t.name}:`, err);
+        console.error(`Error processing log ${t.name}: ${err}`);
       }
     }
 

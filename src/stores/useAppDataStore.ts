@@ -15,6 +15,13 @@ interface VshParams {
   gr_sh: number;
 }
 
+interface VshDNParams {
+  rho_ma: number;
+  rho_sh: number;
+  nphi_ma: number;
+  nphi_sh: number;
+}
+
 // Interface AppState sekarang bisa menemukan tipe VshParams
 interface AppState {
   // --- State for Data Input & QC Process ---
@@ -25,7 +32,6 @@ interface AppState {
 
   // --- State for Dashboard Interaction ---
   selectedWell: string | null;
-  selectedWells: string[]; // Add this line
   selectedIntervals: string[];
   plotData: Data[];
   plotLayout: Partial<Layout>;
@@ -34,8 +40,10 @@ interface AppState {
 
   // State baru untuk menyimpan parameter VSH
   vshParams: VshParams;
+  vshDNParams: VshDNParams;
   // Aksi baru untuk memperbarui parameter VSH
   setVshParams: (params: VshParams) => void;
+  setVshDNParams: (params: VshDNParams) => void;
 
   // --- Actions ---
   setStagedStructure: (structure: StagedStructure) => void;
@@ -46,7 +54,6 @@ interface AppState {
   clearNormalizationResults: () => void;
   clearAllData: () => void;
   setSelectedWell: (well: string) => void;
-  setSelectedWells: (wells: string[]) => void; // Add this line
   toggleInterval: (interval: string) => void;
   fetchPlotData: (wellId: string) => Promise<void>;
 }
@@ -60,7 +67,6 @@ export const useAppDataStore = create<AppState>()(
       handledFiles: [],
       normalizationResults: {},
       selectedWell: 'ABAB-035',
-      selectedWells: [], // Add this line
       selectedIntervals: ['B1', 'GUF'],
       plotData: [],
       plotLayout: {},
@@ -72,17 +78,22 @@ export const useAppDataStore = create<AppState>()(
         gr_ma: 30, // Nilai default
         gr_sh: 120, // Nilai default
       },
+      vshDNParams: {
+        rho_ma: 2.645, // Nilai default
+        rho_sh: 2.61,  // Nilai default
+        nphi_ma: -0.02, // Nilai default
+        nphi_sh: 0.398, // Nilai default
+      },
 
       // --- Actions Implementation ---
-      setStagedStructure: (structure) => set({ stagedStructure: structure }),
-      setQcResults: (results) => set({ qcResults: results }),
-      addHandledFile: (file) => set((state) => ({
+      setStagedStructure: (structure: StagedStructure) => set({ stagedStructure: structure }),
+      setQcResults: (results: QCResponse | null) => set({ qcResults: results }),
+      addHandledFile: (file: PreviewableFile) => set((state) => ({
         handledFiles: [...state.handledFiles, file]
       })),
-      addNormalizationResult: (id, plot) => set(state => ({
+      addNormalizationResult: (id: string, plot: PlotData) => set(state => ({
         normalizationResults: { ...state.normalizationResults, [id]: plot }
       })),
-      setSelectedWells: (wells) => set({ selectedWells: wells }), // Add this line
       clearQcResults: () => set({ qcResults: null, handledFiles: [] }),
       clearNormalizationResults: () => set({ normalizationResults: {} }),
       clearAllData: () => set({
@@ -90,24 +101,25 @@ export const useAppDataStore = create<AppState>()(
         qcResults: null,
         handledFiles: [],
         normalizationResults: {},
-        selectedWells: [], // Add this line
+        // Anda mungkin juga ingin mereset vshParams di sini
         vshParams: { gr_ma: 30, gr_sh: 120 },
+        vshDNParams: { rho_ma: 2.645, rho_sh: 2.61, nphi_ma: -0.02, nphi_sh: 0.398 },
       }),
-      setSelectedWell: (well) => {
+      setSelectedWell: (well: string) => {
         set({ selectedWell: well });
         get().fetchPlotData(well);
       },
-      toggleInterval: (interval) =>
+      toggleInterval: (interval: string) =>
         set((state) => ({
           selectedIntervals: state.selectedIntervals.includes(interval)
             ? state.selectedIntervals.filter((i) => i !== interval)
             : [...state.selectedIntervals, interval],
         })),
+      
+      setVshParams: (params: VshParams) => set({ vshParams: params }),
+      setVshDNParams: (params: VshDNParams) => set({ vshDNParams: params }),
 
-      // FIX #3: Tambahkan implementasi untuk aksi setVshParams
-      setVshParams: (params) => set({ vshParams: params }),
-
-      fetchPlotData: async (wellId) => {
+      fetchPlotData: async (wellId: string) => {
         // ... logika fetch Anda ...
       },
     }),
@@ -116,8 +128,8 @@ export const useAppDataStore = create<AppState>()(
       partialize: (state) => ({
         selectedWell: state.selectedWell,
         selectedIntervals: state.selectedIntervals,
-        // (Opsional) Simpan juga parameter VSH agar tidak hilang saat refresh
         vshParams: state.vshParams,
+        vshDNParams: state.vshDNParams,
       }),
       storage: createJSONStorage(() => localStorage),
     }

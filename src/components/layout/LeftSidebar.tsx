@@ -4,7 +4,7 @@ import { PlotType, useDashboard } from '@/contexts/DashboardContext';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, BarChart3, List, Plus, Save, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getAllWellLogs, getWellList, getSetsForWell, getWellDataSet, deleteWellDataSet, removeLogsFromSet, saveWellDataSet, addLogsToSet, type LogCurve, type WellDataSet } from '@/lib/db';
+import { getSetsForWell, getWellDataSet, deleteWellDataSet, removeLogsFromSet, saveWellDataSet, addLogsToSet, type LogCurve, type WellDataSet } from '@/lib/db';
 
 interface SetListItem {
   setName: string;

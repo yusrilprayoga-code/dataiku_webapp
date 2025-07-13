@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // /src/lib/db.ts
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
