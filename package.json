@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "clsx": "^2.1.1",
     "exceljs": "^4.4.0",
     "fs": "^0.0.1-security",
     "fund": "^1.0.0",
@@ -23,6 +24,7 @@
     "react-dom": "^19.0.0",
     "react-plotly.js": "^2.6.0",
     "react-select": "^5.10.1",
+    "tailwind-merge": "^3.3.1",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.5"
   },
