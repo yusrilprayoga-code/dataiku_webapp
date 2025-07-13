@@ -22,7 +22,7 @@ const createInitialRWAParameters = (): ParameterRow[] => {
     RT_SH: 2.2,
     A: 1.0,
     M: 2.0,
-    };
+  };
 
   // Petakan untuk menghasilkan data awal yang benar
   return allPossibleParams.map(p => ({
@@ -75,12 +75,12 @@ export default function RWACalculationParams() {
     setIsSubmitting(true);
 
     const formParams = parameters
-    .filter(p => p.isEnabled)
-    .reduce((acc, param) => {
-      const value = param.values[selectedIntervals[0] || 'default'] || param.values[Object.keys(param.values)[0]];
-      acc[param.name] = isNaN(Number(value)) ? value : Number(value);
-      return acc;
-    }, {} as Record<string, string | number>);
+      .filter(p => p.isEnabled)
+      .reduce((acc, param) => {
+        const value = param.values[selectedIntervals[0] || 'default'] || param.values[Object.keys(param.values)[0]];
+        acc[param.name] = isNaN(Number(value)) ? value : Number(value);
+        return acc;
+      }, {} as Record<string, string | number>);
 
     const payload = {
       params: formParams,
@@ -89,7 +89,7 @@ export default function RWACalculationParams() {
     };
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    const endpoint = `${apiUrl}api/run-rwa-calculation`;
+    const endpoint = `${apiUrl}/api/run-rwa-calculation`;
 
     try {
       const response = await fetch(endpoint, {
@@ -208,42 +208,42 @@ export default function RWACalculationParams() {
                     <td className="px-3 py-2 border-r whitespace-nowrap">{param.unit}</td>
                     <td className="px-3 py-2 border-r font-semibold whitespace-nowrap">{param.name}</td>
                     <td className="px-3 py-2 border-r text-center"><input type="checkbox" className="h-4 w-4 rounded border-gray-400" checked={!!rowSync[param.id]} onChange={(e) => handleRowToggle(param.id, e.target.checked)} /></td>
-                      {selectedIntervals.map(interval => (
-                        <td key={`${param.id}-${interval}`} className="px-3 py-2 border-r bg-white text-black">
-                          {param.name === 'OPT_GR' ? (
-                            <select
-                              value={String(param.values[interval] ?? param.values['default'] ?? '')}
-                              onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
-                              className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-                            >
-                              <option value="LINEAR">LINEAR</option>
-                            </select>
-                          ) : param.name === 'GR' ? (
-                            (() => {
-                              const filteredOptions: string[] = combinedColumns.filter(col => col.toUpperCase().includes('GR'));
-                              return (
-                                <select
-                                  value={String(param.values[interval] ?? param.values['default'] ?? '')}
-                                  onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
-                                  className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-                                >
-                                  {filteredOptions.length === 0 && <option value="">No match</option>}
-                                  {filteredOptions.map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
-                                  ))}
-                                </select>
-                              );
-                            })()
-                          ) : (
-                            <input
-                              type="text"
-                              value={ param.values[interval] ?? param.values['default'] ?? ''}
-                              onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
-                              className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
-                            />
-                          )}
-                        </td>
-                      ))}
+                    {selectedIntervals.map(interval => (
+                      <td key={`${param.id}-${interval}`} className="px-3 py-2 border-r bg-white text-black">
+                        {param.name === 'OPT_GR' ? (
+                          <select
+                            value={String(param.values[interval] ?? param.values['default'] ?? '')}
+                            onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                            className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                          >
+                            <option value="LINEAR">LINEAR</option>
+                          </select>
+                        ) : param.name === 'GR' ? (
+                          (() => {
+                            const filteredOptions: string[] = combinedColumns.filter(col => col.toUpperCase().includes('GR'));
+                            return (
+                              <select
+                                value={String(param.values[interval] ?? param.values['default'] ?? '')}
+                                onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                                className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                              >
+                                {filteredOptions.length === 0 && <option value="">No match</option>}
+                                {filteredOptions.map(opt => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            );
+                          })()
+                        ) : (
+                          <input
+                            type="text"
+                            value={param.values[interval] ?? param.values['default'] ?? ''}
+                            onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                            className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                          />
+                        )}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>

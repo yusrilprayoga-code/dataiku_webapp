@@ -52,6 +52,12 @@ const TrimDataParams = dynamic(() => import('@/features/trim_data/TrimDataParams
     ssr: false
 });
 
+// Replace previous dynamic imports with direct imports for these specific modules
+import DnsDnsvCalculationPage from '@/features/dns-dnsv/page';
+import RgbeRpbePage from '@/features/rgbe-rpbe/page';
+import RtRoPage from '@/features/rt-ro/page';
+import SworadPage from '@/features/sworad/page';
+
 // Placeholder component for demonstration purposes
 const SmoothingParamsForm = () => (
     <div className="p-4 border rounded-lg bg-white shadow-sm">
@@ -189,6 +195,30 @@ export default function ModulePageClient({ moduleName, validModules }: ModulePag
                 return (
                     <Suspense fallback={<div className="p-4">Loading GSA calculation parameters...</div>}>
                         <GsaCalculationParams />
+                    </Suspense>
+                );
+            case 'rgbe-rpbe':
+                return (
+                    <Suspense fallback={<div className="p-4">Loading RGBE-RPBE calculation...</div>}>
+                        <RgbeRpbePage />
+                    </Suspense>
+                );
+            case 'swgrad':
+                return (
+                    <Suspense fallback={<div className="p-4">Loading SWORAD/SWGRAD parameters...</div>}>
+                        <SworadPage />
+                    </Suspense>
+                );
+            case 'dns-dnsv':
+                return (
+                    <Suspense fallback={<div className="p-4">Loading DNS-DNSV calculation...</div>}>
+                        <DnsDnsvCalculationPage />
+                    </Suspense>
+                );
+            case 'rt-ro':
+                return (
+                    <Suspense fallback={<div className="p-4">Loading RT-RO calculation...</div>}>
+                        <RtRoPage />
                     </Suspense>
                 );
             default:

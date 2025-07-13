@@ -25,6 +25,7 @@ interface AppState {
 
   // --- State for Dashboard Interaction ---
   selectedWell: string | null;
+  selectedWells: string[]; // Add this line
   selectedIntervals: string[];
   plotData: Data[];
   plotLayout: Partial<Layout>;
@@ -45,6 +46,7 @@ interface AppState {
   clearNormalizationResults: () => void;
   clearAllData: () => void;
   setSelectedWell: (well: string) => void;
+  setSelectedWells: (wells: string[]) => void; // Add this line
   toggleInterval: (interval: string) => void;
   fetchPlotData: (wellId: string) => Promise<void>;
 }
@@ -58,6 +60,7 @@ export const useAppDataStore = create<AppState>()(
       handledFiles: [],
       normalizationResults: {},
       selectedWell: 'ABAB-035',
+      selectedWells: [], // Add this line
       selectedIntervals: ['B1', 'GUF'],
       plotData: [],
       plotLayout: {},
@@ -79,6 +82,7 @@ export const useAppDataStore = create<AppState>()(
       addNormalizationResult: (id, plot) => set(state => ({
         normalizationResults: { ...state.normalizationResults, [id]: plot }
       })),
+      setSelectedWells: (wells) => set({ selectedWells: wells }), // Add this line
       clearQcResults: () => set({ qcResults: null, handledFiles: [] }),
       clearNormalizationResults: () => set({ normalizationResults: {} }),
       clearAllData: () => set({
@@ -86,7 +90,7 @@ export const useAppDataStore = create<AppState>()(
         qcResults: null,
         handledFiles: [],
         normalizationResults: {},
-        // Anda mungkin juga ingin mereset vshParams di sini
+        selectedWells: [], // Add this line
         vshParams: { gr_ma: 30, gr_sh: 120 },
       }),
       setSelectedWell: (well) => {
@@ -99,10 +103,10 @@ export const useAppDataStore = create<AppState>()(
             ? state.selectedIntervals.filter((i) => i !== interval)
             : [...state.selectedIntervals, interval],
         })),
-      
+
       // FIX #3: Tambahkan implementasi untuk aksi setVshParams
       setVshParams: (params) => set({ vshParams: params }),
-      
+
       fetchPlotData: async (wellId) => {
         // ... logika fetch Anda ...
       },
