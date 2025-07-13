@@ -46,12 +46,8 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
 
   // 2. Definisikan nilai default sesuai gambar
   const defaultValues: Record<string, string | number> = {
-    'SLIDING_WINDOW': 100,
-    // 'RESWAT_MAX': 10, 'RESWAT_MIN': 1, 'NPHIWATER_MAX': 0.3,
-    // 'NPHIWATER_MIN': 0, 'RHOBWAT_MAX': 3, 'RHOBWAT_MIN': 1, 
-    // 'DEPTH': 'DEPTH',
-    'GR': 'GR', 'DENS': 'RHOB', 'NEUT': 'NPHI', 'RES': 'RT',
-    // 'LITHOLOGY': 'LAYERING_LITHO.LITHO', 'RGSA': 'RGSA', 'DGSA': 'DGSA', 'NGSA': 'NGSA'
+    'SLIDING_WINDOW': 100, 
+    'GR': 'GR', 'DENS': 'RHOB', 'NEUT': 'NPHI', 'RES': 'RT', 
   };
 
   return allPossibleParams
@@ -63,16 +59,38 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
 };
 
 export default function GsaCalculationParams() {
-  const { selectedWells, selectedIntervals } = useDashboard();
+  const { selectedWells, selectedIntervals, wellColumns } = useDashboard();
   const [parameters, setParameters] = useState<ParameterRow[]>([]);
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [linkedRows, setLinkedRows] = useState<Record<number, boolean>>({});
+  
   useEffect(() => { setParameters(createInitialParameters(selectedIntervals)); }, [selectedIntervals]);
 
-  const handleUnifiedValueChange = (id: number, newValue: string) => { setParameters(prev => prev.map(row => { if (row.id === id) { const newValues = Object.fromEntries(Object.keys(row.values).map(intervalKey => [intervalKey, newValue])); return { ...row, values: newValues }; } return row; })); };
-  const handleRowToggle = (id: number, isEnabled: boolean) => { setParameters(prev => prev.map(row => (row.id === id ? { ...row, isEnabled } : row))); };
+  const combinedColumns = selectedWells.flatMap(well => wellColumns[well] || []);
 
+  const handleValueChange = (id: number, interval: string, newValue: string) => {
+    setParameters(prev =>
+      prev.map(row => {
+        if (row.id !== id) return row;
+        if (linkedRows[id]) {
+          const newValues = Object.fromEntries(
+            Object.keys(row.values).map(i => [i, newValue])
+          );
+          return { ...row, values: newValues };
+        }
+        return {
+          ...row,
+          values: { ...row.values, [interval]: newValue },
+        };
+      })
+    );
+  };
+
+  const handleRowToggle = (id: number, isEnabled: boolean) => {
+    setLinkedRows(prev => ({ ...prev, [id]: isEnabled }));
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -202,39 +220,60 @@ export default function GsaCalculationParams() {
                 </tr>
               </thead>
               <tbody className="bg-white">
-                {parameters.map((param) => (
-                  <tr key={param.id} className={`border-b border-gray-200 ${param.isEnabled ? getRowBgColor(param.location, param.mode) : 'bg-gray-100 text-gray-400'}`}>
-
-                    {/* Kolom statis (ID, Location, dll.) tidak berubah */}
+                {parameters.map(param => (
+                  <tr key={param.id} className={`border-b border-gray-200 ${getRowBgColor(param.location, param.mode)}`}>
                     <td className="px-3 py-2 border-r text-center text-sm">{param.id}</td>
                     <td className="px-3 py-2 border-r whitespace-nowrap text-sm">{param.location}</td>
                     <td className="px-3 py-2 border-r whitespace-nowrap text-sm">{param.mode}</td>
                     <td className="px-3 py-2 border-r whitespace-normal max-w-xs text-sm">{param.comment}</td>
                     <td className="px-3 py-2 border-r whitespace-nowrap text-sm">{param.unit}</td>
                     <td className="px-3 py-2 border-r font-semibold whitespace-nowrap text-sm">{param.name}</td>
-
-                    {/* Kolom 'P' untuk Checkbox */}
                     <td className="px-3 py-2 border-r text-center">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 rounded border-gray-400"
-                        checked={param.isEnabled}
-                        onChange={(e) => handleRowToggle(param.id, e.target.checked)}
-                      />
+                      <input type="checkbox" className="h-4 w-4 rounded border-gray-400" checked={!!linkedRows[param.id]} onChange={e => handleRowToggle(param.id, e.target.checked)} />
                     </td>
+                    {selectedIntervals.map(interval => {
+                      const currentValue = param.values[interval] ?? '';
 
-                    {/* Kolom dinamis untuk setiap interval */}
-                    {selectedIntervals.map(interval => (
-                      <td key={interval} className="px-3 py-2 border-r bg-white">
-                        <input
-                          type="text"
-                          value={param.values[interval] ?? ''}
-                          onChange={(e) => handleUnifiedValueChange(param.id, e.target.value)}
-                          disabled={!param.isEnabled}
-                          className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
-                        />
-                      </td>
-                    ))}
+                      let filteredOptions: string[] = [];
+
+                      if (param.name === 'GR') {
+                        filteredOptions = combinedColumns.filter(col => col.toUpperCase().includes('GR'));
+                      } else if (param.name === 'DENS') {
+                        filteredOptions = combinedColumns.filter(col => col.toUpperCase().includes('RHOB'));
+                      } else if (param.name === 'NEUT') {
+                        filteredOptions = combinedColumns.filter(col => col.toUpperCase().includes('NPHI'));
+                      } else if (param.name === 'RES') {
+                        filteredOptions = combinedColumns.filter(col => col.toUpperCase().includes('RT'));
+                      }
+
+                      const useDropdown = ['GR', 'DENS', 'NEUT', 'RES'].includes(param.name);
+
+                      return (
+                        <td key={interval} className="px-3 py-2 border-r bg-white text-black">
+                          {useDropdown ? (
+                            <select
+                              value={currentValue}
+                              onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                              disabled={!param.isEnabled}
+                              className="w-full p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                            >
+                              {filteredOptions.length === 0 && <option value="">No match</option>}
+                              {filteredOptions.map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              value={currentValue}
+                              onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                              disabled={!param.isEnabled}
+                              className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                            />
+                          )}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>

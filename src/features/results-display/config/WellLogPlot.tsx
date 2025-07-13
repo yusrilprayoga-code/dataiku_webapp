@@ -49,6 +49,27 @@ export default function WellLogPlot() {
         case 'gsa':
           endpointPath = '/api/get-gsa-plot';
           break;
+        case 'vsh':
+          endpointPath = '/api/get-vsh-plot';
+          break;
+        case 'sw':
+          endpointPath = '/api/get-sw-plot';
+          break;
+        case 'rwa':
+          endpointPath = '/api/get-rwa-plot';
+          break;
+        case 'rpbe-rgbe':
+          endpointPath = '/api/get-rgbe-rpbe-plot';
+          break;
+        case 'swgrad':
+          endpointPath = '/api/get-swgrad-plot';
+          break;
+        case 'dns-dnsv':
+          endpointPath = '/api/get-dns-dnsv-plot';
+          break;
+        case 'rt-ro':
+          endpointPath = '/api/get-rt-r0-plot';
+          break;
         case 'default':
         default:
           endpointPath = '/api/get-plot';
@@ -57,7 +78,6 @@ export default function WellLogPlot() {
       const endpoint = `${apiUrl}${endpointPath}`;
 
       try {
-        // FIX: Gunakan metode POST dan kirim `selectedWells`
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {

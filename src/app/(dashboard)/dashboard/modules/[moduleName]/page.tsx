@@ -10,6 +10,18 @@ interface MyPageProps {
 
 // List of valid module names to prevent invalid routes
 const VALID_MODULES = [
+  'histogram',
+  'crossplot-nphi-rhob',
+  'crossplot-gr-nphi',
+  'crossplot-rhob-gr',
+  'crossplot-rhob-dt',
+  'crossplot-rhob-dphi',
+  'crossplot-rhob-dens',
+  'crossplot-rhob-porosity',
+  'crossplot-rhob-rl',
+  'crossplot-rhob-rl-porosity',
+  'crossplot-rhob-rl-vsh',
+  'crossplot-rhob-rl-sw',
   'trim-data',
   'depth-matching',
   'normalization',
@@ -19,7 +31,11 @@ const VALID_MODULES = [
   'rgsa-ngsa-dgsa',
   'fill-missing',
   'sw-calculation',
-  'water-resistivity-calculation'
+  'water-resistivity-calculation',
+  'rgbe-rpbe',
+  'swgrad',
+  'dns-dnsv',
+  'rt-ro'
 ];
 
 export default async function MyPage({ params }: MyPageProps) {

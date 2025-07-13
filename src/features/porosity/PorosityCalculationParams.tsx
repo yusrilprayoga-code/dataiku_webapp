@@ -26,8 +26,21 @@ const createInitialPorosityParameters = (): ParameterRow[] => {
     { id: 3, location: 'Constant', mode: 'Input', comment: 'Dry Shale Density', unit: 'g/cc', name: 'RHO_DSH', isEnabled: true },
     { id: 4, location: 'Constant', mode: 'Input', comment: 'Shale Neutron Porosity', unit: 'v/v', name: 'NPHI_SH', isEnabled: true },
     { id: 5, location: 'Constant', mode: 'Input', comment: 'Maximum allowed PHIE', unit: 'v/v', name: 'PHIE_MAX', isEnabled: true },
-    { id: 6, location: 'Constant', mode: 'Input', comment: 'Base Rock Matrix Density (Sandstone)', unit: 'g/cc', name: 'RHO_MA_BASE', isEnabled: true },
+    { id: 6, location: 'Constant', mode: 'Input', comment: 'Base Rock Matrix Density (Sandstone)', unit: 'kg/m3', name: 'RHO_MA_BASE', isEnabled: true },
+    { id: 7, location: 'Constant', mode: 'Input', comment: 'Water Density', unit: 'g/cc', name: 'RHO_W', isEnabled: true },
+    { id: 8, location: 'Constant', mode: 'Input', comment: 'Max Extreme Density (Sandstone)', unit: 'kg/m3', name: 'RHO_MAX', isEnabled: true },
   ];
+
+    const relevantParamNames = new Set([
+      'RHO_FL',
+      'RHO_SH',
+      'RHO_DSH',
+      'NPHI_SH',
+      'PHIE_MAX',
+      'RHO_MA_BASE',
+      'RHO_W',
+      'RHO_MAX'
+    ]);
 
   // Definisikan nilai default
   const defaultValues: Record<string, string | number> = {
@@ -36,14 +49,18 @@ const createInitialPorosityParameters = (): ParameterRow[] => {
     'RHO_DSH': 2.60,
     'NPHI_SH': 0.35,
     'PHIE_MAX': 0.3,
-    'RHO_MA_BASE': 2.71
+    'RHO_MA_BASE': 2.65,
+    'RHO_W': 1.00,
+    'RHO_MAX': 4.00
   };
 
   // Petakan untuk menghasilkan data awal yang benar
-  return porosityParams.map(p => ({
-    ...p,
-    values: createValues(defaultValues[p.name] || '')
-  }));
+  return porosityParams
+    .filter(p => relevantParamNames.has(p.name))
+    .map(p => ({
+      ...p,
+      values: createValues(defaultValues[p.name] || '')
+    }));
 };
 
 export default function PorosityCalculationParams() {
@@ -51,19 +68,33 @@ export default function PorosityCalculationParams() {
   const router = useRouter();
   const [parameters, setParameters] = useState<ParameterRow[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
+  
 
   useEffect(() => {
     setParameters(createInitialPorosityParameters());
   }, []);
 
-  const handleValueChange = (id: number, newValue: string) => {
-    setParameters(prev => prev.map(row =>
-      row.id === id ? { ...row, values: { 'default': newValue } } : row
-    ));
-  };
-
+  const handleValueChange = (id: number, interval: string, newValue: string) => {
+    setParameters(prev =>
+      prev.map(row => {
+        if (row.id !== id) return row;
+        if (rowSync[id]) {
+          const newValues = Object.fromEntries(
+            Object.keys(row.values).map(i => [i, newValue])
+          );
+          return { ...row, values: newValues };
+        }
+        return {
+          ...row,
+          values: { ...row.values, [interval]: newValue },
+        };
+      })
+    );
+  }
+  
   const handleRowToggle = (id: number, isEnabled: boolean) => {
-    setParameters(prev => prev.map(row => (row.id === id ? { ...row, isEnabled } : row)));
+    setRowSync(prev => ({ ...prev, [id]: isEnabled }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,8 +104,7 @@ export default function PorosityCalculationParams() {
     const formParams = parameters
       .filter(p => p.isEnabled)
       .reduce((acc, param) => {
-        // Konversi ke angka jika memungkinkan, jika tidak biarkan sebagai string
-        const value = param.values['default'];
+        const value = param.values[selectedIntervals[0] || 'default'] || param.values[Object.keys(param.values)[0]];
         acc[param.name] = isNaN(Number(value)) ? value : Number(value);
         return acc;
       }, {} as Record<string, string | number>);
@@ -202,14 +232,13 @@ export default function PorosityCalculationParams() {
                     <td className="px-3 py-2 border-r whitespace-normal max-w-xs">{param.comment}</td>
                     <td className="px-3 py-2 border-r whitespace-nowrap">{param.unit}</td>
                     <td className="px-3 py-2 border-r font-semibold whitespace-nowrap">{param.name}</td>
-                    <td className="px-3 py-2 border-r text-center"><input type="checkbox" className="h-4 w-4 rounded border-gray-400" checked={param.isEnabled} onChange={(e) => handleRowToggle(param.id, e.target.checked)} /></td>
+                    <td className="px-3 py-2 border-r text-center"><input type="checkbox" className="h-4 w-4 rounded border-gray-400" checked={!!rowSync[param.id]} onChange={(e) => handleRowToggle(param.id, e.target.checked)} /></td>
                     {selectedIntervals.map(interval => (
                       <td key={interval} className="px-3 py-2 border-r bg-white text-black">
                         <input
                           type="text"
-                          value={String(param.values['default'] ?? '')}
-                          onChange={(e) => handleValueChange(param.id, e.target.value)}
-                          disabled={!param.isEnabled}
+                          value={ param.values[interval] ?? param.values['default'] ?? ''}
+                          onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
                           className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
                         />
                       </td>

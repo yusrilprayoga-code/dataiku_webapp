@@ -53,7 +53,7 @@ export default function DataInputView() {
         name: file.originalName || file.name,
         content: file.rawContentString
       }));
-      const qcResponse = await fetch('/api/run-qc', {
+      const qcResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/qc/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ files: filesToProcess }),
@@ -87,7 +87,7 @@ export default function DataInputView() {
         const originalFilename = Object.keys(initialQcResults.output_files).find(name => name.startsWith(result.well_name));
         if (!originalFilename) continue;
         const fileContentWithNulls = initialQcResults.output_files[originalFilename];
-        const handleNullsResponse = await fetch('/api/handle-nulls', {
+        const handleNullsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/handle-nulls`, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
           body: fileContentWithNulls,

@@ -9,7 +9,13 @@ import {
   PreviewableFile,
 } from '@/types';
 
-// The AppState interface remains the same
+// FIX #1: Definisikan tipe untuk parameter VSH di sini
+interface VshParams {
+  gr_ma: number;
+  gr_sh: number;
+}
+
+// Interface AppState sekarang bisa menemukan tipe VshParams
 interface AppState {
   // --- State for Data Input & QC Process ---
   stagedStructure: StagedStructure | null;
@@ -19,11 +25,17 @@ interface AppState {
 
   // --- State for Dashboard Interaction ---
   selectedWell: string | null;
+  selectedWells: string[]; // Add this line
   selectedIntervals: string[];
   plotData: Data[];
   plotLayout: Partial<Layout>;
   isLoadingPlot: boolean;
   plotError: string | null;
+
+  // State baru untuk menyimpan parameter VSH
+  vshParams: VshParams;
+  // Aksi baru untuk memperbarui parameter VSH
+  setVshParams: (params: VshParams) => void;
 
   // --- Actions ---
   setStagedStructure: (structure: StagedStructure) => void;
@@ -34,6 +46,7 @@ interface AppState {
   clearNormalizationResults: () => void;
   clearAllData: () => void;
   setSelectedWell: (well: string) => void;
+  setSelectedWells: (wells: string[]) => void; // Add this line
   toggleInterval: (interval: string) => void;
   fetchPlotData: (wellId: string) => Promise<void>;
 }
@@ -42,20 +55,25 @@ export const useAppDataStore = create<AppState>()(
   persist(
     (set, get) => ({
       // --- Initial State ---
-      // All your initial state values are perfectly fine.
       stagedStructure: null,
       qcResults: null,
       handledFiles: [],
       normalizationResults: {},
-      selectedWell: 'ABAB-035', // Default value
-      selectedIntervals: ['B1', 'GUF'], // Default value
+      selectedWell: 'ABAB-035',
+      selectedWells: [], // Add this line
+      selectedIntervals: ['B1', 'GUF'],
       plotData: [],
       plotLayout: {},
       isLoadingPlot: true,
       plotError: null,
 
+      // FIX #2: Tambahkan nilai awal untuk vshParams
+      vshParams: {
+        gr_ma: 30, // Nilai default
+        gr_sh: 120, // Nilai default
+      },
+
       // --- Actions Implementation ---
-      // All your action implementations are perfectly fine.
       setStagedStructure: (structure) => set({ stagedStructure: structure }),
       setQcResults: (results) => set({ qcResults: results }),
       addHandledFile: (file) => set((state) => ({
@@ -64,6 +82,7 @@ export const useAppDataStore = create<AppState>()(
       addNormalizationResult: (id, plot) => set(state => ({
         normalizationResults: { ...state.normalizationResults, [id]: plot }
       })),
+      setSelectedWells: (wells) => set({ selectedWells: wells }), // Add this line
       clearQcResults: () => set({ qcResults: null, handledFiles: [] }),
       clearNormalizationResults: () => set({ normalizationResults: {} }),
       clearAllData: () => set({
@@ -71,6 +90,8 @@ export const useAppDataStore = create<AppState>()(
         qcResults: null,
         handledFiles: [],
         normalizationResults: {},
+        selectedWells: [], // Add this line
+        vshParams: { gr_ma: 30, gr_sh: 120 },
       }),
       setSelectedWell: (well) => {
         set({ selectedWell: well });
@@ -82,23 +103,21 @@ export const useAppDataStore = create<AppState>()(
             ? state.selectedIntervals.filter((i) => i !== interval)
             : [...state.selectedIntervals, interval],
         })),
+
+      // FIX #3: Tambahkan implementasi untuk aksi setVshParams
+      setVshParams: (params) => set({ vshParams: params }),
+
       fetchPlotData: async (wellId) => {
-        // ... this fetch logic is fine
+        // ... logika fetch Anda ...
       },
     }),
     {
-      name: 'app-data-storage', // The key in localStorage
-
-      // --- THIS IS THE CORRECTED CONFIGURATION ---
+      name: 'app-data-storage',
       partialize: (state) => ({
-        // ✅ We ONLY persist small, simple values that represent user settings.
-        // This improves User Experience by remembering their choices across sessions.
         selectedWell: state.selectedWell,
         selectedIntervals: state.selectedIntervals,
-
-        // ❌ We EXCLUDE all large, complex, or transient data objects.
-        // These objects will be loaded from IndexedDB or fetched from an API
-        // and held in memory for the session, but NOT saved to localStorage.
+        // (Opsional) Simpan juga parameter VSH agar tidak hilang saat refresh
+        vshParams: state.vshParams,
       }),
       storage: createJSONStorage(() => localStorage),
     }

@@ -32,7 +32,7 @@ export default function QcRunner() {
             }));
 
             // Panggil endpoint QC yang baru dan bersih
-            const response = await fetch('/api/run-qc', {
+            const response = await fetch('/api/qc/run', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ files: filesToProcess }),
