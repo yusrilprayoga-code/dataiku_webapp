@@ -5,16 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
+import HistogramParams from '../histogram/HistogramParams';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
-// Komponen helper untuk Form Field
-// const FormField: React.FC<{ label: string; children: React.ReactNode; className?: string }> = ({ label, children, className = '' }) => (
-//     <div className={className}>
-//         <label className="block text-sm font-medium text-gray-500 mb-1">{label}</label>
-//         {children}
-//     </div>
-// );
-
-// FIX: Logika di dalam fungsi ini diperbaiki sepenuhnya
 const createInitialVshParameters = (): ParameterRow[] => {
   // Untuk VSH, nilai parameter tidak bergantung pada interval, jadi kita hardcode 'default'
   const createValues = (val: string | number) => ({ 'default': val });
@@ -24,7 +17,9 @@ const createInitialVshParameters = (): ParameterRow[] => {
     { id: 1, location: 'Interval', mode: 'In_Out', comment: 'Option for VSH from gamma ray', unit: 'ALPHA*8', name: 'OPT_GR', isEnabled: true },
     { id: 2, location: 'Interval', mode: 'In_Out', comment: 'Gamma ray matrix (clean)', unit: 'GAPI', name: 'GR_MA', isEnabled: true },
     { id: 3, location: 'Interval', mode: 'In_Out', comment: 'Gamma ray shale', unit: 'GAPI', name: 'GR_SH', isEnabled: true },
-    { id: 4, location: 'Interval', mode: 'In_Out', comment: 'Option to allow coal logic', unit: 'LOGICAL', name: 'OPT_COAL', isEnabled: true },
+    // { id: 4, location: 'Interval', mode: 'In_Out', comment: 'Option to allow coal logic', unit: 'LOGICAL', name: 'OPT_COAL', isEnabled: true },
+    { id: 4, location: 'Log', mode: 'Input', comment: 'Gamma ray log', unit: 'GAPI', name: 'GR', isEnabled: true },
+    { id: 5, location: 'Log', mode: 'Output', comment: 'VSH from gamma ray', unit: 'V/V', name: 'VSH_GR', isEnabled: true },
   ];
 
   // Definisikan nilai default
@@ -32,7 +27,8 @@ const createInitialVshParameters = (): ParameterRow[] => {
     'OPT_GR': 'LINEAR',
     'GR_MA': 30,
     'GR_SH': 120,
-    'OPT_COAL': 'No',
+    'GR': 'GR',
+    'VSH_GR': 'VSH_GR',
   };
 
   // Petakan untuk menghasilkan data awal yang benar
@@ -43,41 +39,68 @@ const createInitialVshParameters = (): ParameterRow[] => {
 };
 
 export default function VshCalculationParams() {
-  const { selectedIntervals, selectedWells } = useDashboard();
+  const { selectedIntervals, selectedWells, wellColumns } = useDashboard();
   const router = useRouter();
   const [parameters, setParameters] = useState<ParameterRow[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
+  const [showHistogram, setShowHistogram] = useState(false);
+  const [showCrossplot, setShowCrossplot] = useState(false);
+  const { setVshParams } = useAppDataStore();
 
   useEffect(() => {
     setParameters(createInitialVshParameters());
   }, []);
 
-  // Handler untuk mengubah nilai di kolom input
-  const handleValueChange = (id: number, newValue: string) => {
-    setParameters(prev => prev.map(row =>
-      row.id === id ? { ...row, values: { 'default': newValue } } : row
-    ));
+  const combinedColumns = selectedWells.flatMap(well => wellColumns[well] || []);
+
+  const handleValueChange = (id: number, interval: string, newValue: string) => {
+    setParameters(prev =>
+      prev.map(row => {
+        if (row.id !== id) return row;
+
+        if (rowSync[id]) {
+          const newValues = Object.fromEntries(
+            Object.keys(row.values).map(i => [i, newValue])
+          );
+          return { ...row, values: newValues };
+        }
+
+        return {
+          ...row,
+          values: { ...row.values, [interval]: newValue },
+        };
+      })
+    );
   };
 
   // Handler untuk checkbox di kolom "P"
-  const handleRowToggle = (id: number, isEnabled: boolean) => {
-    setParameters(prev => prev.map(row => (row.id === id ? { ...row, isEnabled } : row)));
+  const handleRowToggle = (id: number, enabled: boolean) => {
+    setRowSync(prev => ({ ...prev, [id]: enabled }));
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     const formParams = parameters
-      .filter(p => p.isEnabled)
-      .reduce((acc, param) => {
-        acc[param.name] = param.values['default'];
-        return acc;
-      }, {} as Record<string, string | number>);
+    .filter(p => p.isEnabled)
+    .reduce((acc, param) => {
+      const value = param.values[selectedIntervals[0] || 'default'] || param.values[Object.keys(param.values)[0]];
+      acc[param.name] = isNaN(Number(value)) ? value : Number(value);
+      return acc;
+    }, {} as Record<string, string | number>);
+
+    setVshParams({
+        gr_ma: Number(formParams.GR_MA),
+        gr_sh: Number(formParams.GR_SH)
+    });
 
     const payload = {
       params: formParams,
       selected_wells: selectedWells,
+      selected_intervals: selectedIntervals,
     };
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -199,18 +222,43 @@ export default function VshCalculationParams() {
                     <td className="px-3 py-2 border-r whitespace-normal max-w-xs">{param.comment}</td>
                     <td className="px-3 py-2 border-r whitespace-nowrap">{param.unit}</td>
                     <td className="px-3 py-2 border-r font-semibold whitespace-nowrap">{param.name}</td>
-                    <td className="px-3 py-2 border-r text-center"><input type="checkbox" className="h-4 w-4 rounded border-gray-400" checked={param.isEnabled} onChange={(e) => handleRowToggle(param.id, e.target.checked)} /></td>
-                    {selectedIntervals.map(interval => (
-                      <td key={interval} className="px-3 py-2 border-r bg-white text-black">
-                        <input
-                          type="text"
-                          value={String(param.values['default'] ?? '')}
-                          onChange={(e) => handleValueChange(param.id, e.target.value)}
-                          disabled={!param.isEnabled}
-                          className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
-                        />
-                      </td>
-                    ))}
+                    <td className="px-3 py-2 border-r text-center"><input type="checkbox" className="h-4 w-4 rounded border-gray-400" checked={!!rowSync[param.id]} onChange={(e) => handleRowToggle(param.id, e.target.checked)} /></td>
+                      {selectedIntervals.map(interval => (
+                        <td key={`${param.id}-${interval}`} className="px-3 py-2 border-r bg-white text-black">
+                          {param.name === 'OPT_GR' ? (
+                            <select
+                              value={String(param.values[interval] ?? param.values['default'] ?? '')}
+                              onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                              className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                            >
+                              <option value="LINEAR">LINEAR</option>
+                            </select>
+                          ) : param.name === 'GR' ? (
+                            (() => {
+                              const filteredOptions: string[] = combinedColumns.filter(col => col.toUpperCase().includes('GR'));
+                              return (
+                                <select
+                                  value={String(param.values[interval] ?? param.values['default'] ?? '')}
+                                  onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                                  className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                                >
+                                  {filteredOptions.length === 0 && <option value="">No match</option>}
+                                  {filteredOptions.map(opt => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                  ))}
+                                </select>
+                              );
+                            })()
+                          ) : (
+                            <input
+                              type="text"
+                              value={ param.values[interval] ?? param.values['default'] ?? ''}
+                              onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                              className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                            />
+                          )}
+                        </td>
+                      ))}
                   </tr>
                 ))}
               </tbody>
@@ -218,6 +266,48 @@ export default function VshCalculationParams() {
           </div>
         </div>
       </form>
+        <div className="flex justify-end gap-2 mt-2">
+          <button
+            type="button"
+            className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold"
+            onClick={() => setShowHistogram(true)}
+          >
+            Histogram
+          </button>
+          <button
+            type="button"
+            className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold"
+            onClick={() => setShowCrossplot(true)}
+          >
+            Crossplot
+          </button>
+      </div>
+
+      {showHistogram && (
+        <div className="mt-6">
+          <HistogramParams />
+        </div>
+      )}
+
+      {showCrossplot && (
+        <div className="mt-6">
+          <CrossplotViewer onClose={function (): void {
+            throw new Error('Function not implemented.');
+          } } />
+        </div>
+      )}
     </div>
   );
 }
+
+const CrossplotViewer = ({ onClose }: { onClose: () => void }) => {
+  return (
+    <div className="p-4 border rounded bg-gray-100 mt-4">
+      <div className="flex justify-between items-center mb-2">
+        <h4 className="font-semibold text-lg">Crossplot Viewer</h4>
+        <button onClick={onClose} className="text-red-500 font-semibold">Close</button>
+      </div>
+      <p>Visualisasi crossplot akan ditampilkan di sini.</p>
+    </div>
+  );
+};
