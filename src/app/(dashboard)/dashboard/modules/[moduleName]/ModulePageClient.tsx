@@ -10,6 +10,7 @@ import dynamic from 'next/dynamic';
 import HistogramParams from '@/features/histogram/HistogramParams';
 import CrossplotViewerRHOB_NPHI from '@/features/crossplot/CrossPlotRHOB-NPHI';
 import CrossplotViewerGR_NPHI from '@/features/crossplot/CrossPlotGR-NPHI';
+import VshDNCalculationParams from '@/features/vsh-dn-calculation/VshDNParameter';
 
 // Dynamic imports to prevent SSR issues and improve loading
 const NormalizationParamsForm = dynamic(() => import('@/features/normalization/NormalizationParams'), {
@@ -165,6 +166,12 @@ export default function ModulePageClient({ moduleName, validModules }: ModulePag
                 return (
                     <Suspense fallback={<div className="p-4">Loading VSH calculation parameters...</div>}>
                         <VshCalculationParams />
+                    </Suspense>
+                );
+            case 'vsh-dn-calculation':
+                return (
+                    <Suspense fallback={<div className="p-4">Loading VSH-DN calculation parameters...</div>}>
+                        <VshDNCalculationParams />
                     </Suspense>
                 );
             case 'porosity-calculation':

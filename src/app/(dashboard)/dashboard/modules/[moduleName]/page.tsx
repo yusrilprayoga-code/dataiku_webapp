@@ -17,6 +17,7 @@ const VALID_MODULES = [
   'normalization',
   'smoothing',
   'vsh-calculation',
+  'vsh-dn-calculation',
   'porosity-calculation',
   'rgsa-ngsa-dgsa',
   'fill-missing',

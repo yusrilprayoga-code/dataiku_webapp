@@ -15,6 +15,13 @@ interface VshParams {
   gr_sh: number;
 }
 
+interface VshDNParams {
+  rho_ma: number;
+  rho_sh: number;
+  nphi_ma: number;
+  nphi_sh: number;
+}
+
 // Interface AppState sekarang bisa menemukan tipe VshParams
 interface AppState {
   // --- State for Data Input & QC Process ---
@@ -33,8 +40,10 @@ interface AppState {
 
   // State baru untuk menyimpan parameter VSH
   vshParams: VshParams;
+  vshDNParams: VshDNParams;
   // Aksi baru untuk memperbarui parameter VSH
   setVshParams: (params: VshParams) => void;
+  setVshDNParams: (params: VshDNParams) => void;
 
   // --- Actions ---
   setStagedStructure: (structure: StagedStructure) => void;
@@ -70,6 +79,13 @@ export const useAppDataStore = create<AppState>()(
         gr_sh: 120, // Nilai default
       },
 
+      vshDNParams: {
+        rho_ma: 2.645, // Nilai default
+        rho_sh: 2.61, // Nilai default
+        nphi_ma: -0.02, // Nilai default
+        nphi_sh: 0.398, // Nilai default
+      },
+
       // --- Actions Implementation ---
       setStagedStructure: (structure) => set({ stagedStructure: structure }),
       setQcResults: (results) => set({ qcResults: results }),
@@ -88,6 +104,7 @@ export const useAppDataStore = create<AppState>()(
         normalizationResults: {},
         // Anda mungkin juga ingin mereset vshParams di sini
         vshParams: { gr_ma: 30, gr_sh: 120 },
+        vshDNParams: { rho_ma: 2.645, rho_sh: 2.61, nphi_ma: -0.02, nphi_sh: 0.398 },
       }),
       setSelectedWell: (well) => {
         set({ selectedWell: well });
@@ -100,9 +117,9 @@ export const useAppDataStore = create<AppState>()(
             : [...state.selectedIntervals, interval],
         })),
       
-      // FIX #3: Tambahkan implementasi untuk aksi setVshParams
       setVshParams: (params) => set({ vshParams: params }),
-      
+      setVshDNParams: (params) => set({ vshDNParams: params }),
+
       fetchPlotData: async (wellId) => {
         // ... logika fetch Anda ...
       },
@@ -112,8 +129,8 @@ export const useAppDataStore = create<AppState>()(
       partialize: (state) => ({
         selectedWell: state.selectedWell,
         selectedIntervals: state.selectedIntervals,
-        // (Opsional) Simpan juga parameter VSH agar tidak hilang saat refresh
         vshParams: state.vshParams,
+        vshDNParams: state.vshDNParams,
       }),
       storage: createJSONStorage(() => localStorage),
     }

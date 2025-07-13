@@ -45,7 +45,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
 
   // const module1Buttons: string[] = ['ADD PLOT', 'OPEN CROSS PLOT'];
   const qualityControlButtons: string[] = ['HISTOGRAM', 'CROSSPLOT-NPHI-RHOB', 'CROSSPLOT-GR-NPHI', 'TRIM DATA', 'SPLICING/MERGING', 'DEPTH MATCHING', 'FILL MISSING', 'SMOOTHING', 'NORMALIZATION'];
-  const logInterpretationButtons: string[] = ['VSH CALCULATION', 'POROSITY CALCULATION', 'SW CALCULATION', 'WATER RESISTIVITY CALCULATION'];
+  const logInterpretationButtons: string[] = ['VSH CALCULATION', 'VSH-DN CALCULATION', 'POROSITY CALCULATION', 'SW CALCULATION', 'WATER RESISTIVITY CALCULATION'];
   const gowsButtons: string[] = ['RGSA-NGSA-DGSA', 'RGBE-RPBE', 'SWGRAD', 'DNS-DNSV', 'RT R0'];
 
   return (
