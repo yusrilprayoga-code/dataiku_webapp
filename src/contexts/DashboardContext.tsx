@@ -69,7 +69,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     };
 
     fetchWellsFromServer();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once when the provider mounts
 
   const fetchWellColumns = async (wells: string[]) => {

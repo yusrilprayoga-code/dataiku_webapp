@@ -10,10 +10,7 @@ import dynamic from 'next/dynamic';
 import HistogramParams from '@/features/histogram/HistogramParams';
 import CrossplotViewerRHOB_NPHI from '@/features/crossplot/CrossPlotRHOB-NPHI';
 import CrossplotViewerGR_NPHI from '@/features/crossplot/CrossPlotGR-NPHI';
-<<<<<<< HEAD
-=======
 import VshDNCalculationParams from '@/features/vsh-dn-calculation/VshDNParameter';
->>>>>>> module-2-fixed
 
 // Dynamic imports to prevent SSR issues and improve loading
 const NormalizationParamsForm = dynamic(() => import('@/features/normalization/NormalizationParams'), {
@@ -56,15 +53,12 @@ const TrimDataParams = dynamic(() => import('@/features/trim_data/TrimDataParams
     ssr: false
 });
 
-<<<<<<< HEAD
 // Replace previous dynamic imports with direct imports for these specific modules
 import DnsDnsvCalculationPage from '@/features/dns-dnsv/page';
 import RgbeRpbePage from '@/features/rgbe-rpbe/page';
 import RtRoPage from '@/features/rt-ro/page';
 import SworadPage from '@/features/sworad/page';
 
-=======
->>>>>>> module-2-fixed
 // Placeholder component for demonstration purposes
 const SmoothingParamsForm = () => (
     <div className="p-4 border rounded-lg bg-white shadow-sm">
@@ -180,15 +174,12 @@ export default function ModulePageClient({ moduleName, validModules }: ModulePag
                         <VshCalculationParams />
                     </Suspense>
                 );
-<<<<<<< HEAD
-=======
             case 'vsh-dn-calculation':
                 return (
                     <Suspense fallback={<div className="p-4">Loading VSH-DN calculation parameters...</div>}>
                         <VshDNCalculationParams />
                     </Suspense>
                 );
->>>>>>> module-2-fixed
             case 'porosity-calculation':
                 return (
                     <Suspense fallback={<div className="p-4">Loading porosity calculation parameters...</div>}>
@@ -213,7 +204,6 @@ export default function ModulePageClient({ moduleName, validModules }: ModulePag
                         <GsaCalculationParams />
                     </Suspense>
                 );
-<<<<<<< HEAD
             case 'rgbe-rpbe':
                 return (
                     <Suspense fallback={<div className="p-4">Loading RGBE-RPBE calculation...</div>}>
@@ -238,8 +228,6 @@ export default function ModulePageClient({ moduleName, validModules }: ModulePag
                         <RtRoPage />
                     </Suspense>
                 );
-=======
->>>>>>> module-2-fixed
             default:
                 return <ErrorComponent moduleName={moduleName} />;
         }
