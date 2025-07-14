@@ -11,7 +11,7 @@ import { useAppDataStore } from '@/stores/useAppDataStore';
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 export default function CrossplotNPHI_GR() {
-  const { selectedWells } = useDashboard();
+  const { selectedIntervals, selectedWells } = useDashboard();
   const [plotResult, setPlotResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [circleShapes, setCircleShapes] = useState<any[]>([]);
@@ -58,6 +58,7 @@ export default function CrossplotNPHI_GR() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           selected_wells: selectedWells,
+          selected_intervals: selectedIntervals,
           x_col: 'NPHI',
           y_col: 'GR',
           GR_MA: vshParams.gr_ma,
@@ -81,7 +82,7 @@ export default function CrossplotNPHI_GR() {
   return (
     <div className="p-4 md:p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-xl font-bold mb-4 text-gray-800">Crossplot NPHI vs GR</h2>
-      <p className="text-sm text-gray-600 mb-2">Well dipilih: {selectedWells.join(', ') || 'Tidak ada'}</p>
+      <p className="text-sm text-gray-600 mb-2">Well: {selectedWells + ', ' || 'N/A'} / Intervals: {selectedIntervals.length} selected</p>
 
       <div className="flex items-center gap-3 mb-6">
         <button

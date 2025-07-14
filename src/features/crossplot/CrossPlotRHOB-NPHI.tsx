@@ -6,18 +6,24 @@ import React, { useState } from 'react';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 // Import Plot secara dinamis untuk hindari error SSR
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 export default function CrossplotViewerRHOB_NPHI() {
-  const { selectedWells } = useDashboard();
+  const { selectedWells, selectedIntervals } = useDashboard();
   const [plotResult, setPlotResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const { vshDNParams } = useAppDataStore();
 
   const fetchCrossplot = async () => {
     if (selectedWells.length === 0) {
       alert('Pilih minimal 1 well terlebih dahulu.');
+      return;
+    }
+    if (selectedIntervals.length === 10) {
+      alert('Pilih minimal 1 interval untuk crossplot.');
       return;
     }
 
@@ -29,7 +35,14 @@ export default function CrossplotViewerRHOB_NPHI() {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ selected_wells: selectedWells }),
+        body: JSON.stringify({ 
+          selected_wells: selectedWells,
+          selected_intervals: selectedIntervals, 
+          RHO_MA: vshDNParams.rho_ma,
+          RHO_SH: vshDNParams.rho_sh,
+          NPHI_MA: vshDNParams.nphi_ma,
+          NPHI_SH: vshDNParams.nphi_sh,
+        }),
       });
 
       const data = await response.json();
@@ -49,7 +62,7 @@ export default function CrossplotViewerRHOB_NPHI() {
   return (
     <div className="p-4 md:p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-xl font-bold mb-4 text-gray-800">Crossplot NPHI vs RHOB</h2>
-      <p className="text-sm text-gray-600 mb-2">Well dipilih: {selectedWells.join(', ') || 'Tidak ada'}</p>
+      <p className="text-sm text-gray-600 mb-2">Well: {selectedWells + ', ' || 'N/A'} / Intervals: {selectedIntervals.length} selected</p>
 
       <div className="flex items-center gap-3 mb-6">
         <button
