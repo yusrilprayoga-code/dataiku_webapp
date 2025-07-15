@@ -19,7 +19,6 @@ export default function HistogramParams() {
   const { selectedWells, wellColumns, fetchWellColumns } = useDashboard();
   
   const [selectedLog, setSelectedLog] = useState<string>('');
-  const [bins, setBins] = useState(50);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [plotResult, setPlotResult] = useState<{ data: Data[], layout: Partial<Layout> } | null>(null);
@@ -71,7 +70,6 @@ export default function HistogramParams() {
     const payload = {
       selected_wells: selectedWells,
       log_column: selectedLog,
-      bins: bins
     };
 
     try {
@@ -112,14 +110,6 @@ export default function HistogramParams() {
                 <option value="" disabled>Select a log...</option>
                 {availableLogs.map(log => <option key={log} value={log}>{log}</option>)}
               </select>
-            </FormField>
-            <FormField label="Number of Bins">
-              <input 
-                type="number" 
-                value={bins}
-                onChange={(e) => setBins(Number(e.target.value))}
-                className="w-full p-2 border border-gray-300 rounded-md"
-              />
             </FormField>
           </div>
         </div>

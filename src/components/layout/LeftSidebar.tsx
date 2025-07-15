@@ -13,9 +13,7 @@ interface SetListItem {
 }
 
 export default function LeftSidebar() {
-  const { availableWells, selectedWells, toggleWellSelection, selectedIntervals, toggleInterval, plotType,
-    setPlotType, getCurrentLogs } = useDashboard();
-
+  const { availableWells, selectedWells, toggleWellSelection, selectedIntervals, toggleInterval, plotType, availableIntervals, setPlotType, getCurrentLogs } = useDashboard();
   const [isMounted, setIsMounted] = useState(false);
   const [availableSets, setAvailableSets] = useState<SetListItem[]>([]);
   const [selectedSet, setSelectedSet] = useState<WellDataSet | null>(null);
@@ -78,7 +76,7 @@ export default function LeftSidebar() {
 
   const handleSelectAllIntervals = (checked: boolean) => {
     if (checked) {
-      intervals.forEach(interval => {
+      availableIntervals.forEach(interval => {
         if (!selectedIntervals.includes(interval)) {
           toggleInterval(interval);
         }
@@ -279,8 +277,6 @@ export default function LeftSidebar() {
     }
   };
 
-  const intervals: string[] =
-    ["MEF", "ABF", "GUF", "BTL", "Lower_BTL", "Upper_BTS", "BTS", "A", "B", "B1", "C", "D", "E", "E1", "BSMT"];
 
   return (
     <aside className="w-52 bg-gray-100 flex flex-col gap-2 p-2 border-r border-gray-300 h-screen">
@@ -331,15 +327,15 @@ export default function LeftSidebar() {
             <input
               type="checkbox"
               className="h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500"
-              checked={selectedIntervals.length === intervals.length}
+              checked={selectedIntervals.length === availableIntervals.length}
               onChange={(e) => handleSelectAllIntervals(e.target.checked)}
             />
             <h3 className="text-xs font-bold text-gray-700">Intervals</h3>
-            <span className="text-xs text-gray-500 ml-auto">{selectedIntervals.length}/{intervals.length}</span>
+            <span className="text-xs text-gray-500 ml-auto">{selectedIntervals.length}/{availableIntervals.length}</span>
           </div>
           <div className="overflow-y-auto flex-1 p-1">
             <div className="flex flex-col gap-0.5">
-              {intervals.map(interval => (
+              {availableIntervals.map(interval => (
                 <label key={interval} className="flex items-center gap-2 px-2 py-0.5 rounded hover:bg-gray-50 cursor-pointer text-xs">
                   <input
                     type="checkbox"

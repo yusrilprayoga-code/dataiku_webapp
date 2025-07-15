@@ -58,14 +58,10 @@ import DnsDnsvCalculationPage from '@/features/dns-dnsv/page';
 import RgbeRpbePage from '@/features/rgbe-rpbe/page';
 import RtRoPage from '@/features/rt-ro/page';
 import SworadPage from '@/features/sworad/page';
+import FillMissingPage from '@/features/fill_missing/page';
+import SmoothingPage from '@/features/smoothing/page';
 
-// Placeholder component for demonstration purposes
-const SmoothingParamsForm = () => (
-    <div className="p-4 border rounded-lg bg-white shadow-sm">
-        <h2 className="text-lg font-semibold">Smoothing Parameters</h2>
-        <p className="text-gray-600 mt-2">This is a placeholder for the smoothing parameters form.</p>
-    </div>
-);
+
 
 // Error component
 const ErrorComponent = ({ moduleName }: { moduleName: string }) => (
@@ -167,7 +163,9 @@ export default function ModulePageClient({ moduleName, validModules }: ModulePag
                     </Suspense>
                 );
             case 'smoothing':
-                return <SmoothingParamsForm />;
+                return <SmoothingPage />;
+            case 'fill-missing':
+                return <FillMissingPage />;
             case 'vsh-calculation':
                 return (
                     <Suspense fallback={<div className="p-4">Loading VSH calculation parameters...</div>}>

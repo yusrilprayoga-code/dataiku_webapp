@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
-import HistogramParams from '../histogram/HistogramParams';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 
 const createInitialVshDNParameters = (): ParameterRow[] => {
@@ -60,8 +59,6 @@ export default function VshDNCalculationParams() {
   const [parameters, setParameters] = useState<ParameterRow[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
-  const [showHistogram, setShowHistogram] = useState(false);
-  const [showCrossplot, setShowCrossplot] = useState(false);
   const { setVshDNParams } = useAppDataStore();
 
   useEffect(() => {
@@ -284,48 +281,7 @@ export default function VshDNCalculationParams() {
           </div>
         </div>
       </form>
-        <div className="flex justify-end gap-2 mt-2">
-          <button
-            type="button"
-            className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold"
-            onClick={() => setShowHistogram(true)}
-          >
-            Histogram
-          </button>
-          <button
-            type="button"
-            className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold"
-            onClick={() => setShowCrossplot(true)}
-          >
-            Crossplot
-          </button>
-      </div>
 
-      {showHistogram && (
-        <div className="mt-6">
-          <HistogramParams />
-        </div>
-      )}
-
-      {showCrossplot && (
-        <div className="mt-6">
-          <CrossplotViewer onClose={function (): void {
-            throw new Error('Function not implemented.');
-          } } />
-        </div>
-      )}
     </div>
   );
 }
-
-const CrossplotViewer = ({ onClose }: { onClose: () => void }) => {
-  return (
-    <div className="p-4 border rounded bg-gray-100 mt-4">
-      <div className="flex justify-between items-center mb-2">
-        <h4 className="font-semibold text-lg">Crossplot Viewer</h4>
-        <button onClick={onClose} className="text-red-500 font-semibold">Close</button>
-      </div>
-      <p>Visualisasi crossplot akan ditampilkan di sini.</p>
-    </div>
-  );
-};

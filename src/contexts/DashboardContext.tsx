@@ -24,12 +24,14 @@ interface DashboardContextType {
   plotData: Data[];
   setPlotData: (data: Data[]) => void;
   getCurrentLogs: () => LogCurve[];
+  availableIntervals: string[];
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [availableWells, setAvailableWells] = useState<string[]>([]);
+  const [availableIntervals, setAvailableIntervals] = useState<string[]>([]);
   const [selectedWells, setSelectedWells] = useState<string[]>([]);
   const [selectedIntervals, setSelectedIntervals] = useState<string[]>(['B1', 'GUF']);
   const [plotType, setPlotType] = useState<PlotType>('default');
@@ -65,6 +67,17 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         console.error("Failed to fetch well list from server:", error);
+      }
+
+      try {
+        const intervalsResponse = await fetch('http://127.0.0.1:5001/api/list-intervals');
+        if (!intervalsResponse.ok) throw new Error('Gagal mengambil daftar interval');
+        const intervalsData = await intervalsResponse.json();
+        if (Array.isArray(intervalsData)) {
+          setAvailableIntervals(intervalsData);
+        }
+      } catch (error) {
+        console.error("Error fetching intervals:", error);
       }
     };
 
@@ -201,7 +214,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     fetchWellColumns,
     plotData,
     setPlotData,
-    getCurrentLogs
+    getCurrentLogs,
+    availableIntervals
   };
 
   return (
