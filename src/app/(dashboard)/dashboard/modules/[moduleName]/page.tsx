@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any*/
-
 // frontend/src/app/(dashboard)/dashboard/modules/[moduleName]/page.tsx
 import React, { Suspense } from 'react';
 import ModulePageClient from './ModulePageClient';
@@ -12,8 +9,8 @@ interface MyPageProps {
 // List of valid module names to prevent invalid routes
 const VALID_MODULES = [
   'histogram',
-  'crossplot-nphi-rhob',
-  'crossplot-gr-nphi',
+  'crossplot-d-n',
+  'crossplot-gr-n',
   'trim-data',
   'depth-matching',
   'normalization',

@@ -142,13 +142,13 @@ export default function ModulePageClient({ moduleName, validModules }: ModulePag
                         <HistogramParams />
                     </Suspense>
                 );
-            case 'crossplot-nphi-rhob':
+            case 'crossplot-d-n':
                 return (
                     <Suspense fallback={<div className="p-4">Loading crossplot parameters...</div>}>
                         <CrossplotViewerRHOB_NPHI />
                     </Suspense>
                 );
-            case 'crossplot-gr-nphi':
+            case 'crossplot-gr-n':
                 return (
                     <Suspense fallback={<div className="p-4">Loading crossplot parameters...</div>}>
                         <CrossplotViewerGR_NPHI />
