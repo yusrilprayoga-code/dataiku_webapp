@@ -495,11 +495,11 @@ export default function LeftSidebar() {
             <option value="porosity">Plot Porosity</option>
             <option value="sw">Plot SW</option>
             <option value="rwa">Plot RWA</option>
-            <option value="gsa">GSA Plot</option>
-            <option value="rpbe-rgbe">RPBE RGBE Plot</option>
-            <option value="swgrad">SWORAD Plot</option>
-            <option value="dns-dnsv">DNS-DNSV Plot</option>
-            <option value="rt-ro">RT-RO Plot</option>
+            <option value="gsa">Plot GSA</option>
+            <option value="rpbe-rgbe">Plot RPBE RGBE</option>
+            <option value="swgrad">Plot SWGRAD</option>
+            <option value="dns-dnsv">Plot DNS-DNSV</option>
+            <option value="rt-ro">Plot RT-RO</option>
           </select>
         </div>
       </div>
