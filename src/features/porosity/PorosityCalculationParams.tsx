@@ -31,16 +31,16 @@ const createInitialPorosityParameters = (): ParameterRow[] => {
     { id: 8, location: 'Constant', mode: 'Input', comment: 'Max Extreme Density (Sandstone)', unit: 'kg/m3', name: 'RHO_MAX', isEnabled: true },
   ];
 
-    const relevantParamNames = new Set([
-      'RHO_FL',
-      'RHO_SH',
-      'RHO_DSH',
-      'NPHI_SH',
-      'PHIE_MAX',
-      'RHO_MA_BASE',
-      'RHO_W',
-      'RHO_MAX'
-    ]);
+  const relevantParamNames = new Set([
+    'RHO_FL',
+    'RHO_SH',
+    'RHO_DSH',
+    'NPHI_SH',
+    'PHIE_MAX',
+    'RHO_MA_BASE',
+    'RHO_W',
+    'RHO_MAX'
+  ]);
 
   // Definisikan nilai default
   const defaultValues: Record<string, string | number> = {
@@ -69,7 +69,7 @@ export default function PorosityCalculationParams() {
   const [parameters, setParameters] = useState<ParameterRow[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
-  
+
 
   useEffect(() => {
     setParameters(createInitialPorosityParameters());
@@ -92,7 +92,7 @@ export default function PorosityCalculationParams() {
       })
     );
   }
-  
+
   const handleRowToggle = (id: number, isEnabled: boolean) => {
     setRowSync(prev => ({ ...prev, [id]: isEnabled }));
   };
@@ -206,7 +206,7 @@ export default function PorosityCalculationParams() {
                         </FormField> */}
           </div>
           <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-            <button type="button" className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
+            <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
             <button type="submit" className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}> {isSubmitting ? <Loader2 className="animate-spin" /> : 'Start'}
             </button>
           </div>
@@ -237,7 +237,7 @@ export default function PorosityCalculationParams() {
                       <td key={interval} className="px-3 py-2 border-r bg-white text-black">
                         <input
                           type="text"
-                          value={ param.values[interval] ?? param.values['default'] ?? ''}
+                          value={param.values[interval] ?? param.values['default'] ?? ''}
                           onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
                           className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
                         />

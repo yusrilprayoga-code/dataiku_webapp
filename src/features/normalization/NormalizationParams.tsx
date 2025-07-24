@@ -36,8 +36,8 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
     { id: 7, location: 'Log', mode: 'Output', comment: 'Output Log Name', unit: 'LOG_OUT', name: 'LOG_OUT', isEnabled: true },
   ];
 
-  const relevantParamNames = new Set(['NORMALIZE_OPT','LOG_IN', 'LOG_OUT', 'LOW_REF', 'HIGH_REF', 'LOW_IN', 'HIGH_IN', 'CUTOFF_MIN', 'CUTOFF_MAX']);
-  
+  const relevantParamNames = new Set(['NORMALIZE_OPT', 'LOG_IN', 'LOG_OUT', 'LOW_REF', 'HIGH_REF', 'LOW_IN', 'HIGH_IN', 'CUTOFF_MIN', 'CUTOFF_MAX']);
+
   const defaultValues: Record<string, string | number> = {
     'NORMALIZE_OPT': 'MIN-MAX', 'LOG_IN': 'GR', 'LOG_OUT': 'GR_NORM', 'LOW_REF': 40, 'HIGH_REF': 140,
     'LOW_IN': 5, 'HIGH_IN': 95, 'CUTOFF_MIN': '0', 'CUTOFF_MAX': 250
@@ -57,22 +57,22 @@ export default function NormalizationParams() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
-  
+
   useEffect(() => { setParameters(createInitialParameters(selectedIntervals)); }, [selectedIntervals]);
 
   const handleUnifiedValueChange = (id: number, newValue: string, interval: string) => {
     setParameters(prev => prev.map(row => {
       if (row.id !== id) return row;
-        if (rowSync[id]) {
-          const newValues = Object.fromEntries(
-            Object.keys(row.values).map(i => [i, newValue])
-          );
-          return { ...row, values: newValues };
-        }
-        return {
-          ...row,
-          values: { ...row.values, [interval]: newValue },
-        };
+      if (rowSync[id]) {
+        const newValues = Object.fromEntries(
+          Object.keys(row.values).map(i => [i, newValue])
+        );
+        return { ...row, values: newValues };
+      }
+      return {
+        ...row,
+        values: { ...row.values, [interval]: newValue },
+      };
     }));
   };
 
@@ -80,7 +80,7 @@ export default function NormalizationParams() {
   const handleRowToggle = (id: number, isEnabled: boolean) => {
     setRowSync(prev => ({ ...prev, [id]: isEnabled }));
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -194,7 +194,7 @@ export default function NormalizationParams() {
                 </FormField> */}
           </div>
           <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-            <button type="button" className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
+            <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
             <button type="submit" className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="animate-spin" /> : 'Start'}
             </button>
@@ -212,50 +212,50 @@ export default function NormalizationParams() {
                 </tr>
               </thead>
               <tbody className="bg-white">
-                  {parameters.map((param) => (
-                    <tr key={param.id} className={`border-b border-gray-200 ${param.isEnabled ? getRowBgColor(param.location, param.mode) : 'bg-gray-100 text-gray-400'}`}>
-                      
-                      {/* Kolom statis (ID, Location, dll.) tidak berubah */}
-                      {/* <td className="px-3 py-2 border-r text-center text-sm">{param.id}</td> */}
-                      <td className="px-3 py-2 border-r whitespace-nowrap text-sm">{param.location}</td>
-                      <td className="px-3 py-2 border-r whitespace-nowrap text-sm">{param.mode}</td>
-                      <td className="px-3 py-2 border-r whitespace-normal max-w-xs text-sm">{param.comment}</td>
-                      <td className="px-3 py-2 border-r whitespace-nowrap text-sm">{param.unit}</td>
-                      <td className="px-3 py-2 border-r font-semibold whitespace-nowrap text-sm">{param.name}</td>
-                      
-                      {/* Kolom 'P' untuk Checkbox */}
-                      <td className="px-3 py-2 border-r text-center">
-                        <input 
-                          type="checkbox" 
-                          className="h-4 w-4 rounded border-gray-400" 
-                          checked={!!rowSync[param.id]} 
-                          onChange={(e) => handleRowToggle(param.id, e.target.checked)} 
-                        />
+                {parameters.map((param) => (
+                  <tr key={param.id} className={`border-b border-gray-200 ${param.isEnabled ? getRowBgColor(param.location, param.mode) : 'bg-gray-100 text-gray-400'}`}>
+
+                    {/* Kolom statis (ID, Location, dll.) tidak berubah */}
+                    {/* <td className="px-3 py-2 border-r text-center text-sm">{param.id}</td> */}
+                    <td className="px-3 py-2 border-r whitespace-nowrap text-sm">{param.location}</td>
+                    <td className="px-3 py-2 border-r whitespace-nowrap text-sm">{param.mode}</td>
+                    <td className="px-3 py-2 border-r whitespace-normal max-w-xs text-sm">{param.comment}</td>
+                    <td className="px-3 py-2 border-r whitespace-nowrap text-sm">{param.unit}</td>
+                    <td className="px-3 py-2 border-r font-semibold whitespace-nowrap text-sm">{param.name}</td>
+
+                    {/* Kolom 'P' untuk Checkbox */}
+                    <td className="px-3 py-2 border-r text-center">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-400"
+                        checked={!!rowSync[param.id]}
+                        onChange={(e) => handleRowToggle(param.id, e.target.checked)}
+                      />
+                    </td>
+
+                    {/* Kolom dinamis untuk setiap interval */}
+                    {selectedIntervals.map(interval => (
+                      <td key={interval} className="px-3 py-2 border-r bg-white text-black">
+                        {param.name === 'NORMALIZE_OPT' ? (
+                          <select
+                            value={param.values[interval] ?? ''}
+                            onChange={(e) => handleUnifiedValueChange(param.id, e.target.value, interval)}
+                            className="w-full p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                          >
+                            <option value="MIN-MAX">MIN-MAX</option>
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={param.values[interval] ?? ''}
+                            onChange={(e) => handleUnifiedValueChange(param.id, e.target.value, interval)}
+                            className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                          />
+                        )}
                       </td>
-                      
-                      {/* Kolom dinamis untuk setiap interval */}
-                      {selectedIntervals.map(interval => (
-                        <td key={interval} className="px-3 py-2 border-r bg-white text-black">
-                          {param.name === 'NORMALIZE_OPT' ? (
-                            <select
-                              value={param.values[interval] ?? ''}
-                              onChange={(e) => handleUnifiedValueChange(param.id, e.target.value, interval)}
-                              className="w-full p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
-                            >
-                              <option value="MIN-MAX">MIN-MAX</option>
-                            </select>
-                          ) : (
-                            <input
-                              type="text"
-                              value={param.values[interval] ?? ''}
-                              onChange={(e) => handleUnifiedValueChange(param.id, e.target.value, interval)}
-                              className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
-                            />
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
+                    ))}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

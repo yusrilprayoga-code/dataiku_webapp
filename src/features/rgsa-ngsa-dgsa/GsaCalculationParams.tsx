@@ -46,8 +46,8 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
 
   // 2. Definisikan nilai default sesuai gambar
   const defaultValues: Record<string, string | number> = {
-    'SLIDING_WINDOW': 100, 
-    'GR': 'GR', 'DENS': 'RHOB', 'NEUT': 'NPHI', 'RES': 'RT', 
+    'SLIDING_WINDOW': 100,
+    'GR': 'GR', 'DENS': 'RHOB', 'NEUT': 'NPHI', 'RES': 'RT',
   };
 
   return allPossibleParams
@@ -64,7 +64,7 @@ export default function GsaCalculationParams() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [linkedRows, setLinkedRows] = useState<Record<number, boolean>>({});
-  
+
   useEffect(() => { setParameters(createInitialParameters(selectedIntervals)); }, [selectedIntervals]);
 
   const combinedColumns = selectedWells.flatMap(well => wellColumns[well] || []);
@@ -90,7 +90,7 @@ export default function GsaCalculationParams() {
   const handleRowToggle = (id: number, isEnabled: boolean) => {
     setLinkedRows(prev => ({ ...prev, [id]: isEnabled }));
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -202,7 +202,7 @@ export default function GsaCalculationParams() {
                 </FormField> */}
           </div>
           <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-            <button type="button" className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
+            <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
             <button type="submit" className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="animate-spin" /> : 'Start'}
             </button>
