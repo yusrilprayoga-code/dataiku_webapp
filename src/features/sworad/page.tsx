@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { useDashboard } from '@/contexts/DashboardContext';
@@ -12,6 +11,7 @@ import SworadParams from './components/SworadParams';
 
 export default function SworadPage() {
     const { selectedWells, selectedIntervals } = useDashboard();
+    const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [plot, setPlot] = useState<PlotData | null>(null);
@@ -146,9 +146,9 @@ export default function SworadPage() {
                     <button
                         type="button"
                         className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold"
-                        onClick={() => setParameters(createInitialParameters(selectedIntervals))}
+                        onClick={() => router.back()}
                     >
-                        Reset
+                        Cancel
                     </button>
                     <button
                         onClick={handleCalculate}

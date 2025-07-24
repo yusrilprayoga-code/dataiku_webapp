@@ -495,6 +495,7 @@ export default function LeftSidebar() {
             <option value="porosity">Plot Porosity</option>
             <option value="sw">Plot SW</option>
             <option value="rwa">Plot RWA</option>
+            <option value="module2">Plot Module 2</option>
             <option value="gsa">Plot GSA</option>
             <option value="rpbe-rgbe">Plot RPBE RGBE</option>
             <option value="swgrad">Plot SWGRAD</option>

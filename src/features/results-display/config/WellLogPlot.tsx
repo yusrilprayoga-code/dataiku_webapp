@@ -58,6 +58,9 @@ export default function WellLogPlot() {
         case 'rwa':
           endpointPath = '/api/get-rwa-plot';
           break;
+        case 'module2':
+          endpointPath = '/api/get-module2-plot';
+          break;
         case 'rpbe-rgbe':
           endpointPath = '/api/get-rgbe-rpbe-plot';
           break;

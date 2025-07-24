@@ -180,7 +180,7 @@ export default function RWACalculationParams() {
                 </FormField> */}
           </div>
           <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-            <button type="button" className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
+            <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
             <button type="submit" className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="animate-spin" /> : 'Start'}
             </button>

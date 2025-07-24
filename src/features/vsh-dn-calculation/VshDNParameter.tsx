@@ -13,37 +13,37 @@ const createInitialVshDNParameters = (): ParameterRow[] => {
 
   // Definisikan master list parameter yang relevan untuk VSH
   /** Semua parameter yang mungkin muncul di form */
-    const allPossibleParams: Omit<ParameterRow, "values">[] = [
+  const allPossibleParams: Omit<ParameterRow, "values">[] = [
     // Interval‑level parameters
-    { id: 1,  location: "Interval", mode: "In_Out", comment: "Matrix density",              unit: "G/C3",   name: "RHO_MA",  isEnabled: true },
-    { id: 2,  location: "Interval", mode: "In_Out", comment: "Shale density",               unit: "G/C3",   name: "RHO_SH",  isEnabled: true },
-    { id: 3,  location: "Interval", mode: "In_Out", comment: "Fluid density",               unit: "G/C3",   name: "RHO_FL",  isEnabled: true },
-    { id: 4,  location: "Interval", mode: "In_Out", comment: "Matrix neutron porosity",     unit: "V/V",    name: "NPHI_MA", isEnabled: true },
-    { id: 5,  location: "Interval", mode: "In_Out", comment: "Shale neutron porosity",      unit: "V/V",    name: "NPHI_SH", isEnabled: true },
-    { id: 6,  location: "Interval", mode: "In_Out", comment: "Fluid neutron porosity",      unit: "V/V",    name: "NPHI_FL", isEnabled: true },
+    { id: 1, location: "Interval", mode: "In_Out", comment: "Matrix density", unit: "G/C3", name: "RHO_MA", isEnabled: true },
+    { id: 2, location: "Interval", mode: "In_Out", comment: "Shale density", unit: "G/C3", name: "RHO_SH", isEnabled: true },
+    { id: 3, location: "Interval", mode: "In_Out", comment: "Fluid density", unit: "G/C3", name: "RHO_FL", isEnabled: true },
+    { id: 4, location: "Interval", mode: "In_Out", comment: "Matrix neutron porosity", unit: "V/V", name: "NPHI_MA", isEnabled: true },
+    { id: 5, location: "Interval", mode: "In_Out", comment: "Shale neutron porosity", unit: "V/V", name: "NPHI_SH", isEnabled: true },
+    { id: 6, location: "Interval", mode: "In_Out", comment: "Fluid neutron porosity", unit: "V/V", name: "NPHI_FL", isEnabled: true },
     // { id: 7,  location: "Interval", mode: "In_Out", comment: "Option to allow bad‑hole logic", unit: "LOGICAL", name: "OPT_BH",   isEnabled: true },
     // { id: 8,  location: "Interval", mode: "In_Out", comment: "Option to allow coal logic",    unit: "LOGICAL", name: "OPT_COAL", isEnabled: true },
 
     // Log‑level parameters
-    { id: 9,  location: "Log", mode: "Input",  comment: "Density log",              unit: "G/C3", name: "RHOB", isEnabled: true },
-    { id: 10, location: "Log", mode: "Input",  comment: "Neutron porosity log",     unit: "V/V",  name: "NPHI", isEnabled: true },
-    { id: 11, location: "Log", mode: "Output", comment: "VSH from density‑neutron", unit: "V/V",  name: "VSH",  isEnabled: true },
-    ];
+    { id: 9, location: "Log", mode: "Input", comment: "Density log", unit: "G/C3", name: "RHOB", isEnabled: true },
+    { id: 10, location: "Log", mode: "Input", comment: "Neutron porosity log", unit: "V/V", name: "NPHI", isEnabled: true },
+    { id: 11, location: "Log", mode: "Output", comment: "VSH from density‑neutron", unit: "V/V", name: "VSH", isEnabled: true },
+  ];
 
-    /** Nilai default (kolom ZZ3 pada gambar) */
-    const defaultValues: Record<string, string | number> = {
-    RHO_MA:   2.645,
-    RHO_SH:   2.61,
-    RHO_FL:   0.85,
+  /** Nilai default (kolom ZZ3 pada gambar) */
+  const defaultValues: Record<string, string | number> = {
+    RHO_MA: 2.645,
+    RHO_SH: 2.61,
+    RHO_FL: 0.85,
     NPHI_MA: -0.02,
-    NPHI_SH:  0.398,
-    NPHI_FL:  0.85,
+    NPHI_SH: 0.398,
+    NPHI_FL: 0.85,
     // OPT_BH:  "No",
     // OPT_COAL:"No",
-    RHOB:    "RHOB",
-    NPHI:    "NPHI",
-    VSH:     "VSH_DN", 
-    };
+    RHOB: "RHOB",
+    NPHI: "NPHI",
+    VSH: "VSH_DN",
+  };
 
 
   // Petakan untuk menghasilkan data awal yang benar
@@ -98,18 +98,18 @@ export default function VshDNCalculationParams() {
     setIsSubmitting(true);
 
     const formParams = parameters
-    .filter(p => p.isEnabled)
-    .reduce((acc, param) => {
-      const value = param.values[selectedIntervals[0] || 'default'] || param.values[Object.keys(param.values)[0]];
-      acc[param.name] = isNaN(Number(value)) ? value : Number(value);
-      return acc;
-    }, {} as Record<string, string | number>);
+      .filter(p => p.isEnabled)
+      .reduce((acc, param) => {
+        const value = param.values[selectedIntervals[0] || 'default'] || param.values[Object.keys(param.values)[0]];
+        acc[param.name] = isNaN(Number(value)) ? value : Number(value);
+        return acc;
+      }, {} as Record<string, string | number>);
 
     setVshDNParams({
-        rho_ma: Number(formParams.RHO_MA),
-        rho_sh: Number(formParams.RHO_SH),
-        nphi_ma: Number(formParams.NPHI_MA),
-        nphi_sh: Number(formParams.NPHI_SH),
+      rho_ma: Number(formParams.RHO_MA),
+      rho_sh: Number(formParams.RHO_SH),
+      nphi_ma: Number(formParams.NPHI_MA),
+      nphi_sh: Number(formParams.NPHI_SH),
     });
 
     const payload = {
@@ -210,7 +210,7 @@ export default function VshDNCalculationParams() {
                 </FormField> */}
           </div>
           <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-            <button type="button" className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
+            <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
             <button type="submit" className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="animate-spin" /> : 'Start'}
             </button>
@@ -238,42 +238,42 @@ export default function VshDNCalculationParams() {
                     <td className="px-3 py-2 border-r whitespace-nowrap">{param.unit}</td>
                     <td className="px-3 py-2 border-r font-semibold whitespace-nowrap">{param.name}</td>
                     <td className="px-3 py-2 border-r text-center"><input type="checkbox" className="h-4 w-4 rounded border-gray-400" checked={!!rowSync[param.id]} onChange={(e) => handleRowToggle(param.id, e.target.checked)} /></td>
-                      {selectedIntervals.map(interval => (
-                        <td key={`${param.id}-${interval}`} className="px-3 py-2 border-r bg-white text-black">
-                          {param.name === 'OPT_GR' ? (
-                            <select
-                              value={String(param.values[interval] ?? param.values['default'] ?? '')}
-                              onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
-                              className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-                            >
-                              <option value="LINEAR">LINEAR</option>
-                            </select>
-                          ) : param.name === 'GR' ? (
-                            (() => {
-                              const filteredOptions: string[] = combinedColumns.filter(col => col.toUpperCase().includes('GR'));
-                              return (
-                                <select
-                                  value={String(param.values[interval] ?? param.values['default'] ?? '')}
-                                  onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
-                                  className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-                                >
-                                  {filteredOptions.length === 0 && <option value="">No match</option>}
-                                  {filteredOptions.map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
-                                  ))}
-                                </select>
-                              );
-                            })()
-                          ) : (
-                            <input
-                              type="text"
-                              value={ param.values[interval] ?? param.values['default'] ?? ''}
-                              onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
-                              className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
-                            />
-                          )}
-                        </td>
-                      ))}
+                    {selectedIntervals.map(interval => (
+                      <td key={`${param.id}-${interval}`} className="px-3 py-2 border-r bg-white text-black">
+                        {param.name === 'OPT_GR' ? (
+                          <select
+                            value={String(param.values[interval] ?? param.values['default'] ?? '')}
+                            onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                            className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                          >
+                            <option value="LINEAR">LINEAR</option>
+                          </select>
+                        ) : param.name === 'GR' ? (
+                          (() => {
+                            const filteredOptions: string[] = combinedColumns.filter(col => col.toUpperCase().includes('GR'));
+                            return (
+                              <select
+                                value={String(param.values[interval] ?? param.values['default'] ?? '')}
+                                onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                                className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                              >
+                                {filteredOptions.length === 0 && <option value="">No match</option>}
+                                {filteredOptions.map(opt => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            );
+                          })()
+                        ) : (
+                          <input
+                            type="text"
+                            value={param.values[interval] ?? param.values['default'] ?? ''}
+                            onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                            className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                          />
+                        )}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>

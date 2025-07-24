@@ -82,16 +82,16 @@ export default function VshCalculationParams() {
     setIsSubmitting(true);
 
     const formParams = parameters
-    .filter(p => p.isEnabled)
-    .reduce((acc, param) => {
-      const value = param.values[selectedIntervals[0] || 'default'] || param.values[Object.keys(param.values)[0]];
-      acc[param.name] = isNaN(Number(value)) ? value : Number(value);
-      return acc;
-    }, {} as Record<string, string | number>);
+      .filter(p => p.isEnabled)
+      .reduce((acc, param) => {
+        const value = param.values[selectedIntervals[0] || 'default'] || param.values[Object.keys(param.values)[0]];
+        acc[param.name] = isNaN(Number(value)) ? value : Number(value);
+        return acc;
+      }, {} as Record<string, string | number>);
 
     setVshParams({
-        gr_ma: Number(formParams.GR_MA),
-        gr_sh: Number(formParams.GR_SH)
+      gr_ma: Number(formParams.GR_MA),
+      gr_sh: Number(formParams.GR_SH)
     });
 
     const payload = {
@@ -192,7 +192,7 @@ export default function VshCalculationParams() {
                 </FormField> */}
           </div>
           <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-            <button type="button" className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
+            <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
             <button type="submit" className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="animate-spin" /> : 'Start'}
             </button>
@@ -220,42 +220,42 @@ export default function VshCalculationParams() {
                     <td className="px-3 py-2 border-r whitespace-nowrap">{param.unit}</td>
                     <td className="px-3 py-2 border-r font-semibold whitespace-nowrap">{param.name}</td>
                     <td className="px-3 py-2 border-r text-center"><input type="checkbox" className="h-4 w-4 rounded border-gray-400" checked={!!rowSync[param.id]} onChange={(e) => handleRowToggle(param.id, e.target.checked)} /></td>
-                      {selectedIntervals.map(interval => (
-                        <td key={`${param.id}-${interval}`} className="px-3 py-2 border-r bg-white text-black">
-                          {param.name === 'OPT_GR' ? (
-                            <select
-                              value={String(param.values[interval] ?? param.values['default'] ?? '')}
-                              onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
-                              className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-                            >
-                              <option value="LINEAR">LINEAR</option>
-                            </select>
-                          ) : param.name === 'GR' ? (
-                            (() => {
-                              const filteredOptions: string[] = combinedColumns.filter(col => col.toUpperCase().includes('GR'));
-                              return (
-                                <select
-                                  value={String(param.values[interval] ?? param.values['default'] ?? '')}
-                                  onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
-                                  className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-                                >
-                                  {filteredOptions.length === 0 && <option value="">No match</option>}
-                                  {filteredOptions.map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
-                                  ))}
-                                </select>
-                              );
-                            })()
-                          ) : (
-                            <input
-                              type="text"
-                              value={ param.values[interval] ?? param.values['default'] ?? ''}
-                              onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
-                              className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
-                            />
-                          )}
-                        </td>
-                      ))}
+                    {selectedIntervals.map(interval => (
+                      <td key={`${param.id}-${interval}`} className="px-3 py-2 border-r bg-white text-black">
+                        {param.name === 'OPT_GR' ? (
+                          <select
+                            value={String(param.values[interval] ?? param.values['default'] ?? '')}
+                            onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                            className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                          >
+                            <option value="LINEAR">LINEAR</option>
+                          </select>
+                        ) : param.name === 'GR' ? (
+                          (() => {
+                            const filteredOptions: string[] = combinedColumns.filter(col => col.toUpperCase().includes('GR'));
+                            return (
+                              <select
+                                value={String(param.values[interval] ?? param.values['default'] ?? '')}
+                                onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                                className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                              >
+                                {filteredOptions.length === 0 && <option value="">No match</option>}
+                                {filteredOptions.map(opt => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            );
+                          })()
+                        ) : (
+                          <input
+                            type="text"
+                            value={param.values[interval] ?? param.values['default'] ?? ''}
+                            onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                            className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                          />
+                        )}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
