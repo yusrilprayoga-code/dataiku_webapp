@@ -44,10 +44,13 @@ export default function HistogramParams() {
   }, [selectedWells, wellColumns]);
 
   useEffect(() => {
-    if (selectedWells.length > 0) {
+    if (selectedWells.length === 0) return;
+
+    const allAlreadyFetched = selectedWells.every(well => wellColumns[well]?.length > 0);
+    if (!allAlreadyFetched) {
       fetchWellColumns(selectedWells);
     }
-  }, [selectedWells, fetchWellColumns]); 
+  }, [selectedWells, wellColumns, fetchWellColumns]);
 
   useEffect(() => {
     if (availableLogs.length > 0 && !availableLogs.includes(selectedLog)) {

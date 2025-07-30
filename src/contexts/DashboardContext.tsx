@@ -1,15 +1,14 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // /src/contexts/DashboardContext.tsx
 
 'use client';
 
 import { LogCurve } from '@/lib/db';
-import { Data } from 'plotly.js';
+import { Data, Layout } from 'plotly.js';
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 
-export type PlotType = 'default' | 'normalization' | 'smoothing' | 'porosity' | 'sw' | 'vsh' | 'rwa' | 'gsa' | 'rpbe-rgbe' | 'swgrad' | 'dns-dnsv' | 'rt-ro';
+export type PlotType = 'default' | 'normalization' | 'smoothing' | 'porosity' | 'sw' | 'vsh' | 'rwa' | 'module2' | 'gsa' | 'rpbe-rgbe' | 'swgrad' | 'dns-dnsv' | 'rt-ro';
 
 interface DashboardContextType {
   availableWells: string[];
@@ -25,6 +24,14 @@ interface DashboardContextType {
   setPlotData: (data: Data[]) => void;
   getCurrentLogs: () => LogCurve[];
   availableIntervals: string[];
+  plotFigure: PlotFigure;
+  isLoading: boolean;
+  error: string | null;
+}
+
+interface PlotFigure {
+  data: Data[];
+  layout: Partial<Layout>;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -36,7 +43,9 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [selectedIntervals, setSelectedIntervals] = useState<string[]>(['B1', 'GUF']);
   const [plotType, setPlotType] = useState<PlotType>('default');
   const [wellColumns, setWellColumns] = useState<Record<string, string[]>>({});
-  const [plotData, setPlotData] = useState<Data[]>([]);
+  const [plotFigure, setPlotFigure] = useState<PlotFigure>({ data: [], layout: {} });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   useEffect(() => {
@@ -84,6 +93,51 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     fetchWellsFromServer();
   }, []); // Run only once when the provider mounts
 
+  const fetchPlotData = useCallback(async () => {
+    if (selectedWells.length === 0 || !apiUrl) {
+      setPlotFigure({ 
+        data: [], 
+        layout: { title: { text: 'Please select a well to begin.' } } 
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true); // 3. Atur state loading dan error di sini
+    setError(null);
+    
+    try {
+      const response = await fetch(`${apiUrl}/api/get-plot`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          selected_wells: selectedWells,
+          selected_intervals: selectedIntervals,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Network response was not ok');
+      }
+
+      const plotJson = await response.json(); // Backend seharusnya mengembalikan objek, bukan string ganda
+      setPlotFigure(plotJson); // Simpan seluruh objek plot (data dan layout)
+
+    } catch (err) {
+      console.error("Failed to fetch plot data:", err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setPlotFigure({ data: [], layout: {} });
+    } finally {
+      setIsLoading(false); // Matikan loading setelah selesai
+    }
+  }, [selectedWells, selectedIntervals, apiUrl]);
+
+
+  useEffect(() => {
+    fetchPlotData();
+  }, [fetchPlotData]);
+
   const fetchWellColumns = async (wells: string[]) => {
     try {
       const response = await fetch(`${apiUrl}/api/get-well-columns`, {
@@ -121,10 +175,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const getCurrentLogs = (): LogCurve[] => {
-    console.log("Getting current logs from plot data:", plotData);
+    console.log("Getting current logs from plot data:", plotFigure.data);
 
     // First, identify all valid log curves (type: scattergl)
-    const logTraces = plotData.filter((trace) => {
+    const logTraces = plotFigure.data.filter((trace) => {
       const t = trace as any;
       return t.type === 'scattergl' &&
         t.name &&
@@ -191,7 +245,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           curveName: t.name,
           data: pairs,
           wellName: selectedWells[0] || 'Unknown Well',
-          plotData: plotData
+          plotData: plotFigure.data,
         });
       } catch (err) {
         console.error(`Error processing log ${t.name}: ${err}`);
@@ -212,10 +266,13 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     setPlotType,
     wellColumns,
     fetchWellColumns,
-    plotData,
-    setPlotData,
+    plotFigure,
+    isLoading,
+    error,
     getCurrentLogs,
-    availableIntervals
+    availableIntervals,
+    plotData: plotFigure.data,
+    setPlotData: (data: Data[]) => setPlotFigure(prev => ({ ...prev, data })),
   };
 
   return (

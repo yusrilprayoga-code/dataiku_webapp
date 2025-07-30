@@ -60,6 +60,7 @@ import RtRoPage from '@/features/rt-ro/page';
 import SworadPage from '@/features/sworad/page';
 import FillMissingPage from '@/features/fill_missing/page';
 import SmoothingPage from '@/features/smoothing/page';
+import GWDPage from '@/features/gwd/page';
 
 
 
@@ -224,6 +225,12 @@ export default function ModulePageClient({ moduleName, validModules }: ModulePag
                 return (
                     <Suspense fallback={<div className="p-4">Loading RT-RO calculation...</div>}>
                         <RtRoPage />
+                    </Suspense>
+                );
+            case 'gwd':
+                return (
+                    <Suspense fallback={<div className="p-4">Loading GWD calculation...</div>}>
+                        <GWDPage />
                     </Suspense>
                 );
             default:

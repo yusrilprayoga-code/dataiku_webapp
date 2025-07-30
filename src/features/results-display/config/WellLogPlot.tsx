@@ -14,8 +14,10 @@ export default function WellLogPlot() {
   const [plotLayout, setPlotLayout] = useState<Partial<Layout>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { selectedWells, plotType } = useDashboard();
-
+  
+  // 1. Ambil `selectedIntervals` dari context
+  const { selectedWells, selectedIntervals, plotType } = useDashboard();
+  
   useEffect(() => {
     if (selectedWells.length === 0) {
       setIsLoading(false);
@@ -58,6 +60,9 @@ export default function WellLogPlot() {
         case 'rwa':
           endpointPath = '/api/get-rwa-plot';
           break;
+        case 'module2':
+          endpointPath = '/api/get-module2-plot';
+          break;
         case 'rpbe-rgbe':
           endpointPath = '/api/get-rgbe-rpbe-plot';
           break;
@@ -83,7 +88,11 @@ export default function WellLogPlot() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ selected_wells: selectedWells }), // Kirim sebagai objek
+          // 3. Tambahkan `selected_intervals` ke body request
+          body: JSON.stringify({ 
+            selected_wells: selectedWells,
+            selected_intervals: selectedIntervals 
+          }),
         });
 
         if (!response.ok) {
@@ -92,6 +101,7 @@ export default function WellLogPlot() {
         }
 
         const responseData = await response.json();
+        // Asumsi backend mengembalikan JSON string yang perlu di-parse lagi
         const plotObject = JSON.parse(responseData);
 
         setPlotData(plotObject.data);
@@ -106,7 +116,8 @@ export default function WellLogPlot() {
     };
 
     fetchPlotData();
-  }, [selectedWells, plotType]);
+  // 2. Tambahkan `selectedIntervals` ke dependency array
+  }, [selectedWells, selectedIntervals, plotType]);
 
   if (isLoading) {
     return (

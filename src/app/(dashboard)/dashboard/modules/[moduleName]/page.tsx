@@ -25,7 +25,8 @@ const VALID_MODULES = [
   'rgbe-rpbe',
   'swgrad',
   'dns-dnsv',
-  'rt-ro'
+  'rt-ro',
+  'gwd',
 ];
 
 export default async function MyPage({ params }: MyPageProps) {
