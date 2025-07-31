@@ -20,6 +20,8 @@ interface VshDNParams {
   rho_sh: number;
   nphi_ma: number;
   nphi_sh: number;
+  prcnt_qz: number;
+  prcnt_wtr: number;
 }
 
 // Interface AppState sekarang bisa menemukan tipe VshParams
@@ -67,7 +69,7 @@ export const useAppDataStore = create<AppState>()(
       handledFiles: [],
       normalizationResults: {},
       selectedWell: 'ABAB-035',
-      selectedIntervals: ['B1', 'GUF'],
+      selectedIntervals: ['A', 'B' ,'B1', 'C', 'D', 'E', 'E1'],
       plotData: [],
       plotLayout: {},
       isLoadingPlot: true,
@@ -83,6 +85,8 @@ export const useAppDataStore = create<AppState>()(
         rho_sh: 2.61,  // Nilai default
         nphi_ma: -0.02, // Nilai default
         nphi_sh: 0.398, // Nilai default
+        prcnt_qz: 5,
+        prcnt_wtr: 5
       },
 
       // --- Actions Implementation ---
@@ -103,7 +107,7 @@ export const useAppDataStore = create<AppState>()(
         normalizationResults: {},
         // Anda mungkin juga ingin mereset vshParams di sini
         vshParams: { gr_ma: 30, gr_sh: 120 },
-        vshDNParams: { rho_ma: 2.645, rho_sh: 2.61, nphi_ma: -0.02, nphi_sh: 0.398 },
+        vshDNParams: { rho_ma: 2.645, rho_sh: 2.61, nphi_ma: -0.02, nphi_sh: 0.398, prcnt_qz: 5, prcnt_wtr: 5 },
       }),
       setSelectedWell: (well: string) => {
         set({ selectedWell: well });

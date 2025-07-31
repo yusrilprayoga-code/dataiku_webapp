@@ -40,7 +40,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [availableWells, setAvailableWells] = useState<string[]>([]);
   const [availableIntervals, setAvailableIntervals] = useState<string[]>([]);
   const [selectedWells, setSelectedWells] = useState<string[]>([]);
-  const [selectedIntervals, setSelectedIntervals] = useState<string[]>(['B1', 'GUF']);
+  const [selectedIntervals, setSelectedIntervals] = useState<string[]>(['A', 'B' ,'B1', 'C', 'D', 'E', 'E1']);
   const [plotType, setPlotType] = useState<PlotType>('default');
   const [wellColumns, setWellColumns] = useState<Record<string, string[]>>({});
   const [plotFigure, setPlotFigure] = useState<PlotFigure>({ data: [], layout: {} });

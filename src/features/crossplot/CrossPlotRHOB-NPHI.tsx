@@ -19,13 +19,13 @@ const FormField: React.FC<{ label: string; children: React.ReactNode }> = ({ lab
 // Nama komponen diubah menjadi lebih generik
 export default function CrossplotViewer() {
   const { selectedWells, selectedIntervals, wellColumns } = useDashboard();
-  // const { vshDNParams, setVshDNParams } = useAppDataStore();
-  const { vshDNParams } = useAppDataStore();
+  const { vshDNParams, setVshDNParams } = useAppDataStore();
+  // const { vshDNParams } = useAppDataStore();
   
   // State untuk pilihan sumbu X dan Y
   const [xCol, setXCol] = useState<string>('NPHI');
   const [yCol, setYCol] = useState<string>('RHOB');
-  // const { nphi_ma, rho_sh } = vshDNParams;
+  const { prcnt_qz, prcnt_wtr } = vshDNParams;
   
   const [plotResult, setPlotResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -46,10 +46,10 @@ export default function CrossplotViewer() {
     }
   }, [availableLogs, xCol, yCol]);
 
-  // const handleParamChange = (key: string, value: string) => {
-  //   const numericValue = parseFloat(value);
-  //   setVshDNParams({ ...vshDNParams, [key]: isNaN(numericValue) ? '' : numericValue });
-  // };
+  const handleParamChange = (key: string, value: string) => {
+    const numericValue = parseFloat(value);
+    setVshDNParams({ ...vshDNParams, [key]: isNaN(numericValue) ? '' : numericValue });
+  };
 
 
   const fetchCrossplot = async () => {
@@ -70,6 +70,8 @@ export default function CrossplotViewer() {
       y_col: yCol,
       ...vshDNParams,
     };
+
+    console.log(vshDNParams);
 
     try {
       const response = await fetch(endpoint, {
@@ -112,24 +114,28 @@ export default function CrossplotViewer() {
                   {availableLogs.map(log => <option key={log} value={log}>{log}</option>)}
               </select>
             </FormField>
-            {/* <FormField label="NPHI Matrix (Quartz)">
-              <input
-                type="number"
-                value={nphi_ma}
-                onChange={(e) => handleParamChange('nphi_ma', e.target.value)}
-                className="w-full p-2 border rounded-md"
-                step="any"
-              />
-            </FormField>
-            <FormField label="RHO_SH">
-              <input
-                type="number"
-                value={rho_sh}
-                onChange={(e) => handleParamChange('rho_sh', e.target.value)}
-                className="w-full p-2 border rounded-md"
-                step="any"
-              />
-            </FormField> */}
+            {(xCol === "NPHI" && yCol === "RHOB") && (
+              <>
+                <FormField label="Percentile Quartz">
+                  <input
+                    type="number"
+                    value={prcnt_qz}
+                    onChange={(e) => handleParamChange('prcnt_qz', e.target.value)}
+                    className="w-full p-2 border rounded-md"
+                    step="any"
+                  />
+                </FormField>
+                <FormField label="Percentile Water">
+                  <input
+                    type="number"
+                    value={prcnt_wtr}
+                    onChange={(e) => handleParamChange('prcnt_wtr', e.target.value)}
+                    className="w-full p-2 border rounded-md"
+                    step="any"
+                  />
+                </FormField>
+              </>
+            )}
 
         </div>
         <div className="flex justify-end pt-4 border-t">
