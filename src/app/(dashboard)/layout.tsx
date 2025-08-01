@@ -27,7 +27,7 @@ function DashboardView({ children }: { children: React.ReactNode }) {
     const activeModule = pathname.split('/').pop()?.toUpperCase().replace(/-/g, ' ') || null;
     
     return (
-        <div className="flex h-screen w-full bg-gray-100 font-sans text-gray-800">
+        <div className="flex h-[calc(100vh-80px)] w-full bg-gray-100 font-sans text-gray-800">
             <LeftSidebar />
             <MainContent>{children}</MainContent>
             <RightSidebar activeButton={activeModule} />

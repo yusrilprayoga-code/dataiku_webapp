@@ -253,7 +253,7 @@ export default function FileUploadViewer() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-[calc(100vh-80px)] bg-gray-50">
       <FileList
         // Pass the display state and the new delete handler
         uploadedFiles={filesForDisplay}

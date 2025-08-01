@@ -216,7 +216,7 @@ export default function DataInputUtamaPage() {
 
     // Main component render
     return (
-        <div className="flex h-screen bg-gray-50 text-gray-800">
+        <div className="flex h-[calc(100vh-80px)] bg-gray-50 text-gray-800">
             {/* Panel 1: Folder Navigation & Actions */}
             <div className="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col p-4">
                 <h1 className="text-xl font-bold mb-6">Data Input Utama</h1>
