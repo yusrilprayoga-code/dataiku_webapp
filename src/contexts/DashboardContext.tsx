@@ -8,7 +8,7 @@ import { LogCurve } from '@/lib/db';
 import { Data, Layout } from 'plotly.js';
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 
-export type PlotType = 'default' | 'normalization' | 'smoothing' | 'porosity' | 'sw' | 'vsh' | 'rwa' | 'module2' | 'gsa' | 'rpbe-rgbe' | 'swgrad' | 'dns-dnsv' | 'rt-ro';
+export type PlotType = 'default' | 'normalization' | 'smoothing' | 'porosity' | 'sw' | 'vsh' | 'rwa' | 'module2' | 'gsa' | 'rpbe-rgbe' | 'iqual' | 'swgrad' | 'dns-dnsv' | 'rt-ro';
 
 interface DashboardContextType {
   availableWells: string[];

@@ -498,6 +498,7 @@ export default function LeftSidebar() {
             <option value="module2">Plot Module 2</option>
             <option value="gsa">Plot GSA</option>
             <option value="rpbe-rgbe">Plot RPBE RGBE</option>
+            <option value="iqual">Plot IQUAL</option>
             <option value="swgrad">Plot SWGRAD</option>
             <option value="dns-dnsv">Plot DNS-DNSV</option>
             <option value="rt-ro">Plot RT-RO</option>
