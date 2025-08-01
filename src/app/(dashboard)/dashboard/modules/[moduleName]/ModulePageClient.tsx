@@ -8,7 +8,6 @@ import { useAppDataStore } from '@/stores/useAppDataStore';
 import { type ParameterRow } from '@/types';
 import dynamic from 'next/dynamic';
 import HistogramParams from '@/features/histogram/HistogramParams';
-import CrossplotViewerRHOB_NPHI from '@/features/crossplot/CrossPlotRHOB-NPHI';
 import CrossplotViewerGR_NPHI from '@/features/crossplot/CrossPlotGR-NPHI';
 import VshDNCalculationParams from '@/features/vsh-dn-calculation/VshDNParameter';
 
@@ -61,6 +60,7 @@ import SworadPage from '@/features/sworad/page';
 import FillMissingPage from '@/features/fill_missing/page';
 import SmoothingPage from '@/features/smoothing/page';
 import GWDPage from '@/features/gwd/page';
+import CrossplotViewer from '@/features/crossplot/CrossPlot';
 
 
 
@@ -139,10 +139,10 @@ export default function ModulePageClient({ moduleName, validModules }: ModulePag
                         <HistogramParams />
                     </Suspense>
                 );
-            case 'crossplot-d-n':
+            case 'crossplot':
                 return (
                     <Suspense fallback={<div className="p-4">Loading crossplot parameters...</div>}>
-                        <CrossplotViewerRHOB_NPHI />
+                        <CrossplotViewer />
                     </Suspense>
                 );
             case 'crossplot-gr-n':

@@ -19,14 +19,15 @@ const FormField: React.FC<{ label: string; children: React.ReactNode }> = ({ lab
 // Nama komponen diubah menjadi lebih generik
 export default function CrossplotViewer() {
   const { selectedWells, selectedIntervals, wellColumns } = useDashboard();
-  const { vshDNParams, setVshDNParams } = useAppDataStore();
+  const { vshDNParams, setVshDNParams, vshParams, setVshParams } = useAppDataStore();
   // const { vshDNParams } = useAppDataStore();
   
   // State untuk pilihan sumbu X dan Y
   const [xCol, setXCol] = useState<string>('NPHI');
   const [yCol, setYCol] = useState<string>('RHOB');
   const { prcnt_qz, prcnt_wtr } = vshDNParams;
-  
+  const { gr_ma, gr_sh } = vshParams;
+
   const [plotResult, setPlotResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +52,11 @@ export default function CrossplotViewer() {
     setVshDNParams({ ...vshDNParams, [key]: isNaN(numericValue) ? '' : numericValue });
   };
 
+  const handleGRParamChange = (key: string, value: string) => {
+    const numericValue = parseFloat(value);
+    setVshParams({ ...vshParams, [key]: isNaN(numericValue) ? '' : numericValue });
+  };
+
 
   const fetchCrossplot = async () => {
     if (selectedWells.length === 0 || !xCol || !yCol) {
@@ -69,9 +75,8 @@ export default function CrossplotViewer() {
       x_col: xCol,
       y_col: yCol,
       ...vshDNParams,
+      ...vshParams,
     };
-
-    console.log(vshDNParams);
 
     try {
       const response = await fetch(endpoint, {
@@ -130,6 +135,28 @@ export default function CrossplotViewer() {
                     type="number"
                     value={prcnt_wtr}
                     onChange={(e) => handleParamChange('prcnt_wtr', e.target.value)}
+                    className="w-full p-2 border rounded-md"
+                    step="any"
+                  />
+                </FormField>
+              </>
+            )}
+            {(xCol === "NPHI" && (yCol === "GR" || yCol === "GR_RAW_NORM")) && (
+              <>
+                <FormField label="GR MA">
+                  <input
+                    type="number"
+                    value={gr_ma}
+                    onChange={(e) => handleGRParamChange('gr_ma', e.target.value)}
+                    className="w-full p-2 border rounded-md"
+                    step="any"
+                  />
+                </FormField>
+                <FormField label="GR SH">
+                  <input
+                    type="number"
+                    value={gr_sh}
+                    onChange={(e) => handleGRParamChange('gr_sh', e.target.value)}
                     className="w-full p-2 border rounded-md"
                     step="any"
                   />
