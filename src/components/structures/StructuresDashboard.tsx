@@ -58,12 +58,56 @@ export default function StructuresDashboard({ initialData }: StructuresDashboard
   };
 
   const handleStructureSelect = async (structureName: string) => {
-    // Navigate to dashboard when structure is clicked
+    try {
+      // Get the field name for the current structure
+      const fieldName = selectedField?.toLowerCase() || '';
+      
+      // Map structure and field names for API calls
+      let apiFieldName = '';
+      let apiStructureName = '';
+      
+      if (fieldName === 'adera') {
+        apiFieldName = 'adera';
+        if (structureName.toLowerCase() === 'abab') {
+          apiStructureName = 'abab';
+        } else if (structureName.toLowerCase() === 'benuang') {
+          apiStructureName = 'benuang';
+        }
+      } else if (fieldName === 'prabumulih') {
+        apiFieldName = 'prabumulih';
+        if (structureName.toLowerCase().includes('gunung') || structureName.toLowerCase().includes('kemala')) {
+          apiStructureName = 'gunungkemala';
+        }
+      }
+      
+      // Make API call to select structure using environment variable
+      if (apiFieldName && apiStructureName) {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        const response = await fetch(`${apiUrl}/api/select-structure`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            field_name: apiFieldName,
+            structure_name: apiStructureName
+          })
+        });
+        
+        if (response.ok) {
+          console.log('Structure selection API call successful');
+        } else {
+          console.error('Structure selection API call failed');
+        }
+      }
+    } catch (error) {
+      console.error('Error calling select-structure API:', error);
+    }
+    
+    // Navigate to dashboard after API call
     router.push('/dashboard');
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 text-gray-800">
+    <div className="flex h-[calc(100vh-80px)] bg-gray-50 text-gray-800">
       {/* Panel 1: Fields List */}
       <div className="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col p-4">
         <h1 className="text-xl font-bold mb-6 text-gray-800">Fields</h1>
@@ -89,6 +133,7 @@ export default function StructuresDashboard({ initialData }: StructuresDashboard
           </div>
         </div>
         
+        {/* Summary statistics - Commented out for now
         <div className="mt-4 pt-4 border-t border-gray-200">
           <div className="text-sm text-gray-600 space-y-1">
             <div className="flex justify-between">
@@ -105,6 +150,7 @@ export default function StructuresDashboard({ initialData }: StructuresDashboard
             </div>
           </div>
         </div>
+        */}
       </div>
 
       {/* Panel 2: Structures List */}
