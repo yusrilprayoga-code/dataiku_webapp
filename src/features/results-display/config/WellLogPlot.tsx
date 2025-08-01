@@ -66,6 +66,9 @@ export default function WellLogPlot() {
         case 'rpbe-rgbe':
           endpointPath = '/api/get-rgbe-rpbe-plot';
           break;
+        case 'iqual':
+          endpointPath = '/api/get-iqual';
+          break;
         case 'swgrad':
           endpointPath = '/api/get-swgrad-plot';
           break;
