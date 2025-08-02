@@ -49,7 +49,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
   const gowsButtons: string[] = ['RGSA-NGSA-DGSA', 'RGBE-RPBE', 'SWGRAD', 'DNS-DNSV', 'RT RO', 'GWD'];
 
   return (
-    <aside className="w-72 bg-gray-100 p-4 border-l border-gray-300 overflow-y-auto">
+    <aside className="w-72 bg-gray-100 p-4 border-l border-gray-300 overflow-y-auto h-screen">
       <h3 className="text-sm font-bold text-gray-800 mb-4">Module Configuration</h3>
       <div className="flex flex-col gap-4">
         {/* <ModuleSection buttons={['RENAME']} activeButton={activeButton} />

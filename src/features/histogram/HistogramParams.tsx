@@ -16,10 +16,8 @@ const FormField: React.FC<{ label: string; children: React.ReactNode }> = ({ lab
 );
 
 export default function HistogramParams() {
-  const { selectedWells, wellColumns, fetchWellColumns } = useDashboard();
-  
-  const [selectedLog, setSelectedLog] = useState<string>('');
-  
+  const { selectedWells, wellColumns, fetchWellColumns, selectedIntervals } = useDashboard();
+  const [selectedLog, setSelectedLog] = useState<string>('');  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [plotResult, setPlotResult] = useState<{ data: Data[], layout: Partial<Layout> } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +71,7 @@ export default function HistogramParams() {
     const payload = {
       selected_wells: selectedWells,
       log_column: selectedLog,
+      selected_intervals: selectedIntervals,
     };
 
     try {
@@ -100,7 +99,7 @@ export default function HistogramParams() {
       
       <form onSubmit={handleSubmit} className="flex-shrink-0">
         <div className="p-4 border rounded-lg bg-gray-50 space-y-4">
-          <p className="text-sm font-semibold">Wells Selected: {selectedWells.join(', ') || 'N/A'}</p>
+          <p className="text-sm font-semibold">Wells Selected: {selectedWells.join(', ') || 'N/A'} / Intervals: {selectedIntervals.length} selected</p>
           <hr />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="Select Log to Analyze">
