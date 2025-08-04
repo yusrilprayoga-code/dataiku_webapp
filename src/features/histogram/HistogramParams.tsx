@@ -94,7 +94,7 @@ export default function HistogramParams() {
   };
 
   return (
-    <div className="p-4 md:p-8 h-full flex flex-col bg-white rounded-lg shadow-md">
+    <div className="p-4 md:p-8 min-h-full flex flex-col bg-white rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-6 text-gray-800 flex-shrink-0">Histogram Analysis</h2>
       
       <form onSubmit={handleSubmit} className="flex-shrink-0">
@@ -123,25 +123,27 @@ export default function HistogramParams() {
       </form>
       
       {/* Area untuk menampilkan hasil plot */}
-      <div className="flex-grow mt-6 min-h-0 border-2 border-dashed rounded-lg flex items-center justify-center p-2">
-        {isSubmitting && (
-            <div className="text-center text-gray-500"><Loader2 className="animate-spin h-8 w-8 mx-auto mb-2"/>Generating plot...</div>
-        )}
-        {error && (
-            <div className="text-center text-red-600 p-4"><AlertTriangle className="mx-auto h-8 w-8 mb-2"/>Error: {error}</div>
-        )}
-        {!isSubmitting && !error && plotResult && (
-            <Plot
-                data={plotResult.data}
-                layout={plotResult.layout}
-                style={{ width: '100%', height: '100%' }}
-                config={{ responsive: true }}
-                useResizeHandler={true}
-            />
-        )}
-        {!isSubmitting && !error && !plotResult && (
-            <div className="text-center text-gray-400">Histogram will be displayed here.</div>
-        )}
+      <div className="flex justify-center items-center mt-6">
+        <div className="w-full aspect-square border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center p-4">
+          {isSubmitting && (
+              <div className="text-center text-gray-500"><Loader2 className="animate-spin h-8 w-8 mx-auto mb-2"/>Generating plot...</div>
+          )}
+          {error && (
+              <div className="text-center text-red-600 p-4"><AlertTriangle className="mx-auto h-8 w-8 mb-2"/>Error: {error}</div>
+          )}
+          {!isSubmitting && !error && plotResult && (
+              <Plot
+                  data={plotResult.data}
+                  layout={plotResult.layout}
+                  style={{ width: '100%', height: '100%' }}
+                  config={{ responsive: true }}
+                  useResizeHandler={true}
+              />
+          )}
+          {!isSubmitting && !error && !plotResult && (
+              <div className="text-center text-gray-400">Histogram will be displayed here.</div>
+          )}
+        </div>
       </div>
     </div>
   );
