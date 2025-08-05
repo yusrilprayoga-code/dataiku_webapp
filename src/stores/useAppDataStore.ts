@@ -16,8 +16,8 @@ interface VshParams {
 }
 
 interface VshDNParams {
-  rho_ma: number;
-  rho_sh: number;
+  rhob_ma: number;
+  rhob_sh: number;
   nphi_ma: number;
   nphi_sh: number;
   prcnt_qz: number;
@@ -81,8 +81,8 @@ export const useAppDataStore = create<AppState>()(
         gr_sh: 120, // Nilai default
       },
       vshDNParams: {
-        rho_ma: 2.645, // Nilai default
-        rho_sh: 2.61,  // Nilai default
+        rhob_ma: 2.645, // Nilai default
+        rhob_sh: 2.61,  // Nilai default
         nphi_ma: -0.02, // Nilai default
         nphi_sh: 0.398, // Nilai default
         prcnt_qz: 5,
@@ -107,7 +107,7 @@ export const useAppDataStore = create<AppState>()(
         normalizationResults: {},
         // Anda mungkin juga ingin mereset vshParams di sini
         vshParams: { gr_ma: 30, gr_sh: 120 },
-        vshDNParams: { rho_ma: 2.645, rho_sh: 2.61, nphi_ma: -0.02, nphi_sh: 0.398, prcnt_qz: 5, prcnt_wtr: 5 },
+        vshDNParams: { rhob_ma: 2.645, rhob_sh: 2.61, nphi_ma: -0.02, nphi_sh: 0.398, prcnt_qz: 5, prcnt_wtr: 5 },
       }),
       setSelectedWell: (well: string) => {
         set({ selectedWell: well });
