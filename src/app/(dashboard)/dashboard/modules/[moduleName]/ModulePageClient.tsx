@@ -61,6 +61,7 @@ import FillMissingPage from '@/features/fill_missing/page';
 import SmoothingPage from '@/features/smoothing/page';
 import GWDPage from '@/features/gwd/page';
 import CrossplotViewer from '@/features/crossplot/CrossPlot';
+import SplicingParams from '@/features/splicing-merging/page';
 
 
 
@@ -161,6 +162,12 @@ export default function ModulePageClient({ moduleName, validModules }: ModulePag
                 return (
                     <Suspense fallback={<div className="p-4">Loading normalization parameters...</div>}>
                         <NormalizationParamsForm />
+                    </Suspense>
+                );
+            case 'splicing-merging':
+                return (
+                    <Suspense fallback={<div className="p-4">Loading splicing/merging parameters...</div>}>
+                        <SplicingParams />
                     </Suspense>
                 );
             case 'smoothing':

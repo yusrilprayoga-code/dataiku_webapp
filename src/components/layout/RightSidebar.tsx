@@ -128,7 +128,7 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
 const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
 
   // const module1Buttons: string[] = ['ADD PLOT', 'OPEN CROSS PLOT'];
-  const qualityControlButtons: (string | DropdownButton)[] = ['TRIM DATA', 'DEPTH MATCHING', 'FILL MISSING', 'SMOOTHING', 'NORMALIZATION', 'SPLICING/MERGING'];
+  const qualityControlButtons: (string | DropdownButton)[] = ['TRIM DATA', 'DEPTH MATCHING', 'FILL MISSING', 'SMOOTHING', 'NORMALIZATION', 'SPLICING-MERGING'];
   
   const logInterpretationButtons: (string | DropdownButton)[] = [
     {

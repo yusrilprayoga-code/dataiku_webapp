@@ -14,6 +14,7 @@ const VALID_MODULES = [
   'depth-matching',
   'normalization',
   'smoothing',
+  'splicing-merging',
   'vsh-calculation',
   'vsh-dn-calculation',
   'porosity-calculation',
