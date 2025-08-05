@@ -35,10 +35,10 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
   };
 
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
-      {title && <h4 className="text-xs font-bold text-gray-700 mb-3 pb-1.5 border-b border-gray-300">{title}</h4>}
-      <div className="flex flex-col gap-2">
-        {buttons.map((btn) => {
+    <div className="bg-white rounded-lg shadow-sm p-2">
+      {title && <h3 className="text-xs font-bold text-gray-700 mb-1">{title}</h3>}
+      <div className="flex flex-col gap-1">
+        {buttons.map((btn, index) => {
           if (typeof btn === 'string') {
             // Regular button
             const urlFriendlyBtn = btn.toLowerCase().replace(/\s+/g, '-');
@@ -48,7 +48,7 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
             return (
               <Link href={href} key={btn}>
                 <button
-                  className={`w-full text-sm font-semibold text-left p-3 rounded border transition-colors duration-200 ${isActive
+                  className={`w-full text-xs font-medium text-left p-1 rounded border transition-colors duration-200 ${isActive
                     ? 'bg-gray-700 text-white border-gray-800'
                     : 'text-black bg-gray-200 border-gray-300 hover:bg-gray-300'
                     }`}
@@ -62,20 +62,20 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
             const isExpanded = expandedDropdowns.has(btn.label);
             
             return (
-              <div key={btn.label} className="space-y-1">
+              <div key={btn.label} className="space-y-0.5">
                 <button
                   onClick={() => toggleDropdown(btn.label)}
-                  className="w-full text-sm font-semibold text-left p-3 rounded border transition-colors duration-200 text-black bg-gray-200 border-gray-300 hover:bg-gray-300 flex items-center justify-between"
+                  className="w-full text-xs font-medium text-left p-1 rounded border transition-colors duration-200 text-black bg-gray-200 border-gray-300 hover:bg-gray-300 flex items-center justify-between"
                 >
                   <span>{btn.label}</span>
                   {isExpanded ? (
-                    <ChevronDown className="w-4 h-4" />
+                    <ChevronDown className="w-3 h-3" />
                   ) : (
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-3 h-3" />
                   )}
                 </button>
                 {isExpanded && (
-                  <div className="ml-3 space-y-1">
+                  <div className="ml-2 space-y-0.5">
                     {btn.items.map((item) => {
                       // Map dropdown items to their actual route names
                       const getRouteForItem = (itemName: string) => {
@@ -104,7 +104,7 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
                       return (
                         <Link href={href} key={item}>
                           <button
-                            className={`w-full text-xs font-medium text-left p-2 rounded border transition-colors duration-200 ${isActive
+                            className={`w-full text-xs font-normal text-left p-1 rounded border transition-colors duration-200 ${isActive
                               ? 'bg-gray-700 text-white border-gray-800'
                               : 'text-gray-700 bg-gray-100 border-gray-200 hover:bg-gray-200'
                               }`}
@@ -128,14 +128,13 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
 const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
 
   // const module1Buttons: string[] = ['ADD PLOT', 'OPEN CROSS PLOT'];
-  const qualityControlButtons: (string | DropdownButton)[] = ['HISTOGRAM', 'CROSSPLOT', 'TRIM DATA','DEPTH MATCHING', 'FILL MISSING', 'SMOOTHING', 'NORMALIZATION', 'SPLICING/MERGING'];
+  const qualityControlButtons: (string | DropdownButton)[] = ['TRIM DATA', 'DEPTH MATCHING', 'FILL MISSING', 'SMOOTHING', 'NORMALIZATION', 'SPLICING/MERGING'];
   
   const logInterpretationButtons: (string | DropdownButton)[] = [
     {
       label: 'VSH CALCULATION',
       items: ['VSH-GR', 'VSH-DN']
     },
-    'VSH-DN CALCULATION', 
     'POROSITY CALCULATION', 
     {
       label: 'SW CALCULATION',
@@ -157,9 +156,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
   ];
 
   return (
-    <aside className="w-72 bg-gray-100 p-4 border-l border-gray-300 overflow-y-auto h-screen">
-      <h3 className="text-sm font-bold text-gray-800 mb-4">Module Configuration</h3>
-      <div className="flex flex-col gap-4">
+    <aside className="w-52 bg-gray-100 flex flex-col gap-2 p-2 border-l border-gray-300 overflow-y-auto h-screen">
+      <div className="text-xs font-bold text-gray-800 px-2 py-1">Module Configuration</div>
+      <div className="flex flex-col gap-2">
         {/* <ModuleSection buttons={['RENAME']} activeButton={activeButton} />
         <ModuleSection buttons={module1Buttons} activeButton={activeButton} /> */}
         <ModuleSection title="Data Preparation" buttons={qualityControlButtons} activeButton={activeButton} />
