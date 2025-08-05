@@ -1,6 +1,7 @@
 "use client";
 
 import { PlotType, useDashboard } from '@/contexts/DashboardContext';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 export default function LeftSidebar() {
@@ -118,33 +119,39 @@ export default function LeftSidebar() {
             onChange={(e) => setPlotType(e.target.value as PlotType)}
             className="text-xs w-full bg-white border border-gray-200 rounded p-1 focus:ring-1 focus:ring-blue-500"
           >
-            <option value="default">Plot Default</option>
-            <option value="normalization">Plot Normalisasi</option>
-            <option value="smoothing">Plot Smoothing</option>
-            <option value="vsh">Plot VSH</option>
-            <option value="porosity">Plot Porosity</option>
-            <option value="sw">Plot SW</option>
-            <option value="rwa">Plot RWA</option>
-            <option value="module2">Plot Module 2</option>
-            <option value="gsa">Plot GSA</option>
-            <option value="rpbe-rgbe">Plot RPBE RGBE</option>
-            <option value="iqual">Plot IQUAL</option>
-            <option value="swgrad">Plot SWGRAD</option>
-            <option value="dns-dnsv">Plot DNS-DNSV</option>
-            <option value="rt-ro">Plot RT-RO</option>
+            <option value="default">Layout Default</option>
+            <option value="normalization">Layout Normalisasi</option>
+            <option value="smoothing">Layout Smoothing</option>
+            <option value="vsh">Layout VSH</option>
+            <option value="porosity">Layout Porosity</option>
+            <option value="sw">Layout SW</option>
+            <option value="rwa">Layout RWA</option>
+            <option value="module2">Layout Module 2</option>
+            <option value="gsa">Layout GSA</option>
+            <option value="rpbe-rgbe">Layout RPBE RGBE</option>
+            <option value="iqual">Layout IQUAL</option>
+            <option value="swgrad">Layout SWGRAD</option>
+            <option value="dns-dnsv">Layout DNS-DNSV</option>
+            <option value="rt-ro">Layout RT-RO</option>
           </select>
-        </div>
 
-        {/* Plot Display Section */}
-        <div className="bg-white rounded-lg shadow-sm p-2">
-          <h3 className="text-xs font-bold text-gray-700 mb-1">Histogram</h3>
-          <select
-            value={plotType}
-            onChange={(e) => setPlotType(e.target.value as PlotType)}
-            className="text-xs w-full bg-white border border-gray-200 rounded p-1 focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="default">Plot Default</option>
-          </select>
+          <div className="flex flex-col gap-1.5">
+            {/* 2. Tombol untuk navigasi ke modul Histogram */}
+            <Link href="histogram">
+              <button className="text-xs w-full bg-gray-50 border border-gray-200 rounded p-1.5 text-center font-medium hover:bg-gray-100 focus:ring-1 focus:ring-blue-500 transition-colors">
+                Histogram
+              </button>
+            </Link>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            {/* 2. Tombol untuk navigasi ke modul Crossplot */}
+            <Link href="crossplot">
+               <button className="text-xs w-full bg-gray-50 border border-gray-200 rounded p-1.5 text-center font-medium hover:bg-gray-100 focus:ring-1 focus:ring-blue-500 transition-colors">
+                Crossplot
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
     </aside>

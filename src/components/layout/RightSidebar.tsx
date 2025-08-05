@@ -38,7 +38,7 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
     <div className="bg-white rounded-lg shadow-sm p-2">
       {title && <h3 className="text-xs font-bold text-gray-700 mb-1">{title}</h3>}
       <div className="flex flex-col gap-1">
-        {buttons.map((btn, index) => {
+        {buttons.map((btn) => {
           if (typeof btn === 'string') {
             // Regular button
             const urlFriendlyBtn = btn.toLowerCase().replace(/\s+/g, '-');
@@ -145,13 +145,14 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
   
   const gowsButtons: (string | DropdownButton)[] = [
     {
-      label: 'GSA',
+      label: 'RGSA',
       items: ['RGSA', 'DGSA', 'NGSA']
     },
     'RGBE-RPBE', 
+    'AUTO FLUID',
+    'RT RO',
     'SWGRAD', 
     'DNS-DNSV', 
-    'RT RO', 
     'GWD'
   ];
 
