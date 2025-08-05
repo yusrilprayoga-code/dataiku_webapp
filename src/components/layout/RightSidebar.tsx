@@ -38,7 +38,7 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
     <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
       {title && <h4 className="text-xs font-bold text-gray-700 mb-3 pb-1.5 border-b border-gray-300">{title}</h4>}
       <div className="flex flex-col gap-2">
-        {buttons.map((btn, index) => {
+        {buttons.map((btn) => {
           if (typeof btn === 'string') {
             // Regular button
             const urlFriendlyBtn = btn.toLowerCase().replace(/\s+/g, '-');
@@ -128,7 +128,7 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
 const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
 
   // const module1Buttons: string[] = ['ADD PLOT', 'OPEN CROSS PLOT'];
-  const qualityControlButtons: (string | DropdownButton)[] = ['HISTOGRAM', 'CROSSPLOT', 'TRIM DATA', 'SPLICING/MERGING', 'DEPTH MATCHING', 'FILL MISSING', 'SMOOTHING', 'NORMALIZATION'];
+  const qualityControlButtons: (string | DropdownButton)[] = ['HISTOGRAM', 'CROSSPLOT', 'TRIM DATA','DEPTH MATCHING', 'FILL MISSING', 'SMOOTHING', 'NORMALIZATION', 'SPLICING/MERGING'];
   
   const logInterpretationButtons: (string | DropdownButton)[] = [
     {

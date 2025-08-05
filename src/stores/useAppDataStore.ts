@@ -68,8 +68,8 @@ export const useAppDataStore = create<AppState>()(
       qcResults: null,
       handledFiles: [],
       normalizationResults: {},
-      selectedWell: 'ABAB-035',
-      selectedIntervals: ['A', 'B' ,'B1', 'C', 'D', 'E', 'E1'],
+      selectedWell: '',
+      selectedIntervals: [],
       plotData: [],
       plotLayout: {},
       isLoadingPlot: true,
@@ -105,7 +105,6 @@ export const useAppDataStore = create<AppState>()(
         qcResults: null,
         handledFiles: [],
         normalizationResults: {},
-        // Anda mungkin juga ingin mereset vshParams di sini
         vshParams: { gr_ma: 30, gr_sh: 120 },
         vshDNParams: { rhob_ma: 2.645, rhob_sh: 2.61, nphi_ma: -0.02, nphi_sh: 0.398, prcnt_qz: 5, prcnt_wtr: 5 },
       }),

@@ -2,65 +2,14 @@
 
 import { PlotType, useDashboard } from '@/contexts/DashboardContext';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, BarChart3, List, Plus, Save, Trash2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { getSetsForWell, getWellDataSet, deleteWellDataSet, removeLogsFromSet, saveWellDataSet, addLogsToSet, type LogCurve, type WellDataSet } from '@/lib/db';
-
-interface SetListItem {
-  setName: string;
-  wells: string[];
-  isSelected: boolean;
-}
 
 export default function LeftSidebar() {
-  const { availableWells, selectedWells, toggleWellSelection, selectedIntervals, toggleInterval, plotType, availableIntervals, setPlotType, getCurrentLogs } = useDashboard();
+  const { availableWells, selectedWells, toggleWellSelection, selectedIntervals, toggleInterval, plotType, availableIntervals, setPlotType } = useDashboard();
   const [isMounted, setIsMounted] = useState(false);
-  const [availableSets, setAvailableSets] = useState<SetListItem[]>([]);
-  const [selectedSet, setSelectedSet] = useState<WellDataSet | null>(null);
-  const [isAddingNewSet, setIsAddingNewSet] = useState(false);
-  const [newSetName, setNewSetName] = useState('');
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  // Fetch available sets when selected wells change
-  useEffect(() => {
-    const fetchSets = async () => {
-      if (selectedWells.length > 0) {
-        try {
-          // Fetch sets for all selected wells
-          const allSets = await Promise.all(
-            selectedWells.map(well => getSetsForWell(well))
-          );
-          console.log('Fetched sets:', allSets);
-
-          // Combine and deduplicate sets
-          const uniqueSets = Array.from(
-            new Map(
-              allSets.flat().map(set => [
-                set.setName,
-                {
-                  setName: set.setName,
-                  wells: set.wells,
-                  isSelected: selectedSet?.setName === set.setName
-                }
-              ])
-            ).values()
-          );
-
-          console.log('Unique sets to display:', uniqueSets);
-          setAvailableSets(uniqueSets);
-        } catch (error) {
-          console.error('Error fetching sets:', error);
-        }
-      } else {
-        setAvailableSets([]);
-      }
-    };
-
-    fetchSets();
-  }, [selectedWells, selectedSet?.setName]);
 
   const handleSelectAllWells = (checked: boolean) => {
     if (checked) {
@@ -83,197 +32,6 @@ export default function LeftSidebar() {
       });
     } else {
       selectedIntervals.forEach(interval => toggleInterval(interval));
-    }
-  };
-
-  const handleViewSet = async (setName: string) => {
-    const setData = await getWellDataSet(setName);
-    if (setData) {
-      setSelectedSet(setData);
-    }
-  };
-
-  const handleBackToSets = () => {
-    setSelectedSet(null);
-  };
-
-  const handleDeleteSet = async (setName: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (confirm(`Are you sure you want to delete the set "${setName}"?`)) {
-      await deleteWellDataSet(setName);
-
-      // Refresh sets list
-      if (selectedWells.length > 0) {
-        const sets = await Promise.all(selectedWells.map(well => getSetsForWell(well)));
-        const uniqueSets = Array.from(
-          new Map(
-            sets.flat().map(set => [
-              set.setName,
-              {
-                setName: set.setName,
-                wells: set.wells,
-                isSelected: false
-              }
-            ])
-          ).values()
-        );
-        setAvailableSets(uniqueSets);
-      }
-
-      // If we're viewing this set, go back to the sets list
-      if (selectedSet?.setName === setName) {
-        setSelectedSet(null);
-      }
-    }
-  };
-
-  const handleDeleteLog = async (log: LogCurve) => {
-    if (selectedSet && confirm(`Are you sure you want to delete the log "${log.curveName}" from this set?`)) {
-      await removeLogsFromSet(selectedSet.setName, [log.curveName], log.wellName);
-
-      // Refresh the selected set view
-      const updatedSet = await getWellDataSet(selectedSet.setName);
-      if (updatedSet) {
-        setSelectedSet(updatedSet);
-      } else {
-        // If all logs were removed, the set was deleted, so go back to sets list
-        setSelectedSet(null);
-      }
-
-      // Refresh the available sets list
-      if (selectedWells.length > 0) {
-        const sets = await Promise.all(selectedWells.map(well => getSetsForWell(well)));
-        const uniqueSets = Array.from(
-          new Map(
-            sets.flat().map(set => [
-              set.setName,
-              {
-                setName: set.setName,
-                wells: set.wells,
-                isSelected: false
-              }
-            ])
-          ).values()
-        );
-        setAvailableSets(uniqueSets);
-      }
-    }
-  };
-
-  const handleCreateNewSet = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSetName.trim()) {
-      alert('Please enter a name for the set');
-      return;
-    }
-
-    if (selectedWells.length === 0) {
-      alert('Please select a well first');
-      return;
-    }
-
-    if (selectedWells.length > 1) {
-      alert('Please select only one well to create a set');
-      return;
-    }
-
-    try {
-      // Get current plot logs from the dashboard context
-      const logCurves = getCurrentLogs();
-      console.log("Got log curves:", logCurves);
-
-      if (logCurves.length === 0) {
-        alert('No logs found in current plot. Please ensure there is data displayed in the plot.');
-        return;
-      }
-
-      // Save the set with the well name
-      const setName = newSetName.trim();
-      await saveWellDataSet(setName, logCurves);
-
-      // Success feedback
-      alert(`Successfully saved set "${setName}" with ${logCurves.length} logs`);
-
-      setIsAddingNewSet(false);
-      setNewSetName('');
-
-      // Select the newly created set
-      const newSet = await getWellDataSet(setName);
-      if (newSet) {
-        setSelectedSet(newSet);
-      }
-
-      // Refresh the sets list
-      if (selectedWells.length > 0) {
-        const sets = await Promise.all(selectedWells.map(well => getSetsForWell(well)));
-        const uniqueSets = Array.from(
-          new Map(
-            sets.flat().map(set => [
-              set.setName,
-              {
-                setName: set.setName,
-                wells: set.wells,
-                isSelected: false
-              }
-            ])
-          ).values()
-        );
-        setAvailableSets(uniqueSets);
-      }
-    } catch (error) {
-      console.error('Failed to create new set:', error);
-    }
-  }; const handleAddToSet = async (setName: string) => {
-    if (selectedWells.length === 0) {
-      alert('Please select a well first');
-      return;
-    }
-
-    if (selectedWells.length > 1) {
-      alert('Please select only one well to add to a set');
-      return;
-    }
-
-    try {
-      const logCurves = getCurrentLogs();
-      console.log("Got log curves for adding to set:", logCurves);
-
-      if (logCurves.length === 0) {
-        alert('No logs found in current plot. Please ensure there is data displayed in the plot.');
-        return;
-      }
-
-      // Add the logs to the set
-      await addLogsToSet(setName, logCurves);
-
-      // Success feedback
-      alert(`Successfully added ${logCurves.length} logs to set "${setName}"`);
-
-      // Refresh both the selected set and the available sets list
-      const updatedSet = await getWellDataSet(setName);
-      if (updatedSet) {
-        setSelectedSet(updatedSet);
-      }
-
-      // Refresh the available sets list
-      if (selectedWells.length > 0) {
-        const sets = await Promise.all(selectedWells.map(well => getSetsForWell(well)));
-        const uniqueSets = Array.from(
-          new Map(
-            sets.flat().map(set => [
-              set.setName,
-              {
-                setName: set.setName,
-                wells: set.wells,
-                isSelected: selectedSet?.setName === set.setName
-              }
-            ])
-          ).values()
-        );
-        setAvailableSets(uniqueSets);
-      }
-    } catch (error) {
-      console.error('Failed to add to set:', error);
     }
   };
 
@@ -374,6 +132,18 @@ export default function LeftSidebar() {
             <option value="swgrad">Plot SWGRAD</option>
             <option value="dns-dnsv">Plot DNS-DNSV</option>
             <option value="rt-ro">Plot RT-RO</option>
+          </select>
+        </div>
+
+        {/* Plot Display Section */}
+        <div className="bg-white rounded-lg shadow-sm p-2">
+          <h3 className="text-xs font-bold text-gray-700 mb-1">Histogram</h3>
+          <select
+            value={plotType}
+            onChange={(e) => setPlotType(e.target.value as PlotType)}
+            className="text-xs w-full bg-white border border-gray-200 rounded p-1 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="default">Plot Default</option>
           </select>
         </div>
       </div>
