@@ -1,48 +1,45 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
 
-// Fungsi ini diubah untuk mendefinisikan parameter khusus untuk Splicing
+// Fungsi untuk membuat parameter awal
 const createInitialSplicingParameters = (): ParameterRow[] => {
-    // Splicing biasanya tidak per interval, jadi kita gunakan satu kolom nilai 'default'
     const createValues = (val: string | number) => ({ 'default': val });
 
-    // Definisikan parameter yang relevan untuk Splicing
     const splicingParams: Omit<ParameterRow, 'values'>[] = [
         { id: 1, location: 'Constant', mode: 'Input', comment: 'Depth at which to splice the logs', unit: 'm', name: 'SPLICEDEPTH', isEnabled: true },
-        { id: 2, location: 'Log', mode: 'Input', comment: 'Primary Gamma Ray Log (used below Splice Depth)', unit: '', name: 'GR_RUN1', isEnabled: true },
-        { id: 5, location: 'Log', mode: 'Input', comment: 'Primary Neutron Porosity Log', unit: '', name: 'NPHI_RUN1', isEnabled: true },
-        { id: 8, location: 'Log', mode: 'Input', comment: 'Primary Density Log', unit: '', name: 'RHOB_RUN1', isEnabled: true },
-        { id: 11, location: 'Log', mode: 'Input', comment: 'Primary Resistivity Log', unit: '', name: 'RT_RUN1', isEnabled: true },
-        { id: 3, location: 'Log', mode: 'Input', comment: 'Spliced Gamma Ray Log (used above Splice Depth)', unit: '', name: 'GR_RUN2', isEnabled: true },
-        { id: 6, location: 'Log', mode: 'Input', comment: 'Spliced Neutron Porosity Log', unit: '', name: 'NPHI_RUN2', isEnabled: true },
-        { id: 9, location: 'Log', mode: 'Input', comment: 'Spliced Density Log', unit: '', name: 'RHOB_RUN2', isEnabled: true },
-        { id: 12, location: 'Log', mode: 'Input', comment: 'Spliced Resistivity Log', unit: '', name: 'RT_RUN2', isEnabled: true },
-        { id: 4, location: 'Log', mode: 'Output', comment: 'Spliced Gamma Ray Output Log', unit: '', name: 'GR_SPL', isEnabled: true },
-        { id: 7, location: 'Log', mode: 'Output', comment: 'Spliced Neutron Porosity Output Log', unit: '', name: 'NPHI_SPL', isEnabled: true },
-        { id: 10, location: 'Log', mode: 'Output', comment: 'Spliced Density Output Log', unit: '', name: 'RHOB_SPL', isEnabled: true },
-        { id: 13, location: 'Log', mode: 'Output', comment: 'Spliced Resistivity Output Log', unit: '', name: 'RT_SPL', isEnabled: true },
+        { id: 2, location: 'Log', mode: 'Input', comment: 'Gamma Ray Log from UPPER section (Run 1)', unit: '', name: 'GR_RUN1', isEnabled: true },
+        { id: 3, location: 'Log', mode: 'Input', comment: 'Neutron Porosity Log from UPPER section (Run 1)', unit: '', name: 'NPHI_RUN1', isEnabled: true },
+        { id: 4, location: 'Log', mode: 'Input', comment: 'Density Log from UPPER section (Run 1)', unit: '', name: 'RHOB_RUN1', isEnabled: true },
+        { id: 5, location: 'Log', mode: 'Input', comment: 'Resistivity Log from UPPER section (Run 1)', unit: '', name: 'RT_RUN1', isEnabled: true },
+        { id: 6, location: 'Log', mode: 'Input', comment: 'Gamma Ray Log from LOWER section (Run 2)', unit: '', name: 'GR_RUN2', isEnabled: true },
+        { id: 7, location: 'Log', mode: 'Input', comment: 'Neutron Porosity Log from LOWER section (Run 2)', unit: '', name: 'NPHI_RUN2', isEnabled: true },
+        { id: 8, location: 'Log', mode: 'Input', comment: 'Density Log from LOWER section (Run 2)', unit: '', name: 'RHOB_RUN2', isEnabled: true },
+        { id: 9, location: 'Log', mode: 'Input', comment: 'Resistivity Log from LOWER section (Run 2)', unit: '', name: 'RT_RUN2', isEnabled: true },
+        { id: 10, location: 'Log', mode: 'Output', comment: 'Spliced Gamma Ray Output Log', unit: '', name: 'GR', isEnabled: true },
+        { id: 11, location: 'Log', mode: 'Output', comment: 'Spliced Neutron Porosity Output Log', unit: '', name: 'NPHI', isEnabled: true },
+        { id: 12, location: 'Log', mode: 'Output', comment: 'Spliced Density Output Log', unit: '', name: 'RHOB', isEnabled: true },
+        { id: 13, location: 'Log', mode: 'Output', comment: 'Spliced Resistivity Output Log', unit: '', name: 'RT', isEnabled: true },
     ];
 
-    // Definisikan nilai default
+    // Nilai default yang akan menjadi sumber opsi dropdown
     const defaultValues: Record<string, string | number> = {
-        'SPLICEDEPTH': 1000,
-        'GR_RUN1': 'GR',
-        'GR_RUN2': 'GR_2', 
-        'GR_SPL': 'GR_SPLICED',
-        'NPHI_RUN1': 'NPHI',
-        'NPHI_RUN2': 'NPHI_2',
-        'NPHI_SPL': 'NPHI_SPLICED',
-        'RHOB_RUN1': 'RHOB',
-        'RHOB_RUN2': 'RHOB_2',
-        'RHOB_SPL': 'RHOB_SPLICED',
-        'RT_RUN1': 'RT',
-        'RT_RUN2': 'RT_2',
-        'RT_SPL': 'RT_SPLICED',
+        'SPLICEDEPTH': 1520,
+        'GR_RUN1': 'GR_CAL',
+        'GR_RUN2': 'DGRCC',
+        'GR': 'GR',
+        'NPHI_RUN1': 'TNPH',
+        'NPHI_RUN2': 'TNPL',
+        'NPHI': 'NPHI',
+        'RHOB_RUN1': 'RHOZ',
+        'RHOB_RUN2': 'ALCDLC',
+        'RHOB': 'RHOB',
+        'RT_RUN1': 'RLA5',
+        'RT_RUN2': 'R39PC',
+        'RT': 'RT',
     };
 
     return splicingParams.map(p => ({
@@ -51,24 +48,31 @@ const createInitialSplicingParameters = (): ParameterRow[] => {
     }));
 };
 
+// Daftar opsi dropdown dibuat secara manual dari nilai-nilai di atas
+const manualLogOptions = [
+    // RUN 1 (UPPER) Defaults
+    'GR_CAL', 'TNPH', 'RHOZ', 'RLA5',
+    // RUN 2 (LOWER) Defaults
+    'DGRCC', 'TNPL', 'ALCDLC', 'R39PC',
+    // Output Defaults
+    'GR', 'NPHI', 'RHOB', 'RT'
+];
+// Buat daftar yang unik dan terurut
+const uniqueAvailableColumns = [...new Set(manualLogOptions)].sort();
+
+
 export default function SplicingParams() {
-    const { selectedWells, wellColumns } = useDashboard();
     const router = useRouter();
     const [parameters, setParameters] = useState<ParameterRow[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Sumur ditetapkan secara statis untuk halaman ini
+    const wellsForSplicing = ['bng-57_wl_12_25_trim.las', 'bng-57_lwd_8_5_trim.las'];
+
+    // useEffect sekarang hanya untuk mengatur parameter awal, tanpa memanggil API
     useEffect(() => {
         setParameters(createInitialSplicingParameters());
     }, []);
-    
-    const allAvailableColumns = useMemo(() => {
-        if (selectedWells.length === 0) return [];
-        const excludedColumns = new Set(['DEPTH', 'STRUKTUR', 'WELL_NAME', 'CALI', 'SP', 'MARKER', 'ZONE']);
-        const columns = selectedWells.flatMap(well => wellColumns[well] || []);
-        const uniqueColumns = [...new Set(columns)];
-        const filteredColumns = uniqueColumns.filter(col => !excludedColumns.has(col));
-        return filteredColumns;
-    }, [selectedWells, wellColumns]);
 
     const handleValueChange = (id: number, newValue: string) => {
         setParameters(prev => prev.map(row => {
@@ -91,7 +95,7 @@ export default function SplicingParams() {
 
         const payload = {
             params: formParams,
-            selected_wells: selectedWells,
+            selected_wells: wellsForSplicing,
         };
 
         console.log("Payload yang dikirim ke backend:", payload);
@@ -138,7 +142,8 @@ export default function SplicingParams() {
             <form onSubmit={handleSubmit} className="flex-grow flex flex-col min-h-0">
                 <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50">
                     <div className="md:col-span-4">
-                        <p className="text-sm font-medium text-gray-700">Well: {selectedWells.join(', ') || 'N/A'}</p>
+                        <p className="text-sm font-medium text-gray-700">Wells for Splicing: {wellsForSplicing.join(' & ')}</p>
+                        <p className="text-xs text-gray-500 mt-1">Run 1 (Upper): {wellsForSplicing[0]}, Run 2 (Lower): {wellsForSplicing[1]}</p>
                     </div>
                     <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                         <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
@@ -172,8 +177,8 @@ export default function SplicingParams() {
                                                     onChange={(e) => handleValueChange(param.id, e.target.value)} 
                                                     className="w-full p-1 bg-white text-black"
                                                 >
-                                                    {allAvailableColumns.length === 0 && <option value="">No logs available</option>}
-                                                    {allAvailableColumns.map(colName => (
+                                                    {/* Gunakan daftar kolom manual */}
+                                                    {uniqueAvailableColumns.map(colName => (
                                                         <option key={colName} value={colName}>{colName}</option>
                                                     ))}
                                                 </select>

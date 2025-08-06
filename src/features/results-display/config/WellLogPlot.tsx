@@ -45,6 +45,9 @@ export default function WellLogPlot() {
         case 'smoothing':
           endpointPath = '/api/get-smoothing-plot';
           break;
+        case 'splicing':
+          endpointPath = '/api/get-splicing-plot';
+          break;
         case 'porosity':
           endpointPath = '/api/get-porosity-plot';
           break;
