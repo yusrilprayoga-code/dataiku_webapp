@@ -4,7 +4,66 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+
+// Map button names to their actual route names
+const getRouteForItem = (itemName: string) => {
+  switch (itemName) {
+    // VSH Calculation routes
+    case 'VSH-GR':
+      return 'vsh-calculation';
+    case 'VSH-DN':
+      return 'vsh-dn-calculation';
+    
+    // SW Calculation routes  
+    case 'SW INDONESIA':
+      return 'sw-calculation';
+    case 'SW SIMANDOUX':
+      return 'sw-simandoux';
+    
+    // RGSA routes
+    case 'RGSA':
+    case 'DGSA':
+    case 'NGSA':
+      return 'rgsa-ngsa-dgsa';
+    
+    // Data Preparation routes
+    case 'TRIM DATA':
+      return 'trim-data';
+    case 'DEPTH MATCHING':
+      return 'depth-matching';
+    case 'FILL MISSING':
+      return 'fill-missing';
+    case 'SMOOTHING':
+      return 'smoothing';
+    case 'NORMALIZATION':
+      return 'normalization';
+    case 'SPLICING/MERGING':
+      return 'splicing-merging';
+    
+    // Other routes
+    case 'POROSITY CALCULATION':
+      return 'porosity';
+    case 'WATER RESISTIVITY CALCULATION':
+      return 'water-resistivity-calculation';
+    case 'RGBE-RPBE':
+      return 'rgbe-rpbe';
+    case 'AUTO FLUID':
+      return 'auto-fluid';
+    case 'RT RO':
+      return 'rt-ro';
+    case 'SWGRAD':
+      return 'swgrad';
+    case 'DNS-DNSV':
+      return 'dns-dnsv';
+    case 'GWD':
+      return 'gwd';
+    
+    default:
+      return itemName.toLowerCase().replace(/\s+/g, '-');
+  }
+};
 
 interface RightSidebarProps {
   activeButton: string | null;
@@ -14,6 +73,7 @@ interface ModuleSectionProps {
   title?: string;
   buttons: (string | DropdownButton)[];
   activeButton: string | null;
+  routePrefix: string; // '/dashboard/modules' or '/data-prep/modules'
 }
 
 interface DropdownButton {
@@ -21,7 +81,7 @@ interface DropdownButton {
   items: string[];
 }
 
-const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeButton }) => {
+const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeButton, routePrefix }) => {
   const [expandedDropdowns, setExpandedDropdowns] = useState<Set<string>>(new Set());
 
   const toggleDropdown = (label: string) => {
@@ -40,10 +100,10 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
       <div className="flex flex-col gap-1">
         {buttons.map((btn) => {
           if (typeof btn === 'string') {
-            // Regular button
-            const urlFriendlyBtn = btn.toLowerCase().replace(/\s+/g, '-');
-            const href = `/dashboard/modules/${urlFriendlyBtn}`;
-            const isActive = activeButton === urlFriendlyBtn;
+            // Regular button - use global route mapping
+            const routeName = getRouteForItem(btn);
+            const href = `${routePrefix}/${routeName}`;
+            const isActive = activeButton === routeName;
 
             return (
               <Link href={href} key={btn}>
@@ -77,28 +137,9 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
                 {isExpanded && (
                   <div className="ml-2 space-y-0.5">
                     {btn.items.map((item) => {
-                      // Map dropdown items to their actual route names
-                      const getRouteForItem = (itemName: string) => {
-                        switch (itemName) {
-                          case 'VSH-GR':
-                            return 'vsh-calculation';
-                          case 'VSH-DN':
-                            return 'vsh-dn-calculation';
-                          case 'SW INDONESIA':
-                            return 'sw-calculation';
-                          case 'SW SIMANDOUX':
-                            return 'sw-simandoux';
-                          case 'RGSA':
-                          case 'DGSA':
-                          case 'NGSA':
-                            return 'rgsa-ngsa-dgsa';
-                          default:
-                            return itemName.toLowerCase().replace(/\s+/g, '-');
-                        }
-                      };
-
+                      // Use global route mapping function
                       const routeName = getRouteForItem(item);
-                      const href = `/dashboard/modules/${routeName}`;
+                      const href = `${routePrefix}/${routeName}`;
                       const isActive = activeButton === routeName;
 
                       return (
@@ -126,6 +167,8 @@ const ModuleSection: React.FC<ModuleSectionProps> = ({ title, buttons, activeBut
 };
 
 const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
+  const pathname = usePathname();
+  const isDataPrep = pathname.startsWith('/data-prep');
 
   // const module1Buttons: string[] = ['ADD PLOT', 'OPEN CROSS PLOT'];
   const qualityControlButtons: (string | DropdownButton)[] = ['TRIM DATA', 'DEPTH MATCHING', 'FILL MISSING', 'SMOOTHING', 'NORMALIZATION', 'SPLICING/MERGING'];
@@ -156,15 +199,36 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
     'GWD'
   ];
 
+  // Data preparation tools - using same structure as Dashboard for consistency
+  const dataPrepButtons: (string | DropdownButton)[] = [
+    'TRIM DATA',
+    'DEPTH MATCHING', 
+    'FILL MISSING',
+    'SMOOTHING',
+    'NORMALIZATION',
+    'SPLICING/MERGING'
+  ];
+
+  const routePrefix = isDataPrep ? '/data-prep/modules' : '/dashboard/modules';
+  const sidebarTitle = isDataPrep ? 'Data Preparation' : 'Module Configuration';
+
   return (
     <aside className="w-52 bg-gray-100 flex flex-col gap-2 p-2 border-l border-gray-300 overflow-y-auto h-screen">
-      <div className="text-xs font-bold text-gray-800 px-2 py-1">Module Configuration</div>
+      <div className="text-xs font-bold text-gray-800 px-2 py-1">{sidebarTitle}</div>
       <div className="flex flex-col gap-2">
-        {/* <ModuleSection buttons={['RENAME']} activeButton={activeButton} />
-        <ModuleSection buttons={module1Buttons} activeButton={activeButton} /> */}
-        <ModuleSection title="Data Preparation" buttons={qualityControlButtons} activeButton={activeButton} />
-        <ModuleSection title="Interpretation" buttons={logInterpretationButtons} activeButton={activeButton} />
-        <ModuleSection title="Gas Oil Water Scanner (GOWS)" buttons={gowsButtons} activeButton={activeButton} />
+        {isDataPrep ? (
+          // Show only data preparation tools for data-prep routes - use same ModuleSection logic
+          <ModuleSection title="Available Tools" buttons={dataPrepButtons} activeButton={activeButton} routePrefix={routePrefix} />
+        ) : (
+          // Show all modules for dashboard routes
+          <>
+            {/* <ModuleSection buttons={['RENAME']} activeButton={activeButton} routePrefix={routePrefix} />
+            <ModuleSection buttons={module1Buttons} activeButton={activeButton} routePrefix={routePrefix} /> */}
+            <ModuleSection title="Data Preparation" buttons={qualityControlButtons} activeButton={activeButton} routePrefix={routePrefix} />
+            <ModuleSection title="Interpretation" buttons={logInterpretationButtons} activeButton={activeButton} routePrefix={routePrefix} />
+            <ModuleSection title="Gas Oil Water Scanner (GOWS)" buttons={gowsButtons} activeButton={activeButton} routePrefix={routePrefix} />
+          </>
+        )}
       </div>
     </aside>
   );

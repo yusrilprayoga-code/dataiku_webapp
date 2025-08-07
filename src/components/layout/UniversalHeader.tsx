@@ -23,6 +23,12 @@ const navItems = [
     description: 'Browse data structures'
   },
   {
+    label: 'Data Prep',
+    path: '/data-prep',
+    icon: FileText,
+    description: 'Data preparation tools'
+  },
+  {
     label: 'Dashboard',
     path: '/dashboard',
     icon: LayoutDashboard,
@@ -41,6 +47,9 @@ export default function UniversalHeader() {
   const isActivePath = (path: string) => {
     if (path === '/dashboard') {
       return pathname.startsWith('/dashboard');
+    }
+    if (path === '/data-prep') {
+      return pathname.startsWith('/data-prep');
     }
     return pathname === path;
   };

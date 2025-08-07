@@ -15,112 +15,34 @@ export default function WellLogPlot() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // 1. Ambil `selectedIntervals` dari context
-  const { selectedWells, selectedIntervals, plotType } = useDashboard();
+  // 1. Get plot data from dashboard context  
+  const { selectedWells, selectedIntervals, plotType, plotFigure } = useDashboard();
   
   useEffect(() => {
-    if (selectedWells.length === 0) {
+    // Check if we have plot data from context (e.g., from Module1 plot via DirectorySidebar)
+    if (plotFigure && plotFigure.data && plotFigure.data.length > 0) {
+      console.log('Using plot data from dashboard context:', plotFigure);
+      setPlotData(plotFigure.data);
+      setPlotLayout(plotFigure.layout || {});
       setIsLoading(false);
-      setPlotData([]);
-      setPlotLayout({ title: { text: 'Please select one or more wells from the sidebar to begin.' } });
       return;
     }
-
-    const fetchPlotData = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!apiUrl) {
-        setError("API URL is not configured.");
-        setIsLoading(false);
-        return;
-      }
-
-      let endpointPath = '';
-      switch (plotType) {
-        case 'normalization':
-          endpointPath = '/api/get-normalization-plot';
-          break;
-        case 'smoothing':
-          endpointPath = '/api/get-smoothing-plot';
-          break;
-        case 'porosity':
-          endpointPath = '/api/get-porosity-plot';
-          break;
-        case 'gsa':
-          endpointPath = '/api/get-gsa-plot';
-          break;
-        case 'vsh':
-          endpointPath = '/api/get-vsh-plot';
-          break;
-        case 'sw':
-          endpointPath = '/api/get-sw-plot';
-          break;
-        case 'rwa':
-          endpointPath = '/api/get-rwa-plot';
-          break;
-        case 'module2':
-          endpointPath = '/api/get-module2-plot';
-          break;
-        case 'rpbe-rgbe':
-          endpointPath = '/api/get-rgbe-rpbe-plot';
-          break;
-        case 'iqual':
-          endpointPath = '/api/get-iqual';
-          break;
-        case 'swgrad':
-          endpointPath = '/api/get-swgrad-plot';
-          break;
-        case 'dns-dnsv':
-          endpointPath = '/api/get-dns-dnsv-plot';
-          break;
-        case 'rt-ro':
-          endpointPath = '/api/get-rt-r0-plot';
-          break;
-        case 'default':
-        default:
-          endpointPath = '/api/get-plot';
-          break;
-      }
-      const endpoint = `${apiUrl}${endpointPath}`;
-
-      try {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          // 3. Tambahkan `selected_intervals` ke body request
-          body: JSON.stringify({ 
-            selected_wells: selectedWells,
-            selected_intervals: selectedIntervals 
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Gagal mengambil data dari server');
-        }
-
-        const responseData = await response.json();
-        // Asumsi backend mengembalikan JSON string yang perlu di-parse lagi
-        const plotObject = JSON.parse(responseData);
-
-        setPlotData(plotObject.data);
-        setPlotLayout(plotObject.layout);
-
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Terjadi kesalahan tidak dikenal');
-        console.error("Error fetching plot data:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPlotData();
-  // 2. Tambahkan `selectedIntervals` ke dependency array
-  }, [selectedWells, selectedIntervals, plotType]);
+    
+    // Default state - no plot until user specifically requests one
+    setIsLoading(false);
+    setPlotData([]);
+    setPlotLayout({ 
+      title: { 
+        text: selectedWells.length === 0 
+          ? 'Please select data dulu nggih mas.'
+          : 'Plot data will appear here once you select.'
+      } 
+    });
+    
+    // Don't automatically fetch plot data - only when explicitly requested
+    // This prevents the component from making API calls just because wells are selected
+    
+  }, [selectedWells, selectedIntervals, plotType, plotFigure]);
 
   if (isLoading) {
     return (
