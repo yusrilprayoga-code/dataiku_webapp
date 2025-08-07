@@ -24,12 +24,13 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
     const defaultValues: Record<string, string | number> = {
         'NORMALIZE_OPT': 'MIN-MAX',
         'LOG_IN': 'GR',
-        'LOG_OUT': 'GR_NORM',
         'LOW_REF': 40,
         'HIGH_REF': 140,
         'LOW_IN': 5, // Nilai awal ini akan segera ditimpa oleh data dari backend
         'HIGH_IN': 95 // Nilai awal ini akan segera ditimpa oleh data dari backend
     };
+
+    defaultValues['LOG_OUT'] = `${defaultValues['LOG_IN']}_NO`;
 
     return allPossibleParams
         .filter(p => relevantParamNames.has(p.name))

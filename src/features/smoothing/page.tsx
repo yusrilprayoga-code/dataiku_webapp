@@ -20,8 +20,9 @@ const createInitialSmoothingParameters = (intervals: string[]): ParameterRow[] =
         'METHOD': 'MOVING_AVG',
         'WINDOW': 5,
         'LOG_IN': 'GR',
-        'LOG_OUT': 'GR_SM'
     };
+
+    defaultValues['LOG_OUT'] = `${defaultValues['LOG_IN']}_SM`;
 
     return smoothingParams.map(p => ({
         ...p,
