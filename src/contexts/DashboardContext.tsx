@@ -25,6 +25,7 @@ interface DashboardContextType {
   getCurrentLogs: () => LogCurve[];
   availableIntervals: string[];
   plotFigure: PlotFigure;
+  setPlotFigure: (figure: PlotFigure) => void;
   isLoading: boolean;
   error: string | null;
 }
@@ -68,11 +69,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
         if (Array.isArray(wellNames)) {
           setAvailableWells(wellNames);
-
-          // Automatically select the first well if none are selected
-          if (wellNames.length > 0 && selectedWells.length === 0) {
-            setSelectedWells([wellNames[0]]);
-          }
+          // Don't automatically select wells - let user choose from DirectorySidebar
         }
       } catch (error) {
         console.error("Failed to fetch well list from server:", error);
@@ -134,9 +131,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   }, [selectedWells, selectedIntervals, apiUrl]);
 
 
-  useEffect(() => {
-    fetchPlotData();
-  }, [fetchPlotData]);
+  // Don't automatically fetch plot data - plots will be triggered explicitly
+  // from CSV file selection in DirectorySidebar or other user actions
+  // useEffect(() => {
+  //   fetchPlotData();
+  // }, [fetchPlotData]);
 
   const fetchWellColumns = async (wells: string[]) => {
     try {
@@ -267,6 +266,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     wellColumns,
     fetchWellColumns,
     plotFigure,
+    setPlotFigure,
     isLoading,
     error,
     getCurrentLogs,
