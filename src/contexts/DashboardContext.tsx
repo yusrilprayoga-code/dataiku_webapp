@@ -8,7 +8,7 @@ import { LogCurve } from '@/lib/db';
 import { Data, Layout } from 'plotly.js';
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 
-export type PlotType = 'default' | 'normalization' | 'smoothing' | 'porosity' | 'sw' | 'vsh' | 'rwa' | 'module2' | 'gsa' | 'rpbe-rgbe' | 'iqual' | 'swgrad' | 'dns-dnsv' | 'rt-ro' | 'splicing';
+export type PlotType = 'default' | 'normalization' | 'smoothing' | 'porosity' | 'sw' | 'vsh' | 'rwa' | 'module2' | 'gsa' | 'rpbe-rgbe' | 'iqual' | 'swgrad' | 'dns-dnsv' | 'rt-ro' | 'splicing' | 'get-module1-plot';
 
 interface DashboardContextType {
   availableWells: string[];
@@ -26,6 +26,8 @@ interface DashboardContextType {
   availableIntervals: string[];
   plotFigure: PlotFigure;
   setPlotFigure: (figure: PlotFigure) => void;
+  selectedFilePath: string | null;
+  setSelectedFilePath: (filePath: string | null) => void;
   isLoading: boolean;
   error: string | null;
 }
@@ -45,6 +47,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [plotType, setPlotType] = useState<PlotType>('default');
   const [wellColumns, setWellColumns] = useState<Record<string, string[]>>({});
   const [plotFigure, setPlotFigure] = useState<PlotFigure>({ data: [], layout: {} });
+  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -267,6 +270,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     fetchWellColumns,
     plotFigure,
     setPlotFigure,
+    selectedFilePath,
+    setSelectedFilePath,
     isLoading,
     error,
     getCurrentLogs,

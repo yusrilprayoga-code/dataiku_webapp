@@ -47,7 +47,7 @@ export default function DirectorySidebar() {
   const FIELD_NAME = 'adera';
   const STRUCTURE_NAME = 'benuang';
   
-  const { toggleWellSelection, selectedWells, setPlotFigure } = useDashboard();
+  const { toggleWellSelection, selectedWells, setPlotFigure, setPlotType, setSelectedFilePath } = useDashboard();
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
   const [wellFolders, setWellFolders] = useState<WellFolder[]>([]);
   const [files, setFiles] = useState<WellFile[]>([]);
@@ -182,6 +182,12 @@ export default function DirectorySidebar() {
     // If file is selected and it's a CSV file, trigger Module1 plot
     if (newSelectedFiles.length > 0 && file.extension === '.csv') {
       const wellName = file.name.replace(/\.[^/.]+$/, ""); // Remove file extension
+      
+      // Set plot type to Module1 plot for Data Prep CSV files
+      setPlotType('get-module1-plot');
+      
+      // Store the selected file path in context for fallback API calls
+      setSelectedFilePath(filePath);
       
       // Add well to dashboard context first
       if (!selectedWells.includes(wellName)) {

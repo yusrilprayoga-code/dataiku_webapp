@@ -16,7 +16,7 @@ export default function WellLogPlot() {
   const [error, setError] = useState<string | null>(null);
   
   // 1. Get plot data from dashboard context  
-  const { selectedWells, selectedIntervals, plotType, plotFigure } = useDashboard();
+  const { selectedWells, selectedIntervals, plotType, plotFigure, selectedFilePath } = useDashboard();
   
   useEffect(() => {
     // Check if we have plot data from context (e.g., from Module1 plot via DirectorySidebar)
@@ -25,6 +25,20 @@ export default function WellLogPlot() {
       setPlotData(plotFigure.data);
       setPlotLayout(plotFigure.layout || {});
       setIsLoading(false);
+      return;
+    }
+
+    // Only fetch plot data if we have selected wells OR if it's a Module1 plot with a file path
+    if (selectedWells.length === 0 && !(plotType === 'get-module1-plot' && selectedFilePath)) {
+      setIsLoading(false);
+      setPlotData([]);
+      setPlotLayout({ 
+        title: { 
+          text: selectedWells.length === 0 
+            ? 'Please select a CSV file from the directory browser to view well log plots.'
+            : 'Plot data will appear here when you select a CSV file or choose a processing module.'
+        } 
+      });
       return;
     }
 
@@ -83,6 +97,9 @@ export default function WellLogPlot() {
         case 'rt-ro':
           endpointPath = '/api/get-rt-r0-plot';
           break;
+        case 'get-module1-plot':
+          endpointPath = '/api/get-module1-plot';
+          break;
         case 'default':
         default:
           endpointPath = '/api/get-plot';
@@ -91,16 +108,30 @@ export default function WellLogPlot() {
       const endpoint = `${apiUrl}${endpointPath}`;
 
       try {
+        // Prepare request body based on plot type
+        let requestBody: any;
+        if (plotType === 'get-module1-plot') {
+          // For Module1 plots, send file_path
+          if (!selectedFilePath) {
+            setError("No file selected for Module1 plot.");
+            setIsLoading(false);
+            return;
+          }
+          requestBody = { file_path: selectedFilePath };
+        } else {
+          // For other plot types, send selected wells and intervals
+          requestBody = { 
+            selected_wells: selectedWells,
+            selected_intervals: selectedIntervals 
+          };
+        }
+
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          // 3. Tambahkan `selected_intervals` ke body request
-          body: JSON.stringify({ 
-            selected_wells: selectedWells,
-            selected_intervals: selectedIntervals 
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
@@ -109,8 +140,20 @@ export default function WellLogPlot() {
         }
 
         const responseData = await response.json();
-        // Asumsi backend mengembalikan JSON string yang perlu di-parse lagi
-        const plotObject = JSON.parse(responseData);
+        
+        // Handle different response formats
+        let plotObject;
+        if (plotType === 'get-module1-plot') {
+          // Module1 plots may return data directly or as JSON string
+          if (typeof responseData === 'string') {
+            plotObject = JSON.parse(responseData);
+          } else {
+            plotObject = responseData;
+          }
+        } else {
+          // Other plots return JSON string that needs parsing
+          plotObject = JSON.parse(responseData);
+        }
 
         setPlotData(plotObject.data);
         setPlotLayout(plotObject.layout);
@@ -124,8 +167,8 @@ export default function WellLogPlot() {
     };
 
     fetchPlotData();
-  // 2. Tambahkan `selectedIntervals` ke dependency array
-  }, [selectedWells, selectedIntervals, plotType]);
+  // Include selectedFilePath for Module1 plot dependency
+  }, [selectedWells, selectedIntervals, plotType, selectedFilePath]);
 
 
   if (isLoading) {
