@@ -15,14 +15,16 @@ export default function WellLogPlot() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // 1. Ambil `selectedIntervals` dari context
-  const { selectedWells, selectedIntervals, plotType } = useDashboard();
+  // 1. Get plot data from dashboard context  
+  const { selectedWells, selectedIntervals, plotType, plotFigure } = useDashboard();
   
   useEffect(() => {
-    if (selectedWells.length === 0) {
+    // Check if we have plot data from context (e.g., from Module1 plot via DirectorySidebar)
+    if (plotFigure && plotFigure.data && plotFigure.data.length > 0) {
+      console.log('Using plot data from dashboard context:', plotFigure);
+      setPlotData(plotFigure.data);
+      setPlotLayout(plotFigure.layout || {});
       setIsLoading(false);
-      setPlotData([]);
-      setPlotLayout({ title: { text: 'Please select one or more wells from the sidebar to begin.' } });
       return;
     }
 
@@ -124,6 +126,7 @@ export default function WellLogPlot() {
     fetchPlotData();
   // 2. Tambahkan `selectedIntervals` ke dependency array
   }, [selectedWells, selectedIntervals, plotType]);
+
 
   if (isLoading) {
     return (
