@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Folder, File, ChevronRight, ChevronDown, Database, Loader2 } from 'lucide-react';
+import { Folder, File, ChevronRight, ChevronDown, Database, Loader2, Check } from 'lucide-react';
 import { useDashboard } from '@/contexts/DashboardContext';
 
 interface WellFolder {
@@ -172,29 +172,37 @@ export default function DirectorySidebar() {
   const handleFileSelect = async (file: WellFile) => {
     const filePath = file.path;
     
-    // Update selected files state
+    // Update selected files state - allow multiple selections
     const newSelectedFiles = selectedFiles.includes(filePath)
       ? selectedFiles.filter(path => path !== filePath)
-      : [filePath]; // Single selection for now
+      : [...selectedFiles, filePath]; // Multiple selection
     
     setSelectedFiles(newSelectedFiles);
     
-    // If file is selected and it's a CSV file, trigger Module1 plot
-    if (newSelectedFiles.length > 0 && file.extension === '.csv') {
-      const wellName = file.name.replace(/\.[^/.]+$/, ""); // Remove file extension
-      
+    // Handle well selection in dashboard context
+    const wellName = file.name.replace(/\.[^/.]+$/, ""); // Remove file extension
+    
+    if (selectedFiles.includes(filePath)) {
+      // File was deselected - remove well from selection
+      if (selectedWells.includes(wellName)) {
+        toggleWellSelection(wellName);
+      }
+    } else {
+      // File was selected - add well to selection
+      if (!selectedWells.includes(wellName)) {
+        toggleWellSelection(wellName);
+      }
+    }
+    
+    // If this is a CSV file selection (not deselection), trigger Module1 plot for the first selected CSV
+    if (!selectedFiles.includes(filePath) && file.extension === '.csv' && newSelectedFiles.length > 0) {
       // Set plot type to Module1 plot for Data Prep CSV files
       setPlotType('get-module1-plot');
       
       // Store the selected file path in context for fallback API calls
       setSelectedFilePath(filePath);
-      
-      // Add well to dashboard context first
-      if (!selectedWells.includes(wellName)) {
-        toggleWellSelection(wellName);
-      }
 
-      // Call the Module1 plot API
+      // Call the Module1 plot API for the first CSV file
       try {
         console.log(`Requesting Module1 plot for CSV file: ${filePath}`);
         console.log(`Well name: ${wellName}, File: ${file.name}`);
@@ -272,17 +280,12 @@ export default function DirectorySidebar() {
         console.error('Error processing Module1 plot:', error);
         setError(error instanceof Error ? error.message : 'Failed to process plot data');
       }
-    } else if (newSelectedFiles.length === 0) {
-      // If no files selected, remove wells from dashboard context
-      const wellName = file.name.replace(/\.[^/.]+$/, "");
-      if (selectedWells.includes(wellName)) {
-        toggleWellSelection(wellName);
-      }
     }
   };
 
   const handleSelectAllFiles = () => {
     if (selectedFiles.length === files.length) {
+      // Deselect all files
       setSelectedFiles([]);
       // Clear wells from selection one by one using toggleWellSelection
       files.forEach(file => {
@@ -292,6 +295,7 @@ export default function DirectorySidebar() {
         }
       });
     } else {
+      // Select all files
       const allFilePaths = files.map(file => file.path);
       setSelectedFiles(allFilePaths);
       // Add wells to selection one by one using toggleWellSelection
@@ -301,6 +305,39 @@ export default function DirectorySidebar() {
           toggleWellSelection(wellName);
         }
       });
+      
+      // Trigger Module1 plot for the first CSV file if available
+      const firstCsvFile = files.find(file => file.extension === '.csv');
+      if (firstCsvFile) {
+        setPlotType('get-module1-plot');
+        setSelectedFilePath(firstCsvFile.path);
+        
+        // Call Module1 plot API for the first CSV
+        (async () => {
+          try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+            const response = await fetch(`${apiUrl}/api/get-module1-plot`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ file_path: firstCsvFile.path }),
+            });
+            
+            if (response.ok) {
+              const plotData = await response.json();
+              let parsedPlotData = typeof plotData === 'string' ? JSON.parse(plotData) : plotData;
+              
+              if (parsedPlotData && (parsedPlotData.data || parsedPlotData.layout)) {
+                setPlotFigure({
+                  data: parsedPlotData.data || [],
+                  layout: parsedPlotData.layout || {}
+                });
+              }
+            }
+          } catch (error) {
+            console.error('Error in select all plot generation:', error);
+          }
+        })();
+      }
     }
   };
 
@@ -372,19 +409,34 @@ export default function DirectorySidebar() {
       {/* Files Section */}
       {currentFolder && (
         <div className="bg-white rounded-lg shadow-sm p-2 flex-1 overflow-hidden">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-xs font-bold text-gray-700">
-              Files in {currentFolder}
-            </h3>
-            {files && files.length > 0 && (
+          <h3 className="text-xs font-bold text-gray-700 mb-2">
+            Files in {currentFolder}
+          </h3>
+          
+          {/* Select All Checkbox - below title */}
+          {files && files.length > 0 && (
+            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200">
               <button
                 onClick={handleSelectAllFiles}
-                className="text-xs text-blue-600 hover:text-blue-800"
+                className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
+                  selectedFiles.length === files.length && files.length > 0
+                    ? 'bg-blue-500 border-blue-500 text-white'
+                    : selectedFiles.length > 0
+                    ? 'bg-blue-200 border-blue-400 text-blue-700'
+                    : 'border-gray-300 hover:border-blue-400'
+                }`}
+                title={selectedFiles.length === files.length ? 'Deselect All' : 'Select All'}
               >
-                {selectedFiles.length === files.length ? 'Deselect All' : 'Select All'}
+                {selectedFiles.length === files.length && files.length > 0 && <Check className="w-3 h-3" />}
+                {selectedFiles.length > 0 && selectedFiles.length < files.length && (
+                  <div className="w-2 h-2 bg-blue-700 rounded-sm" />
+                )}
               </button>
-            )}
-          </div>
+              <span className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer" onClick={handleSelectAllFiles}>
+                {selectedFiles.length === files.length ? 'Deselect All' : 'Select All'}
+              </span>
+            </div>
+          )}
           
           <div className="space-y-1 overflow-y-auto flex-1">
             {loadingFiles ? (
@@ -400,8 +452,7 @@ export default function DirectorySidebar() {
                 
                 return (
                   <div key={file.path} className="space-y-0.5">
-                    <button
-                      onClick={() => handleFileSelect(file)}
+                    <div
                       className={`w-full flex items-center gap-2 p-1 text-xs rounded transition-colors duration-200 ${
                         isSelected
                           ? 'bg-blue-100 text-blue-800 border border-blue-300'
@@ -409,12 +460,25 @@ export default function DirectorySidebar() {
                       }`}
                       title={file.path}
                     >
+                      {/* Checkbox */}
+                      <button
+                        onClick={() => handleFileSelect(file)}
+                        className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
+                          isSelected
+                            ? 'bg-blue-500 border-blue-500 text-white'
+                            : 'border-gray-300 hover:border-blue-400'
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3 h-3" />}
+                      </button>
+                      
+                      {/* File icon and name */}
                       <File className={`w-3 h-3 flex-shrink-0 ${
                         file.extension === '.csv' ? 'text-blue-500' : 'text-gray-500'
                       }`} />
                       <span className="flex-1 text-left truncate">{file.name}</span>
-                    </button>
-                    <div className="text-xs text-gray-500 ml-5">
+                    </div>
+                    <div className="text-xs text-gray-500 ml-7">
                       {formatFileSize(file.size_bytes)}
                     </div>
                   </div>

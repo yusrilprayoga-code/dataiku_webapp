@@ -5,10 +5,12 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 
-// Import data preparation components
-import HistogramParams from '@/features/histogram/HistogramParams';
-import CrossPlot from '@/features/crossplot/CrossPlot';
 import NormalizationParams from '@/features/normalization/NormalizationParams';
+import TrimDataParams from '@/features/trim_data/TrimDataParams';
+import DepthMatchingPage from '@/features/depth-matching/page';
+import FillMissingPage from '@/features/fill_missing/page';
+import SmoothingPage from '@/features/smoothing/page';
+import SplicingMergingPage from '@/features/splicing-merging/page';
 
 interface DataPrepModuleClientProps {
   moduleName: string;
@@ -47,31 +49,19 @@ const DataPrepModuleClient: React.FC<DataPrepModuleClientProps> = ({
   // Render the appropriate component based on moduleName
   const renderModule = () => {
     switch (moduleName) {
-      case 'histogram':
-        return <HistogramParams />;
-      case 'crossplot':
-        return <CrossPlot />;
+      // Data Preparation Tools
+      case 'trim-data':
+        return <TrimDataParams />;
       case 'normalization':
         return <NormalizationParams />;
-      case 'trim-data':
       case 'depth-matching':
+        return <DepthMatchingPage />;
       case 'fill-missing':
+        return <FillMissingPage />;
       case 'smoothing':
+        return <SmoothingPage />;
       case 'splicing-merging':
-        return (
-          <div className="h-full p-4 md:p-6 bg-gray-50">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">
-                {moduleName.split('-').map(word => 
-                  word.charAt(0).toUpperCase() + word.slice(1)
-                ).join(' ')}
-              </h1>
-              <p className="text-gray-600">
-                This data preparation module is under development.
-              </p>
-            </div>
-          </div>
-        );
+        return <SplicingMergingPage />;
       default:
         return (
           <div className="h-full p-4 md:p-6 bg-gray-50">
@@ -82,7 +72,7 @@ const DataPrepModuleClient: React.FC<DataPrepModuleClientProps> = ({
                 ).join(' ')}
               </h1>
               <p className="text-gray-600">
-                This data preparation module is under development.
+                This module is under development.
               </p>
             </div>
           </div>

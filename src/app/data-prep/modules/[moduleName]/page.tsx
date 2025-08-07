@@ -9,14 +9,33 @@ interface DataPrepModulePageProps {
 
 // List of valid data preparation module names
 const VALID_DATA_PREP_MODULES = [
+  // Data Analysis
   'histogram',
   'crossplot',
+  
+  // Data Preparation
   'trim-data',
   'depth-matching',
   'fill-missing',
   'smoothing',
   'normalization',
-  'splicing-merging'
+  'splicing-merging',
+  
+  // Log Interpretation
+  'porosity',
+  'vsh-calculation',
+  'vsh-dn-calculation',
+  'sw-calculation',
+  'water-resistivity-calculation',
+  
+  // GOWS
+  'rgsa-ngsa-dgsa',
+  'sw-simandoux',
+  'rgbe-rpbe',
+  'rt-ro',
+  'swgrad',
+  'dns-dnsv',
+  'gwd'
 ];
 
 export default async function DataPrepModulePage({ params }: DataPrepModulePageProps) {

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
+import { useDashboard } from '@/contexts/DashboardContext';
 
 // Fungsi untuk membuat parameter awal
 const createInitialSplicingParameters = (): ParameterRow[] => {
@@ -48,31 +49,118 @@ const createInitialSplicingParameters = (): ParameterRow[] => {
     }));
 };
 
-// Daftar opsi dropdown dibuat secara manual dari nilai-nilai di atas
-const manualLogOptions = [
-    // RUN 1 (UPPER) Defaults
-    'GR_CAL', 'TNPH', 'RHOZ', 'RLA5',
-    // RUN 2 (LOWER) Defaults
-    'DGRCC', 'TNPL', 'ALCDLC', 'R39PC',
-    // Output Defaults
-    'GR', 'NPHI', 'RHOB', 'RT'
-];
-// Buat daftar yang unik dan terurut
-const uniqueAvailableColumns = [...new Set(manualLogOptions)].sort();
-
-
 export default function SplicingParams() {
+    const { selectedWells, wellColumns } = useDashboard();
     const router = useRouter();
     const [parameters, setParameters] = useState<ParameterRow[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [wellsForSplicing, setWellsForSplicing] = useState<string[]>([]);
+    const [selectedRun1Well, setSelectedRun1Well] = useState<string>('');
+    const [selectedRun2Well, setSelectedRun2Well] = useState<string>('');
+    const [run1Columns, setRun1Columns] = useState<string[]>([]);
+    const [run2Columns, setRun2Columns] = useState<string[]>([]);
+    const [isLoadingColumns, setIsLoadingColumns] = useState(false);
 
-    // Sumur ditetapkan secara statis untuk halaman ini
-    const wellsForSplicing = ['bng-57_wl_12_25_trim.las', 'bng-57_lwd_8_5_trim.las'];
+    // Get available wells from wellColumns or selectedWells
+    const availableWells = Object.keys(wellColumns).length > 0 ? Object.keys(wellColumns) : selectedWells;
+    
+    // Fetch well columns from API
+    const fetchWellColumns = async (wells: string[]) => {
+        if (wells.length === 0) return {};
+        
+        setIsLoadingColumns(true);
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        
+        try {
+            const response = await fetch(`${apiUrl}/api/get-well-columns`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ wells }),
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch well columns');
+            }
+            
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error fetching well columns:', error);
+            return {};
+        } finally {
+            setIsLoadingColumns(false);
+        }
+    };
 
-    // useEffect sekarang hanya untuk mengatur parameter awal, tanpa memanggil API
+    // Get available columns for specific parameter based on well assignment
+    const getColumnsForParameter = (parameterName: string): string[] => {
+        // Default fallback options
+        const fallbackOptions = ['GR', 'NPHI', 'RHOB', 'RT', 'GR_CAL', 'TNPH', 'RHOZ', 'RLA5', 'DGRCC', 'TNPL', 'ALCDLC', 'R39PC'];
+        
+        if (parameterName.includes('_RUN1')) {
+            // Parameters for Run 1 (Upper) well
+            return run1Columns.length > 0 ? run1Columns : fallbackOptions;
+        } else if (parameterName.includes('_RUN2')) {
+            // Parameters for Run 2 (Lower) well
+            return run2Columns.length > 0 ? run2Columns : fallbackOptions;
+        } else {
+            // Output parameters - combine both wells' columns
+            const combinedColumns = [...new Set([...run1Columns, ...run2Columns])];
+            return combinedColumns.length > 0 ? combinedColumns : fallbackOptions;
+        }
+    };
+
+    // useEffect untuk mengatur parameter awal
     useEffect(() => {
         setParameters(createInitialSplicingParameters());
     }, []);
+
+    // useEffect untuk auto-select wells saat availableWells berubah
+    useEffect(() => {
+        // Only auto-select if no wells are currently selected
+        if (!selectedRun1Well && !selectedRun2Well && availableWells.length >= 2) {
+            setSelectedRun1Well(availableWells[0]);
+            setSelectedRun2Well(availableWells[1]);
+        } else if (!selectedRun1Well && availableWells.length === 1) {
+            setSelectedRun1Well(availableWells[0]);
+        }
+    }, [availableWells.length]);
+
+    // Fetch columns when Run 1 well changes
+    useEffect(() => {
+        if (selectedRun1Well) {
+            fetchWellColumns([selectedRun1Well]).then(data => {
+                if (data[selectedRun1Well]) {
+                    setRun1Columns(data[selectedRun1Well]);
+                }
+            });
+        } else {
+            setRun1Columns([]);
+        }
+    }, [selectedRun1Well]);
+
+    // Fetch columns when Run 2 well changes
+    useEffect(() => {
+        if (selectedRun2Well) {
+            fetchWellColumns([selectedRun2Well]).then(data => {
+                if (data[selectedRun2Well]) {
+                    setRun2Columns(data[selectedRun2Well]);
+                }
+            });
+        } else {
+            setRun2Columns([]);
+        }
+    }, [selectedRun2Well]);
+
+    // Update wellsForSplicing when individual well selections change
+    useEffect(() => {
+        const newWellsForSplicing = [];
+        if (selectedRun1Well) newWellsForSplicing.push(selectedRun1Well);
+        if (selectedRun2Well && selectedRun2Well !== selectedRun1Well) {
+            newWellsForSplicing.push(selectedRun2Well);
+        }
+        setWellsForSplicing(newWellsForSplicing);
+    }, [selectedRun1Well, selectedRun2Well]);
 
     const handleValueChange = (id: number, newValue: string) => {
         setParameters(prev => prev.map(row => {
@@ -139,15 +227,87 @@ export default function SplicingParams() {
     return (
         <div className="p-4 md:p-6 h-full flex flex-col bg-white rounded-lg shadow-md">
             <h2 className="text-xl font-bold mb-4 text-gray-800 flex-shrink-0">Splicing / Merging Logs</h2>
+            
+            {availableWells.length < 2 ? (
+                <div className="flex-grow flex items-center justify-center">
+                    <div className="text-center p-8 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <h3 className="text-lg font-semibold text-yellow-800 mb-2">Insufficient Wells</h3>
+                        <p className="text-yellow-700 mb-4">
+                            Splicing requires at least 2 wells to be selected. Currently available: {availableWells.length}
+                        </p>
+                        <p className="text-sm text-yellow-600">
+                            Please select more wells from the sidebar or ensure well data is loaded.
+                        </p>
+                        <button 
+                            onClick={() => router.back()} 
+                            className="mt-4 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+                        >
+                            Go Back
+                        </button>
+                    </div>
+                </div>
+            ) : (
             <form onSubmit={handleSubmit} className="flex-grow flex flex-col min-h-0">
                 <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50">
-                    <div className="md:col-span-4">
-                        <p className="text-sm font-medium text-gray-700">Wells for Splicing: {wellsForSplicing.join(' & ')}</p>
-                        <p className="text-xs text-gray-500 mt-1">Run 1 (Upper): {wellsForSplicing[0]}, Run 2 (Lower): {wellsForSplicing[1]}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Run 1 Well (Upper Section):
+                            </label>
+                            <select
+                                value={selectedRun1Well}
+                                onChange={(e) => setSelectedRun1Well(e.target.value)}
+                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                required
+                            >
+                                <option value="">Select Run 1 Well...</option>
+                                {availableWells.map(well => (
+                                    <option key={well} value={well}>{well}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Run 2 Well (Lower Section):
+                            </label>
+                            <select
+                                value={selectedRun2Well}
+                                onChange={(e) => setSelectedRun2Well(e.target.value)}
+                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                required
+                            >
+                                <option value="">Select Run 2 Well...</option>
+                                {availableWells.filter(well => well !== selectedRun1Well).map(well => (
+                                    <option key={well} value={well}>{well}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
+                    
+                    <div className="mb-4">
+                        <p className="text-sm font-medium text-gray-700">
+                            Selected Wells for Splicing: {wellsForSplicing.length > 0 ? wellsForSplicing.join(' & ') : 'No wells selected'}
+                        </p>
+                        {wellsForSplicing.length < 2 && (
+                            <p className="text-xs text-red-500 mt-1">
+                                Please select both Run 1 and Run 2 wells for splicing
+                            </p>
+                        )}
+                        {isLoadingColumns && (
+                            <p className="text-xs text-blue-500 mt-1 flex items-center gap-1">
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Loading well columns...
+                            </p>
+                        )}
+                    </div>
+                    
                     <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                         <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
-                        <button type="submit" className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700 flex items-center justify-center" disabled={isSubmitting}>
+                        <button 
+                            type="submit" 
+                            className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed" 
+                            disabled={isSubmitting || wellsForSplicing.length < 2}
+                        >
                             {isSubmitting ? <Loader2 className="animate-spin" /> : 'Start'}
                         </button>
                     </div>
@@ -176,11 +336,15 @@ export default function SplicingParams() {
                                                     value={param.values['default'] ?? ''} 
                                                     onChange={(e) => handleValueChange(param.id, e.target.value)} 
                                                     className="w-full p-1 bg-white text-black"
+                                                    disabled={isLoadingColumns}
                                                 >
-                                                    {/* Gunakan daftar kolom manual */}
-                                                    {uniqueAvailableColumns.map(colName => (
-                                                        <option key={colName} value={colName}>{colName}</option>
-                                                    ))}
+                                                    {isLoadingColumns ? (
+                                                        <option value="">Loading columns...</option>
+                                                    ) : (
+                                                        getColumnsForParameter(param.name).map((colName: string) => (
+                                                            <option key={colName} value={colName}>{colName}</option>
+                                                        ))
+                                                    )}
                                                 </select>
                                             ) : (
                                                 <input 
@@ -198,6 +362,7 @@ export default function SplicingParams() {
                     </div>
                 </div>
             </form>
+            )}
         </div>
     );
 }

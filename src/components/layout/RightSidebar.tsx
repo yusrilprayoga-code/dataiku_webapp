@@ -10,6 +10,12 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 // Map button names to their actual route names
 const getRouteForItem = (itemName: string) => {
   switch (itemName) {
+    // Analysis Tools
+    case 'HISTOGRAM':
+      return 'histogram';
+    case 'CROSSPLOT':
+      return 'crossplot';
+    
     // VSH Calculation routes
     case 'VSH-GR':
       return 'vsh-calculation';
@@ -198,17 +204,16 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
     'DNS-DNSV', 
     'GWD'
   ];
-
-  // Data preparation tools - using same structure as Dashboard for consistency
-  const dataPrepButtons: (string | DropdownButton)[] = [
-    'TRIM DATA',
+  
+  const dataPrepQualityControlButtons: (string | DropdownButton)[] = [
+    'TRIM DATA', 
     'DEPTH MATCHING', 
-    'FILL MISSING',
-    'SMOOTHING',
-    'NORMALIZATION',
+    'FILL MISSING', 
+    'SMOOTHING', 
+    'NORMALIZATION', 
     'SPLICING/MERGING'
   ];
-
+  
   const routePrefix = isDataPrep ? '/data-prep/modules' : '/dashboard/modules';
   const sidebarTitle = isDataPrep ? 'Data Preparation' : 'Module Configuration';
 
@@ -217,8 +222,10 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
       <div className="text-xs font-bold text-gray-800 px-2 py-1">{sidebarTitle}</div>
       <div className="flex flex-col gap-2">
         {isDataPrep ? (
-          // Show only data preparation tools for data-prep routes - use same ModuleSection logic
-          <ModuleSection title="Available Tools" buttons={dataPrepButtons} activeButton={activeButton} routePrefix={routePrefix} />
+          // Show all modules for data-prep routes - same as dashboard but in data-prep context
+          <>
+            <ModuleSection title="Data Preparation" buttons={dataPrepQualityControlButtons} activeButton={activeButton} routePrefix={routePrefix} />
+          </>
         ) : (
           // Show all modules for dashboard routes
           <>
