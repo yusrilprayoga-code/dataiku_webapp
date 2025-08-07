@@ -368,29 +368,6 @@ export default function SplicingParams() {
                     </div>
                     
                     <div className="mb-4">
-                        <p className="text-sm font-medium text-gray-700">
-                            Selected Wells for Splicing: {wellsForSplicing.length > 0 ? wellsForSplicing.join(' & ') : 'No wells selected'}
-                        </p>
-                        {wellsForSplicing.length > 0 && (
-                            <div className="mt-1 space-y-1">
-                                <p className="text-xs text-gray-500">
-                                    Run 1 (Upper): {selectedRun1Well || 'Not selected'}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                    Run 2 (Lower): {selectedRun2Well || 'Not selected'}
-                                </p>
-                                {run1FilePath && (
-                                    <p className="text-xs text-blue-500">
-                                        Run 1 File: {run1FilePath}
-                                    </p>
-                                )}
-                                {run2FilePath && (
-                                    <p className="text-xs text-blue-500">
-                                        Run 2 File: {run2FilePath}
-                                    </p>
-                                )}
-                            </div>
-                        )}
                         {wellsForSplicing.length < 2 && (
                             <p className="text-xs text-red-500 mt-1">
                                 Please select both Run 1 and Run 2 wells for splicing

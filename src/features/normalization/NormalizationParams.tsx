@@ -4,10 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 const createInitialParameters = (intervals: string[]): ParameterRow[] => {
-    const createValues = (val: string | number) => Object.fromEntries(intervals.map(i => [i, val]));
+    // Use a default interval if none are provided (like splicing-merging)
+    const effectiveIntervals = intervals.length > 0 ? intervals : ['default'];
+    const createValues = (val: string | number) => Object.fromEntries(effectiveIntervals.map(i => [i, val]));
 
     const allPossibleParams: Omit<ParameterRow, 'values'>[] = [
         { id: 1, location: 'Parameter', mode: 'Input', comment: 'Normalization: Min-Max', unit: 'ALPHA*15', name: 'NORMALIZE_OPT', isEnabled: true },
@@ -44,18 +46,19 @@ export default function NormalizationParams() {
     const { selectedWells, selectedIntervals } = useDashboard();
     const [parameters, setParameters] = useState<ParameterRow[]>([]);
     const router = useRouter();
+    const pathname = usePathname();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
     // State baru untuk loading saat mengambil nilai persentil
     const [isFetchingDefaults, setIsFetchingDefaults] = useState(false);
 
-    useEffect(() => {
-        if (selectedIntervals.length > 0) {
-            setParameters(createInitialParameters(selectedIntervals));
-        }
-    }, [selectedIntervals]);
+    // Check if we're in DataPrep context by checking the current pathname
+    const isDataPrep = pathname?.startsWith('/data-prep') || false;
 
-    // useEffect untuk mengambil nilai persentil default dari backend
+    useEffect(() => {
+        // Always create parameters, even if no intervals are selected (like splicing-merging)
+        setParameters(createInitialParameters(selectedIntervals));
+    }, [selectedIntervals]);    // useEffect untuk mengambil nilai persentil default dari backend
     useEffect(() => {
         const fetchPercentileDefaults = async (logColumn: string) => {
             if (selectedWells.length === 0 || !logColumn) return;
@@ -197,7 +200,9 @@ export default function NormalizationParams() {
         }
     };
     
-    const staticHeaders = ['Location', 'Mode', 'Comment', 'Unit', 'Name', 'P'];
+    const staticHeaders = isDataPrep 
+        ? ['Location', 'Mode', 'Comment', 'Unit', 'Name', 'Value']
+        : ['Location', 'Mode', 'Comment', 'Unit', 'Name', 'P'];
 
     return (
         <div className="p-4 md:p-6 h-full flex flex-col bg-white rounded-lg shadow-md">
@@ -222,7 +227,7 @@ export default function NormalizationParams() {
                             <thead className="bg-gray-200 sticky top-0 z-10">
                                 <tr>
                                     {staticHeaders.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th>))}
-                                    {selectedIntervals.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th>))}
+                                    {!isDataPrep && selectedIntervals.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th>))}
                                 </tr>
                             </thead>
                             <tbody className="bg-white">
@@ -233,20 +238,34 @@ export default function NormalizationParams() {
                                         <td className="px-3 py-2 border-r whitespace-normal max-w-xs text-sm">{param.comment}</td>
                                         <td className="px-3 py-2 border-r whitespace-nowrap text-sm">{param.unit}</td>
                                         <td className="px-3 py-2 border-r font-semibold whitespace-nowrap text-sm">{param.name}</td>
-                                        <td className="px-3 py-2 border-r text-center">
-                                            <input type="checkbox" className="h-4 w-4 rounded border-gray-400" checked={!!rowSync[param.id]} onChange={(e) => handleRowToggle(param.id, e.target.checked)} />
-                                        </td>
-                                        {selectedIntervals.map(interval => (
-                                            <td key={interval} className="px-3 py-2 border-r bg-white text-black">
+                                        {isDataPrep ? (
+                                            <td className="px-3 py-2 border-r bg-white text-black">
                                                 {param.name === 'NORMALIZE_OPT' ? (
-                                                    <select value={param.values[interval] ?? ''} onChange={(e) => handleUnifiedValueChange(param.id, e.target.value, interval)} className="w-full p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500">
+                                                    <select value={param.values['default'] ?? ''} onChange={(e) => handleUnifiedValueChange(param.id, e.target.value, 'default')} className="w-full p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500">
                                                         <option value="MIN-MAX">MIN-MAX</option>
                                                     </select>
                                                 ) : (
-                                                    <input type="text" value={param.values[interval] ?? ''} onChange={(e) => handleUnifiedValueChange(param.id, e.target.value, interval)} className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500" />
+                                                    <input type="text" value={param.values['default'] ?? ''} onChange={(e) => handleUnifiedValueChange(param.id, e.target.value, 'default')} className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500" />
                                                 )}
                                             </td>
-                                        ))}
+                                        ) : (
+                                            <>
+                                                <td className="px-3 py-2 border-r text-center">
+                                                    <input type="checkbox" className="h-4 w-4 rounded border-gray-400" checked={!!rowSync[param.id]} onChange={(e) => handleRowToggle(param.id, e.target.checked)} />
+                                                </td>
+                                                {selectedIntervals.map(interval => (
+                                                    <td key={interval} className="px-3 py-2 border-r bg-white text-black">
+                                                        {param.name === 'NORMALIZE_OPT' ? (
+                                                            <select value={param.values[interval] ?? ''} onChange={(e) => handleUnifiedValueChange(param.id, e.target.value, interval)} className="w-full p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500">
+                                                                <option value="MIN-MAX">MIN-MAX</option>
+                                                            </select>
+                                                        ) : (
+                                                            <input type="text" value={param.values[interval] ?? ''} onChange={(e) => handleUnifiedValueChange(param.id, e.target.value, interval)} className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500" />
+                                                        )}
+                                                    </td>
+                                                ))}
+                                            </>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>
