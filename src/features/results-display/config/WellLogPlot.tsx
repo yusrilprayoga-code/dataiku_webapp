@@ -28,8 +28,8 @@ export default function WellLogPlot() {
       return;
     }
 
-    // Only fetch plot data if we have selected wells OR if it's a Module1 plot with a file path
-    if (selectedWells.length === 0 && !(plotType === 'get-module1-plot' && selectedFilePath)) {
+    // Only fetch plot data if we have selected wells OR if it's a file-based plot with a file path
+    if (selectedWells.length === 0 && !((plotType === 'get-module1-plot' || plotType === 'splicing') && selectedFilePath)) {
       setIsLoading(false);
       setPlotData([]);
       setPlotLayout({ 
@@ -110,10 +110,10 @@ export default function WellLogPlot() {
       try {
         // Prepare request body based on plot type
         let requestBody: any;
-        if (plotType === 'get-module1-plot') {
-          // For Module1 plots, send file_path
+        if (plotType === 'get-module1-plot' || plotType === 'splicing') {
+          // For Module1 and splicing plots, send file_path
           if (!selectedFilePath) {
-            setError("No file selected for Module1 plot.");
+            setError(`No file selected for ${plotType} plot.`);
             setIsLoading(false);
             return;
           }
@@ -143,8 +143,8 @@ export default function WellLogPlot() {
         
         // Handle different response formats
         let plotObject;
-        if (plotType === 'get-module1-plot') {
-          // Module1 plots may return data directly or as JSON string
+        if (plotType === 'get-module1-plot' || plotType === 'splicing') {
+          // Module1 and splicing plots may return data directly or as JSON string
           if (typeof responseData === 'string') {
             plotObject = JSON.parse(responseData);
           } else {

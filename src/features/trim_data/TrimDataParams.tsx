@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
@@ -62,10 +62,14 @@ const createInitialTrimParameters = (): ParameterRow[] => {
 };
 
 export default function TrimDataParams() {
-  const { selectedIntervals, selectedWells } = useDashboard();
+  const { selectedIntervals, selectedWells, selectedFilePath } = useDashboard();
   const router = useRouter();
+  const pathname = usePathname();
   const [parameters, setParameters] = useState<ParameterRow[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Check if we're in DataPrep context by checking the current pathname
+  const isDataPrep = pathname?.startsWith('/data-prep') || false;
 
   useEffect(() => {
     setParameters(createInitialTrimParameters());
@@ -90,11 +94,19 @@ export default function TrimDataParams() {
         return acc;
       }, {} as Record<string, string | number>);
 
-    const payload = {
+    // Build payload - include file_path if called from DataPrep
+    const payload: any = {
       params: formParams,
       selected_wells: selectedWells,
     };
 
+    // Add file_path if we're in DataPrep context and have a selected file
+    if (isDataPrep && selectedFilePath) {
+      payload.file_path = selectedFilePath;
+      console.log('DataPrep context detected, adding file_path:', selectedFilePath);
+    }
+
+    console.log('Trim data payload:', payload);
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     const endpoint = `${apiUrl}/api/trim-data`;
@@ -171,9 +183,24 @@ const currentTrimMode = trimModeParam?.values['default'] || 'DEPTH_BELOW';
       <form onSubmit={handleSubmit} className="flex-grow flex flex-col min-h-0">
         {/* Bagian atas */}
         <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50 flex flex-col gap-4">
-          <p className="text-sm font-medium text-gray-700">
-            Well: {selectedWells.join(', ') || 'N/A'} / Intervals: {selectedIntervals.length} selected
-          </p>
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-gray-700">
+              Context: {isDataPrep ? 'Data Preparation' : 'Dashboard'}
+            </p>
+            <p className="text-sm font-medium text-gray-700">
+              Well: {selectedWells.join(', ') || 'N/A'} / Intervals: {selectedIntervals.length} selected
+            </p>
+            {isDataPrep && selectedFilePath && (
+              <p className="text-xs text-blue-600">
+                File: {selectedFilePath}
+              </p>
+            )}
+            {isDataPrep && !selectedFilePath && (
+              <p className="text-xs text-orange-600">
+                No file selected from Data Prep sidebar
+              </p>
+            )}
+          </div>
 
           <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
             <button type="button" className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">

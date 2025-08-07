@@ -50,7 +50,7 @@ const createInitialSplicingParameters = (): ParameterRow[] => {
 };
 
 export default function SplicingParams() {
-    const { selectedWells, wellColumns } = useDashboard();
+    const { selectedWells, wellColumns, setPlotFigure, selectedFilePath } = useDashboard();
     const router = useRouter();
     const [parameters, setParameters] = useState<ParameterRow[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,9 +60,19 @@ export default function SplicingParams() {
     const [run1Columns, setRun1Columns] = useState<string[]>([]);
     const [run2Columns, setRun2Columns] = useState<string[]>([]);
     const [isLoadingColumns, setIsLoadingColumns] = useState(false);
+    const [isGeneratingPlot, setIsGeneratingPlot] = useState(false);
+    const [run1FilePath, setRun1FilePath] = useState<string>('');
+    const [run2FilePath, setRun2FilePath] = useState<string>('');
 
     // Get available wells from wellColumns or selectedWells
     const availableWells = Object.keys(wellColumns).length > 0 ? Object.keys(wellColumns) : selectedWells;
+    
+    // Function to get file path for a well (you may need to adjust this based on your file structure)
+    const getWellFilePath = (wellName: string): string => {
+        // This assumes the file path follows a pattern - adjust based on your actual file structure
+        // For now, using a generic pattern that matches your backend structure
+        return `data/structures/adera/benuang/BNG-057/${wellName}.csv`;
+    };
     
     // Fetch well columns from API
     const fetchWellColumns = async (wells: string[]) => {
@@ -152,13 +162,23 @@ export default function SplicingParams() {
         }
     }, [selectedRun2Well]);
 
-    // Update wellsForSplicing when individual well selections change
+    // Update wellsForSplicing and file paths when individual well selections change
     useEffect(() => {
         const newWellsForSplicing = [];
-        if (selectedRun1Well) newWellsForSplicing.push(selectedRun1Well);
+        if (selectedRun1Well) {
+            newWellsForSplicing.push(selectedRun1Well);
+            setRun1FilePath(getWellFilePath(selectedRun1Well));
+        } else {
+            setRun1FilePath('');
+        }
+        
         if (selectedRun2Well && selectedRun2Well !== selectedRun1Well) {
             newWellsForSplicing.push(selectedRun2Well);
+            setRun2FilePath(getWellFilePath(selectedRun2Well));
+        } else {
+            setRun2FilePath('');
         }
+        
         setWellsForSplicing(newWellsForSplicing);
     }, [selectedRun1Well, selectedRun2Well]);
 
@@ -184,6 +204,10 @@ export default function SplicingParams() {
         const payload = {
             params: formParams,
             selected_wells: wellsForSplicing,
+            run1_well: selectedRun1Well,
+            run2_well: selectedRun2Well,
+            run1_file_path: run1FilePath,
+            run2_file_path: run2FilePath,
         };
 
         console.log("Payload yang dikirim ke backend:", payload);
@@ -192,18 +216,77 @@ export default function SplicingParams() {
         const endpoint = `${apiUrl}/api/run-splicing`;
 
         try {
+            // Run splicing process
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
+            
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Server error');
             }
+            
             const result = await response.json();
-            alert(result.message || "Proses Splicing/Merging berhasil!");
+            console.log("Splicing result:", result);
+            
+            // After successful splicing, generate and display plot
+            setIsGeneratingPlot(true);
+            
+            try {
+                const plotResponse = await fetch(`${apiUrl}/api/get-splicing-plot`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        file_path: result.output_file_path || `sample_data/structures/ADERA_Field/benuang/BNG-057.csv` // Use the output file path from backend
+                    }),
+                });
+                
+                if (!plotResponse.ok) {
+                    throw new Error('Failed to generate plot');
+                }
+                
+                const plotData = await plotResponse.json();
+                console.log("Plot data received:", plotData);
+                
+                // Parse plot data similar to DirectorySidebar
+                let parsedPlotData;
+                try {
+                    if (typeof plotData === 'string') {
+                        parsedPlotData = JSON.parse(plotData);
+                    } else {
+                        parsedPlotData = plotData;
+                    }
+                    
+                    // Check if it looks like a valid Plotly figure
+                    if (parsedPlotData && typeof parsedPlotData === 'object' && (parsedPlotData.data || parsedPlotData.layout)) {
+                        setPlotFigure({
+                            data: parsedPlotData.data || [],
+                            layout: parsedPlotData.layout || {}
+                        });
+                        console.log('Splicing plot data updated in dashboard context');
+                    } else {
+                        console.error('Invalid plot data structure received');
+                        throw new Error('Invalid plot data structure');
+                    }
+                } catch (parseError) {
+                    console.error('Failed to parse plot data:', parseError);
+                    throw new Error('Could not parse plot data');
+                }
+                
+                alert(result.message || "Splicing/Merging completed successfully! Plot has been generated.");
+                
+            } catch (plotError) {
+                console.error("Plot generation error:", plotError);
+                alert(`Splicing completed successfully, but plot generation failed: ${plotError instanceof Error ? plotError.message : 'Unknown error'}`);
+            } finally {
+                setIsGeneratingPlot(false);
+            }
+            
+            // Navigate back to dashboard to see the plot
             router.push('/dashboard');
+            
         } catch (error) {
             alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
@@ -288,6 +371,26 @@ export default function SplicingParams() {
                         <p className="text-sm font-medium text-gray-700">
                             Selected Wells for Splicing: {wellsForSplicing.length > 0 ? wellsForSplicing.join(' & ') : 'No wells selected'}
                         </p>
+                        {wellsForSplicing.length > 0 && (
+                            <div className="mt-1 space-y-1">
+                                <p className="text-xs text-gray-500">
+                                    Run 1 (Upper): {selectedRun1Well || 'Not selected'}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                    Run 2 (Lower): {selectedRun2Well || 'Not selected'}
+                                </p>
+                                {run1FilePath && (
+                                    <p className="text-xs text-blue-500">
+                                        Run 1 File: {run1FilePath}
+                                    </p>
+                                )}
+                                {run2FilePath && (
+                                    <p className="text-xs text-blue-500">
+                                        Run 2 File: {run2FilePath}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                         {wellsForSplicing.length < 2 && (
                             <p className="text-xs text-red-500 mt-1">
                                 Please select both Run 1 and Run 2 wells for splicing
@@ -299,6 +402,12 @@ export default function SplicingParams() {
                                 Loading well columns...
                             </p>
                         )}
+                        {isGeneratingPlot && (
+                            <p className="text-xs text-green-500 mt-1 flex items-center gap-1">
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Generating splicing plot...
+                            </p>
+                        )}
                     </div>
                     
                     <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
@@ -306,9 +415,21 @@ export default function SplicingParams() {
                         <button 
                             type="submit" 
                             className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed" 
-                            disabled={isSubmitting || wellsForSplicing.length < 2}
+                            disabled={isSubmitting || isGeneratingPlot || wellsForSplicing.length < 2}
                         >
-                            {isSubmitting ? <Loader2 className="animate-spin" /> : 'Start'}
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="animate-spin mr-2" />
+                                    Processing...
+                                </>
+                            ) : isGeneratingPlot ? (
+                                <>
+                                    <Loader2 className="animate-spin mr-2" />
+                                    Generating Plot...
+                                </>
+                            ) : (
+                                'Start Splicing'
+                            )}
                         </button>
                     </div>
                 </div>

@@ -177,7 +177,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
   const isDataPrep = pathname.startsWith('/data-prep');
 
   // const module1Buttons: string[] = ['ADD PLOT', 'OPEN CROSS PLOT'];
-  const qualityControlButtons: (string | DropdownButton)[] = ['TRIM DATA', 'DEPTH MATCHING', 'FILL MISSING', 'SMOOTHING', 'NORMALIZATION', 'SPLICING-MERGING'];
+  const qualityControlButtons: (string | DropdownButton)[] = ['TRIM DATA', 'DEPTH MATCHING', 'FILL MISSING', 'SMOOTHING', 'NORMALIZATION', 'SPLICING/MERGING'];
   
   const logInterpretationButtons: (string | DropdownButton)[] = [
     {

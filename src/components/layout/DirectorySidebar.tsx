@@ -180,7 +180,16 @@ export default function DirectorySidebar() {
     setSelectedFiles(newSelectedFiles);
     
     // Handle well selection in dashboard context
-    const wellName = file.name.replace(/\.[^/.]+$/, ""); // Remove file extension
+    // For spliced files, extract a more reasonable well name or use the file name as-is
+    let wellName;
+    if (file.name.toLowerCase().includes('spliced')) {
+      // For spliced files, use the filename without extension as the well identifier
+      wellName = file.name.replace(/\.[^/.]+$/, "");
+      console.log(`Spliced file detected: ${file.name}, using wellName: ${wellName}`);
+    } else {
+      // For regular files, remove file extension to get well name
+      wellName = file.name.replace(/\.[^/.]+$/, "");
+    }
     
     if (selectedFiles.includes(filePath)) {
       // File was deselected - remove well from selection
@@ -194,27 +203,47 @@ export default function DirectorySidebar() {
       }
     }
     
-    // If this is a CSV file selection (not deselection), trigger Module1 plot for the first selected CSV
+    // If this is a CSV file selection (not deselection), trigger plot for the first selected CSV
     if (!selectedFiles.includes(filePath) && file.extension === '.csv' && newSelectedFiles.length > 0) {
-      // Set plot type to Module1 plot for Data Prep CSV files
-      setPlotType('get-module1-plot');
+      console.log(`File selected: ${file.name}`);
+      console.log(`File path: ${filePath}`);
+      console.log(`Is spliced file: ${file.name.toLowerCase().includes('spliced')}`);
+      
+      // Check if file contains "spliced" to determine plot type
+      if (file.name.toLowerCase().includes('spliced')) {
+        console.log('Setting plot type to splicing');
+        setPlotType('splicing');
+      } else {
+        console.log('Setting plot type to get-module1-plot');
+        setPlotType('get-module1-plot');
+      }
       
       // Store the selected file path in context for fallback API calls
       setSelectedFilePath(filePath);
+      console.log(`Selected file path set to: ${filePath}`);
+      
+      // Clear any existing plot data before loading new plot
+      setPlotFigure({ data: [], layout: {} });
 
-      // Call the Module1 plot API for the first CSV file
+      // Call the appropriate plot API based on plot type
       try {
-        console.log(`Requesting Module1 plot for CSV file: ${filePath}`);
+        console.log(`Requesting plot for CSV file: ${filePath}`);
         console.log(`Well name: ${wellName}, File: ${file.name}`);
         console.log(`File path for backend: ${filePath}`);
         
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        const fullUrl = `${apiUrl}/api/get-module1-plot`;
-        console.log(`Full Module1 plot URL: ${fullUrl}`);
+        let fullUrl, requestBody;
         
-        const requestBody = {
-          file_path: filePath  // Only send file_path as required by backend
-        };
+        // Determine API endpoint and request body based on plot type
+        if (file.name.toLowerCase().includes('spliced')) {
+          fullUrl = `${apiUrl}/api/get-splicing-plot`;
+          requestBody = { file_path: filePath };
+        } else {
+          fullUrl = `${apiUrl}/api/get-module1-plot`;
+          requestBody = { file_path: filePath };
+        }
+        
+        console.log(`Full plot URL: ${fullUrl}`);
         
         const response = await fetch(fullUrl, {
           method: 'POST',
@@ -224,25 +253,27 @@ export default function DirectorySidebar() {
           body: JSON.stringify(requestBody),
         });
 
-        console.log(`Module1 plot response status: ${response.status} ${response.statusText}`);
+        console.log(`Plot response status: ${response.status} ${response.statusText}`);
 
         if (!response.ok) {
           // Try to get detailed error from response
-          let errorMessage = `Failed to get Module1 plot: ${response.status} ${response.statusText}`;
+          let errorMessage = `Failed to get plot: ${response.status} ${response.statusText}`;
           try {
             const errorText = await response.text();
             if (errorText) {
               errorMessage += ` - ${errorText}`;
-              console.error('Module1 plot error response:', errorText);
+              console.error('Plot error response:', errorText);
             }
           } catch (parseErr) {
-            console.error('Could not parse Module1 plot error response:', parseErr);
+            console.error('Could not parse plot error response:', parseErr);
           }
           throw new Error(errorMessage);
         }
 
                const plotData = await response.json();
-        console.log('Module1 plot data received from backend:', plotData);
+        console.log('Plot data received from backend:', plotData);
+        console.log(`Plot data type: ${typeof plotData}`);
+        console.log(`Plot data length: ${typeof plotData === 'string' ? plotData.length : 'not string'}`);
         
         // Backend returns a JSON string that needs to be parsed
         // The response is the result of fig_result.to_json() from Plotly
@@ -255,21 +286,23 @@ export default function DirectorySidebar() {
           }
           
           console.log('Parsed plot data:', parsedPlotData);
+          console.log(`Parsed plot data has data: ${!!parsedPlotData?.data}`);
+          console.log(`Parsed plot data has layout: ${!!parsedPlotData?.layout}`);
           
           // Check if it looks like a valid Plotly figure
           if (parsedPlotData && typeof parsedPlotData === 'object' && (parsedPlotData.data || parsedPlotData.layout)) {
-            console.log('Using parsed plot data:', parsedPlotData);
+            console.log('Using parsed plot data for setPlotFigure');
             setPlotFigure({
               data: parsedPlotData.data || [],
               layout: parsedPlotData.layout || {}
             });
-            console.log('Module1 plot data updated in dashboard context');
+            console.log('Plot data updated in dashboard context');
           } else if (plotData && plotData.error) {
             // Handle error response
-            console.error('Module1 plot request failed - backend error:', plotData.error);
+            console.error('Plot request failed - backend error:', plotData.error);
             setError(`Plot generation failed: ${plotData.error}`);
           } else {
-            console.error('Module1 plot request failed - invalid Plotly figure structure');
+            console.error('Plot request failed - invalid Plotly figure structure');
             setError(`Plot generation failed: Invalid plot data structure`);
           }
         } catch (parseError) {
@@ -277,7 +310,7 @@ export default function DirectorySidebar() {
           setError(`Plot generation failed: Could not parse plot data`);
         }
       } catch (error) {
-        console.error('Error processing Module1 plot:', error);
+        console.error('Error processing plot:', error);
         setError(error instanceof Error ? error.message : 'Failed to process plot data');
       }
     }
@@ -306,20 +339,42 @@ export default function DirectorySidebar() {
         }
       });
       
-      // Trigger Module1 plot for the first CSV file if available
+      // Trigger plot for the first CSV file if available
       const firstCsvFile = files.find(file => file.extension === '.csv');
       if (firstCsvFile) {
-        setPlotType('get-module1-plot');
+        console.log(`Select all - First CSV file: ${firstCsvFile.name}`);
+        console.log(`Select all - Is spliced: ${firstCsvFile.name.toLowerCase().includes('spliced')}`);
+        
+        // Check if file contains "spliced" to determine plot type
+        if (firstCsvFile.name.toLowerCase().includes('spliced')) {
+          console.log('Select all - Setting plot type to splicing');
+          setPlotType('splicing');
+        } else {
+          console.log('Select all - Setting plot type to get-module1-plot');
+          setPlotType('get-module1-plot');
+        }
         setSelectedFilePath(firstCsvFile.path);
         
-        // Call Module1 plot API for the first CSV
+        // Clear any existing plot data before loading new plot
+        setPlotFigure({ data: [], layout: {} });
+        
+        // Call appropriate plot API for the first CSV
         (async () => {
           try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-            const response = await fetch(`${apiUrl}/api/get-module1-plot`, {
+            let endpoint;
+            
+            // Determine API endpoint based on file name
+            if (firstCsvFile.name.toLowerCase().includes('spliced')) {
+              endpoint = `${apiUrl}/api/get-splicing-plot`;
+            } else {
+              endpoint = `${apiUrl}/api/get-module1-plot`;
+            }
+            
+            const response = await fetch(endpoint, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ file_path: firstCsvFile.path }),
+              body: JSON.stringify({ 'file_path': allFilePaths}),
             });
             
             if (response.ok) {
@@ -341,11 +396,6 @@ export default function DirectorySidebar() {
     }
   };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
 
   return (
     <aside className="w-52 bg-gray-100 flex flex-col gap-2 p-2 border-r border-gray-300 h-screen">
@@ -477,9 +527,6 @@ export default function DirectorySidebar() {
                         file.extension === '.csv' ? 'text-blue-500' : 'text-gray-500'
                       }`} />
                       <span className="flex-1 text-left truncate">{file.name}</span>
-                    </div>
-                    <div className="text-xs text-gray-500 ml-7">
-                      {formatFileSize(file.size_bytes)}
                     </div>
                   </div>
                 );
