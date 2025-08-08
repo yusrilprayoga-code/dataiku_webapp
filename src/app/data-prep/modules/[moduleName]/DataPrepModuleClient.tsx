@@ -5,12 +5,12 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 
-import NormalizationParams from '@/features/normalization/NormalizationParams';
+import DataPrepNormalizationParams from '@/data-prep/normalization/DataPrepNormalization';
 import TrimDataParams from '@/features/trim_data/TrimDataParams';
 import DepthMatchingPage from '@/features/depth-matching/page';
 import FillMissingPage from '@/features/fill_missing/page';
-import SmoothingPage from '@/features/smoothing/page';
 import SplicingMergingPage from '@/features/splicing-merging/page';
+import DataPrepSmoothingParams from '@/data-prep/smoothing/DataPrepSmoothing';
 
 interface DataPrepModuleClientProps {
   moduleName: string;
@@ -31,7 +31,7 @@ const DataPrepModuleClient: React.FC<DataPrepModuleClientProps> = ({
             <h1 className="text-xl font-semibold text-red-700">Module Not Found</h1>
           </div>
           <p className="text-gray-600 mb-4">
-            The data preparation module "{moduleName}" could not be found.
+            The data preparation module &quot;{moduleName}&quot; could not be found.
           </p>
           <div className="bg-red-50 p-4 rounded-lg">
             <p className="text-sm font-medium text-red-800 mb-2">Available modules:</p>
@@ -53,13 +53,13 @@ const DataPrepModuleClient: React.FC<DataPrepModuleClientProps> = ({
       case 'trim-data':
         return <TrimDataParams />;
       case 'normalization':
-        return <NormalizationParams />;
+        return <DataPrepNormalizationParams />;
       case 'depth-matching':
         return <DepthMatchingPage />;
       case 'fill-missing':
         return <FillMissingPage />;
       case 'smoothing':
-        return <SmoothingPage />;
+        return <DataPrepSmoothingParams />;
       case 'splicing-merging':
         return <SplicingMergingPage />;
       default:

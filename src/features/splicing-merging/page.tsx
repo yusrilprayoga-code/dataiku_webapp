@@ -50,7 +50,7 @@ const createInitialSplicingParameters = (): ParameterRow[] => {
 };
 
 export default function SplicingParams() {
-    const { selectedWells, wellColumns, setPlotFigure, selectedFilePath } = useDashboard();
+    const { selectedWells, wellColumns, setPlotFigure } = useDashboard();
     const router = useRouter();
     const [parameters, setParameters] = useState<ParameterRow[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -134,7 +134,7 @@ export default function SplicingParams() {
         } else if (!selectedRun1Well && availableWells.length === 1) {
             setSelectedRun1Well(availableWells[0]);
         }
-    }, [availableWells.length]);
+    }, [availableWells, availableWells.length, selectedRun1Well, selectedRun2Well]);
 
     // Fetch columns when Run 1 well changes
     useEffect(() => {

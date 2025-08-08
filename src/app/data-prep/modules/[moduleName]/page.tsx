@@ -1,13 +1,12 @@
-// src/app/data-prep/modules/[moduleName]/page.tsx
-
 import React, { Suspense } from 'react';
 import DataPrepModuleClient from './DataPrepModuleClient';
 
+// --- PERBAIKAN 1: Hapus 'Promise' dari tipe params ---
 interface DataPrepModulePageProps {
-  params: Promise<{ moduleName: string }>;
+  params: { moduleName: string };
 }
 
-// List of valid data preparation module names
+// Daftar modul yang valid untuk seksi Data Prep
 const VALID_DATA_PREP_MODULES = [
   // Data Analysis
   'histogram',
@@ -20,27 +19,11 @@ const VALID_DATA_PREP_MODULES = [
   'smoothing',
   'normalization',
   'splicing-merging',
-  
-  // Log Interpretation
-  'porosity',
-  'vsh-calculation',
-  'vsh-dn-calculation',
-  'sw-calculation',
-  'water-resistivity-calculation',
-  
-  // GOWS
-  'rgsa-ngsa-dgsa',
-  'sw-simandoux',
-  'rgbe-rpbe',
-  'rt-ro',
-  'swgrad',
-  'dns-dnsv',
-  'gwd'
 ];
 
 export default async function DataPrepModulePage({ params }: DataPrepModulePageProps) {
-  const resolvedParams = await params;
-  const moduleName = resolvedParams.moduleName;
+  // --- PERBAIKAN 2: Akses moduleName langsung dari params tanpa await ---
+  const moduleName = params.moduleName;
 
   return (
     <Suspense fallback={
@@ -57,4 +40,11 @@ export default async function DataPrepModulePage({ params }: DataPrepModulePageP
       />
     </Suspense>
   );
+}
+
+// Fungsi generateStaticParams tidak perlu diubah
+export async function generateStaticParams() {
+  return VALID_DATA_PREP_MODULES.map((moduleName) => ({
+    moduleName: moduleName,
+  }));
 }
