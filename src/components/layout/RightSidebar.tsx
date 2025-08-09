@@ -47,10 +47,8 @@ const getRouteForItem = (itemName: string) => {
       return 'normalization';
     case 'SPLICING/MERGING':
       return 'splicing-merging';
-    
-    // Other routes
     case 'POROSITY CALCULATION':
-      return 'porosity';
+      return 'porosity-calculation';
     case 'WATER RESISTIVITY CALCULATION':
       return 'water-resistivity-calculation';
     case 'RGBE-RPBE':
