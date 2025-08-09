@@ -71,7 +71,7 @@ export default function SplicingParams() {
     const getWellFilePath = (wellName: string): string => {
         // This assumes the file path follows a pattern - adjust based on your actual file structure
         // For now, using a generic pattern that matches your backend structure
-        return `data/structures/adera/benuang/BNG-057/${wellName}.csv`;
+        return `data/structures/adera/benuang/BNG-057/${wellName}`;
     };
     
     // Fetch well columns from API

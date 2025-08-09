@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Folder, File, ChevronRight, ChevronDown, Database, Loader2, Check } from 'lucide-react';
-import { useDashboard } from '@/contexts/DashboardContext';
+import { PlotType, useDashboard } from '@/contexts/DashboardContext';
 
 interface WellFolder {
   name: string;
@@ -47,7 +47,7 @@ export default function DirectorySidebar() {
   const FIELD_NAME = 'adera';
   const STRUCTURE_NAME = 'benuang';
   
-  const { toggleWellSelection, selectedWells, setPlotFigure, setPlotType, setSelectedFilePath } = useDashboard();
+  const { toggleWellSelection, selectedWells, setPlotFigure, setPlotType, setSelectedFilePath, plotType } = useDashboard();
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
   const [wellFolders, setWellFolders] = useState<WellFolder[]>([]);
   const [files, setFiles] = useState<WellFile[]>([]);
@@ -379,7 +379,7 @@ export default function DirectorySidebar() {
             
             if (response.ok) {
               const plotData = await response.json();
-              let parsedPlotData = typeof plotData === 'string' ? JSON.parse(plotData) : plotData;
+              const parsedPlotData = typeof plotData === 'string' ? JSON.parse(plotData) : plotData;
               
               if (parsedPlotData && (parsedPlotData.data || parsedPlotData.layout)) {
                 setPlotFigure({
@@ -544,6 +544,29 @@ export default function DirectorySidebar() {
           )}
         </div>
       )}
+      
+      
+      
+      <div className="bg-white rounded-lg shadow-sm p-2 mt-auto">
+        <h3 className="text-xs font-bold text-gray-700 mb-2">Display</h3>
+        <div className="flex flex-col gap-2">
+          
+          {/* Dropdown untuk Plot Layout */}
+          <div>
+            <label className="text-xs text-gray-600 mb-1 block">Plot Layout</label>
+            <select
+              value={plotType}
+              onChange={(e) => setPlotType(e.target.value as PlotType)}
+              className="text-xs w-full bg-white border border-gray-200 rounded p-1 focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="default">Layout Default</option>
+              <option value="normalization-prep">Layout Normalisasi</option>
+              <option value="smoothing-prep">Layout Smoothing</option>
+              <option value="splicing">Layout Splicing</option>
+            </select>
+          </div>
+        </div>
+      </div>
     </aside>
   );
 }
