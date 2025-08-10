@@ -1,18 +1,39 @@
-"use client";
+'use client';
 
 import { PlotType, useDashboard } from '@/contexts/DashboardContext';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 export default function LeftSidebar() {
-    const { availableWells, selectedWells, toggleWellSelection, selectedIntervals, toggleInterval, plotType, availableIntervals, setPlotType } = useDashboard();
+    // Ambil semua state dan fungsi yang relevan dari context
+    const { 
+        availableWells, 
+        selectedWells, 
+        toggleWellSelection, 
+        availableIntervals, 
+        selectedIntervals, 
+        toggleInterval, 
+        plotType, 
+        setPlotType,
+        fetchPlotData // Fungsi terpusat untuk mengambil plot
+    } = useDashboard();
+    
     const [isMounted, setIsMounted] = useState(false);
-    const [selectedCrossplot, setSelectedCrossplot] = useState<string>("");
     const router = useRouter();
 
     useEffect(() => {
         setIsMounted(true);
     }, []);
+
+    // Gunakan useEffect untuk secara otomatis mengambil plot baru saat pilihan berubah
+    useEffect(() => {
+        // Hanya jalankan fetch jika ada sumur yang dipilih untuk menghindari permintaan yang tidak perlu
+        if (selectedWells.length > 0) {
+            fetchPlotData();
+        }
+    }, [selectedWells, selectedIntervals, plotType, fetchPlotData]);
+
 
     const handleSelectAllWells = (checked: boolean) => {
         if (checked) {
@@ -38,26 +59,30 @@ export default function LeftSidebar() {
         }
     };
 
+    // Opsi untuk dropdown crossplot
     const crossplotOptions = [
-        { label: "Crossplot GR-NPHI", value: "GR-NPHI" },
-        { label: "Crossplot GR-RHOB", value: "GR-RHOB" },
-        { label: "Crossplot RHOB-NPHI", value: "RHOB-NPHI" },
-        { label: "Crossplot RT-GR", value: "RT-GR" },
-        { label: "Crossplot PHIE-VSH", value: "PHIE-VSH" },
-        { label: "Crossplot SW-PHIE", value: "SW-PHIE" },
+        { label: "Pilih Crossplot...", value: "" },
+        { label: "Crossplot GR vs NPHI", value: "GR-NPHI" },
+        { label: "Crossplot GR vs RHOB", value: "GR-RHOB" },
+        { label: "Crossplot RHOB vs NPHI", value: "RHOB-NPHI" },
+        { label: "Crossplot RT vs GR", value: "RT-GR" },
+        { label: "Crossplot PHIE vs VSH", value: "PHIE-VSH" },
+        { label: "Crossplot SW vs PHIE", value: "SW-PHIE" },
     ];
+
     const handleCrossplotChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const value = e.target.value;
         if (!value) return;
 
-        setSelectedCrossplot(value);
         const [yCol, xCol] = value.split('-');
+        // Arahkan ke halaman crossplot dengan parameter URL
         router.push(`/dashboard/modules/crossplot?y=${yCol}&x=${xCol}`);
+        e.target.value = ""; // Reset dropdown agar bisa dipilih lagi
     };
 
     return (
         <aside className="w-52 bg-gray-100 flex flex-col gap-2 p-2 border-r border-gray-300 h-screen">
-            <div className="grid grid-rows-[auto_1fr_1fr_1fr_auto] h-full gap-2">
+            <div className="flex flex-col h-full gap-2">
                 <div className="text-xs font-bold text-gray-800 px-2 py-1">Data Selection</div>
                 
                 {/* Well Data Section */}
@@ -66,7 +91,7 @@ export default function LeftSidebar() {
                         <input
                             type="checkbox"
                             className="h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500"
-                            checked={selectedWells.length > 0 && selectedWells.length === availableWells.length}
+                            checked={isMounted && availableWells.length > 0 && selectedWells.length === availableWells.length}
                             onChange={(e) => handleSelectAllWells(e.target.checked)}
                         />
                         <h3 className="text-xs font-bold text-gray-700">Wells</h3>
@@ -95,7 +120,7 @@ export default function LeftSidebar() {
                         <input
                             type="checkbox"
                             className="h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500"
-                            checked={selectedIntervals.length > 0 && selectedIntervals.length === availableIntervals.length}
+                            checked={isMounted && availableIntervals.length > 0 && selectedIntervals.length === availableIntervals.length}
                             onChange={(e) => handleSelectAllIntervals(e.target.checked)}
                         />
                         <h3 className="text-xs font-bold text-gray-700">Intervals</h3>
@@ -117,48 +142,55 @@ export default function LeftSidebar() {
                         </div>
                     </div>
                 </div>
+                
+                {/* Spacer agar Display menempel di bawah */}
+                <div className="flex-grow"></div>
+
                 {/* Display Section */}
                 <div className="bg-white rounded-lg shadow-sm p-2 flex flex-col gap-2">
-                    <h3 className="text-xs font-bold text-gray-700">Plot Display</h3>
+                    <h3 className="text-xs font-bold text-gray-700">Display</h3>
                     <div>
+                        <label className="text-xs text-gray-600 mb-1 block">Plot Layout</label>
                         <select
-                          value={plotType}
-                          onChange={(e) => setPlotType(e.target.value as PlotType)}
-                          className="text-xs w-full bg-white border border-gray-200 rounded p-1 focus:ring-1 focus:ring-blue-500"
+                            value={plotType}
+                            onChange={(e) => setPlotType(e.target.value as PlotType)}
+                            className="text-xs w-full bg-white border border-gray-200 rounded p-1 focus:ring-1 focus:ring-blue-500"
                         >
-                          <option value="default">Layout Default</option>
-                          <option value="normalization">Layout Normalisasi</option>
-                          <option value="smoothing">Layout Smoothing</option>
-                          <option value="splicing">Layout Splicing</option>
-                          <option value="vsh">Layout VSH</option>
-                          <option value="porosity">Layout Porosity</option>
-                          <option value="sw">Layout SW</option>
-                          <option value="rwa">Layout RWA</option>
-                          <option value="module2">Layout Module 2</option>
-                          <option value="gsa">Layout GSA</option>
-                          <option value="rpbe-rgbe">Layout RPBE RGBE</option>
-                          <option value="iqual">Layout IQUAL</option>
-                          <option value="swgrad">Layout SWGRAD</option>
-                          <option value="dns-dnsv">Layout DNS-DNSV</option>
-                          <option value="rt-ro">Layout RT-RO</option>
+                            <option value="default">Layout Default</option>
+                            <option value="normalization">Layout Normalisasi</option>
+                            <option value="smoothing">Layout Smoothing</option>
+                            <option value="vsh">Layout VSH</option>
+                            <option value="porosity">Layout Porosity</option>
+                            <option value="sw">Layout SW</option>
+                            <option value="rwa">Layout RWA</option>
+                            <option value="module2">Layout Module 2</option>
+                            <option value="gsa">Layout GSA</option>
+                            <option value="rpbe-rgbe">Layout RPBE RGBE</option>
+                            <option value="iqual">Layout IQUAL</option>
+                            <option value="swgrad">Layout SWGRAD</option>
+                            <option value="dns-dnsv">Layout DNS-DNSV</option>
+                            <option value="rt-ro">Layout RT-RO</option>
                         </select>
                     </div>
                     <div>
+                        <label className="text-xs text-gray-600 mb-1 block">Analysis</label>
                         <select
-                            value={crossplotOptions.find(opt => opt.value === selectedCrossplot)?.value}
                             onChange={handleCrossplotChange}
+                            // Class 'appearance-none' dan 'text-center' dihapus agar sesuai referensi
                             className="text-xs w-full bg-white border border-gray-200 rounded p-1 focus:ring-1 focus:ring-blue-500"
                         >
                             {crossplotOptions.map(opt => (
-                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
                             ))}
                         </select>
-                    </div>
-                    <a href="/histogram" className="text-xs w-full bg-gray-50 border border-gray-200 rounded p-1.5 text-center font-medium hover:bg-gray-100 focus:ring-1 focus:ring-blue-500 transition-colors">
-                        Histogram
-                    </a>
+                        </div>
+
+                        {/* Link Histogram sekarang berada di luar div-select agar menjadi elemen terpisah di bawahnya */}
+                        <Link href="/dashboard/modules/histogram" className="text-xs w-full bg-gray-50 border border-gray-200 rounded p-1.5 text-center font-medium hover:bg-gray-100 focus:ring-1 focus:ring-blue-500 transition-colors">
+                            Histogram
+                        </Link>
                 </div>
             </div>
         </aside>
     );
-}
+};

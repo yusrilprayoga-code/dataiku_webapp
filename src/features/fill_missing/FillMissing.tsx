@@ -1,15 +1,19 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, {useMemo, useEffect, useState} from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import Select from 'react-select';
 import { Loader2 } from 'lucide-react';
 
 export default function FillMissingParams() {
-    // --- CONTEXT & ROUTER ----
-    const { selectedWells, wellColumns, selectedFilePath } = useDashboard();
+    // Ambil state yang relevan dari context
+    const { 
+        selectedWells,
+        wellColumns,
+        selectedFilePath, // Ini adalah string path ke satu file
+    } = useDashboard();
+    
     const router = useRouter();
     const pathname = usePathname();
 
@@ -17,118 +21,74 @@ export default function FillMissingParams() {
     const [maxConsecutive, setMaxConsecutive] = useState<number>(3);
     const [isFlagging, setIsFlagging] = useState(false);
     const [isFilling, setIsFilling] = useState(false);
-    const [localColumns, setLocalColumns] = useState<string[]>([]);
-
+    
     const isDataPrep = pathname.startsWith('/data-prep');
 
-    // --- helper: normalize selectedFilePath menjadi array of paths ---
-    const normalizedSelectedFilePaths = useMemo(() => {
-        if (!selectedFilePath) return [] as string[];
-        return Array.isArray(selectedFilePath) ? selectedFilePath : [selectedFilePath];
-    }, [selectedFilePath]);
+    const [localColumns, setLocalColumns] = useState<string[]>([]);
+    const [isLoadingColumns, setIsLoadingColumns] = useState(false);
 
-    // --- fetch kolom ketika di mode Data Prep dan ada file terpilih ---
+    // useEffect untuk mengambil kolom saat file dipilih di Data Prep
     useEffect(() => {
-        if (!isDataPrep) {
-            setLocalColumns([]);
-            return;
+        // Hanya berjalan jika di mode Data Prep dan ada file yang dipilih
+        if (isDataPrep && selectedFilePath) {
+            const fetchColumns = async () => {
+                setIsLoadingColumns(true);
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+                try {
+                    const response = await fetch(`${apiUrl}/api/get-well-columns`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        // Kirim path file tunggal DI DALAM SEBUAH ARRAY
+                        body: JSON.stringify({ file_paths: [selectedFilePath] }),
+                    });
+                    if (!response.ok) throw new Error("Gagal mengambil kolom.");
+                    
+                    const data = await response.json();
+                    const fileName = selectedFilePath.split('/').pop() || '';
+                    setLocalColumns(data[fileName] || []);
+
+                } catch (error) { 
+                    console.error(error);
+                    setLocalColumns([]);
+                } finally {
+                    setIsLoadingColumns(false);
+                }
+            };
+            fetchColumns();
+        } else if (isDataPrep) {
+            setLocalColumns([]); // Reset jika tidak ada file dipilih
         }
+    }, [isDataPrep, selectedFilePath]);
 
-        if (!normalizedSelectedFilePaths || normalizedSelectedFilePaths.length === 0) {
-            setLocalColumns([]);
-            return;
-        }
-
-        let cancelled = false;
-
-        const fetchColumns = async () => {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-            try {
-                const resp = await fetch(`${apiUrl}/api/get-well-columns`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ file_paths: normalizedSelectedFilePaths }),
-                });
-                if (!resp.ok) {
-                    const txt = await resp.text();
-                    throw new Error(`Gagal mengambil kolom: ${resp.status} ${txt}`);
-                }
-                const data = await resp.json();
-
-                // Normalisasi respons:
-                // - jika backend kirim array -> langsung gunakan
-                // - jika backend kirim object { filename: [cols], ... } -> gabungkan semua values
-                // - fallback: []
-                let cols: string[] = [];
-                if (Array.isArray(data)) {
-                    cols = data;
-                } else if (data && typeof data === 'object') {
-                    const arrays = Object.values(data).filter(v => Array.isArray(v)) as string[][];
-                    if (arrays.length > 0) {
-                        cols = Array.from(new Set(arrays.flat()));
-                    } else {
-                        // maybe backend returns something like { combined: [...] }
-                        if (Array.isArray((data as any).combined)) {
-                            cols = (data as any).combined;
-                        } else {
-                            cols = [];
-                        }
-                    }
-                }
-
-                if (!cancelled) {
-                    setLocalColumns(cols);
-                }
-            } catch (err) {
-                console.error('Error fetching columns:', err);
-                if (!cancelled) setLocalColumns([]);
-            }
-        };
-
-        fetchColumns();
-
-        return () => { cancelled = true; };
-    }, [isDataPrep, normalizedSelectedFilePaths]);
-
-    // --- build dropdown options (DataPrep: localColumns, Dashboard: wellColumns for selectedWells) ---
+    // Opsi dropdown yang cerdas
     const logOptions = useMemo(() => {
         const excludedLogs = new Set(['DEPTH', 'STRUKTUR', 'WELL_NAME', 'CALI', 'SP', 'MARKER', 'ZONE', 'MISSING_FLAG']);
-
-        let sourceColumns: string[] = [];
+        let sourceColumns: string[];
 
         if (isDataPrep) {
-            sourceColumns = Array.isArray(localColumns) ? localColumns : [];
+            sourceColumns = localColumns; // Menggunakan state lokal
         } else {
             if (!selectedWells || selectedWells.length === 0) return [];
-            const unique = new Set<string>();
-            selectedWells.forEach((wellName: string) => {
-                const cols = (wellColumns && wellColumns[wellName]) || [];
-                cols.forEach((c: string) => {
-                    if (c) unique.add(c);
-                });
-            });
-            sourceColumns = Array.from(unique);
+            const uniqueColumns = new Set(selectedWells.flatMap(well => wellColumns[well] || []));
+            sourceColumns = Array.from(uniqueColumns);
         }
-
-        // filter & sort
-        const filtered = sourceColumns
-            .filter(c => c && !excludedLogs.has(c.toUpperCase()))
-            .sort((a, b) => a.localeCompare(b));
-
-        return filtered.map(c => ({ label: c, value: c }));
+        
+        return sourceColumns
+            .filter(log => !excludedLogs.has(log.toUpperCase()))
+            .map(log => ({ label: log, value: log }));
     }, [isDataPrep, localColumns, selectedWells, wellColumns]);
-
-    // --- payload creator (normalisasi file_paths) ---
+    
+    // Helper untuk membuat payload yang sesuai
     const createPayload = () => {
         if (isDataPrep) {
-            const selectedPaths = normalizedSelectedFilePaths;
-            if (!selectedPaths || selectedPaths.length === 0) {
-                alert("Please select at least one file from the Wells Browser sidebar.");
+            if (!selectedFilePath) {
+                alert("Please select a file from the Wells Browser sidebar.");
                 return null;
             }
-            return { file_paths: selectedPaths };
+            // Bungkus string path tunggal di dalam sebuah array
+            return { file_paths: [selectedFilePath] };
         } else {
-            if (!selectedWells || selectedWells.length === 0) {
+            if (selectedWells.length === 0) {
                 alert("Please select a well from the dashboard sidebar.");
                 return null;
             }
@@ -136,7 +96,6 @@ export default function FillMissingParams() {
         }
     };
 
-    // --- handlers ---
     const handleFlagSubmit = async () => {
         const basePayload = createPayload();
         if (!basePayload || selectedLogs.length === 0) {
@@ -145,16 +104,16 @@ export default function FillMissingParams() {
         }
         setIsFlagging(true);
         try {
-            const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/flag-missing`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/flag-missing`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...basePayload, logs_to_check: selectedLogs }),
             });
-            const result = await resp.json();
-            if (!resp.ok) throw new Error(result?.error || 'Failed to run flagging process.');
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Failed to run flagging process.');
             alert(`✅ ${result.message}`);
-        } catch (err) {
-            alert(`❌ ${err instanceof Error ? err.message : 'Unknown error'}`);
+        } catch (error) {
+            alert(`❌ ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setIsFlagging(false);
         }
@@ -168,22 +127,22 @@ export default function FillMissingParams() {
         }
         setIsFilling(true);
         try {
-            const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/fill-flagged-missing`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/fill-flagged-missing`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...basePayload, logs_to_fill: selectedLogs, max_consecutive_nan: maxConsecutive }),
             });
-            const result = await resp.json();
-            if (!resp.ok) throw new Error(result?.error || 'Failed to run filling process.');
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Failed to run filling process.');
             alert(`✅ ${result.message}`);
             router.push(isDataPrep ? '/data-prep' : '/dashboard');
-        } catch (err) {
-            alert(`❌ ${err instanceof Error ? err.message : 'Unknown error'}`);
+        } catch (error) {
+            alert(`❌ ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setIsFilling(false);
         }
     };
-
+    
     const getRowBgColor = (location: string): string => {
         if (location === 'Constant') return 'bg-yellow-300 text-gray-800';
         if (location === 'Log') return 'bg-cyan-400 text-gray-800';
@@ -196,9 +155,10 @@ export default function FillMissingParams() {
 
             <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50">
                 <p className="text-sm font-medium text-gray-700 mb-2">
-                    {isDataPrep
-                        ? `Context: Data Preparation (${normalizedSelectedFilePaths.length} files selected)`
-                        : `Context: Dashboard (${(selectedWells || []).length} wells selected)`
+                    {isDataPrep 
+                        // --- PERBAIKAN TAMPILAN JUMLAH FILE ---
+                        ? `Context: Data Preparation (${selectedFilePath ? 1 : 0} file selected)` 
+                        : `Context: Dashboard (${selectedWells.length} wells selected)`
                     }
                 </p>
                 <div className="flex justify-end gap-2 pt-4 border-t">
@@ -206,7 +166,7 @@ export default function FillMissingParams() {
                     <button type="button" onClick={handleFlagSubmit} className="px-4 py-2 rounded-md text-white font-semibold bg-orange-500 hover:bg-orange-600 flex items-center justify-center min-w-[150px]" disabled={isFlagging || isFilling}>
                         {isFlagging ? <><Loader2 className="animate-spin w-4 h-4 mr-2" />Flagging...</> : 'Stage 1: Flag Missing'}
                     </button>
-                    <button type="button" onClick={handleFillSubmit} className="px-4 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700 flex items-center justify-center min-w-[150px]" disabled={isFilling || isFlagging}>
+                    <button type="button" onClick={handleFillSubmit} className="px-4 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700 flex items-center justify-center min-w-[150px]" disabled={isFilling || isFilling}>
                         {isFilling ? <><Loader2 className="animate-spin w-4 h-4 mr-2" />Filling...</> : 'Stage 2: Fill Flagged'}
                     </button>
                 </div>
@@ -232,14 +192,11 @@ export default function FillMissingParams() {
                                 <Select
                                     isMulti
                                     options={logOptions}
+                                    isLoading={isLoadingColumns}
                                     value={logOptions.filter(opt => selectedLogs.includes(opt.value))}
-                                    onChange={(selected: any) => setSelectedLogs(Array.isArray(selected) ? selected.map((s: any) => s.value) : [])}
-                                    className="min-w-[200px] text-sm text-black"
+                                    onChange={(selected) => setSelectedLogs(selected.map(s => s.value))}
+                                    className="min-w-[200px] text-sm"
                                     classNamePrefix="react-select"
-                                    menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
-                                    styles={{ menuPortal: base => ({ ...base, zIndex: 9999 })}}
-                                    placeholder={logOptions.length ? 'Select logs...' : 'No logs available'}
-                                    isDisabled={logOptions.length === 0}
                                 />
                             </td>
                         </tr>

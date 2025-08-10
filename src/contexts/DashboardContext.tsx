@@ -1,40 +1,41 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// /src/contexts/DashboardContext.tsx
-
 'use client';
 
-import { LogCurve } from '@/lib/db';
 import { Data, Layout } from 'plotly.js';
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 
-export type PlotType = 'default' | 'normalization' | 'smoothing' | 'porosity' | 'sw' | 'vsh' | 'rwa' | 'module2' | 'gsa' | 'rpbe-rgbe' | 'iqual' | 'swgrad' | 'dns-dnsv' | 'rt-ro' | 'splicing' | 'get-module1-plot'| 'normalization-prep'| 'smoothing-prep';
+// Tipe PlotType diperluas untuk mencakup semua kemungkinan layout dari kedua alur kerja
+export type PlotType = 
+  'default' | 'normalization' | 'smoothing' | 'porosity' | 'sw' | 
+  'vsh' | 'rwa' | 'module2' | 'gsa' | 'rpbe-rgbe' | 'iqual' | 
+  'swgrad' | 'dns-dnsv' | 'rt-ro' | 'splicing' | 
+  'get-module1-plot'| 'normalization-prep'| 'smoothing-prep';
 
+// Struktur data untuk sebuah objek plot dari Plotly
+interface PlotFigure {
+  data: Data[];
+  layout: Partial<Layout>;
+}
+
+// Tipe untuk semua nilai yang akan disediakan oleh Context ke komponen lain
 interface DashboardContextType {
   availableWells: string[];
   selectedWells: string[];
   toggleWellSelection: (well: string) => void;
+  availableIntervals: string[];
   selectedIntervals: string[];
   toggleInterval: (interval: string) => void;
-  plotType: PlotType;
   wellColumns: Record<string, string[]>;
+  plotType: PlotType;
   setPlotType: (type: PlotType) => void;
-  fetchWellColumns: (wells: string[]) => Promise<void>;
-  plotData: Data[];
-  setPlotData: (data: Data[]) => void;
-  getCurrentLogs: () => LogCurve[];
-  availableIntervals: string[];
   plotFigure: PlotFigure;
   setPlotFigure: (figure: PlotFigure) => void;
   selectedFilePath: string | null;
-  setSelectedFilePath: (filePath: string | null) => void;
-  isLoading: boolean;
-  error: string | null;
-}
-
-interface PlotFigure {
-  data: Data[];
-  layout: Partial<Layout>;
+  setSelectedFilePath: (path: string | null) => void;
+  
+  // Properti baru untuk manajemen plot terpusat
+  isLoadingPlot: boolean;
+  plotError: string | null;
+  fetchPlotData: () => Promise<void>; // Fungsi utama untuk mengambil plot
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -44,43 +45,36 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [availableIntervals, setAvailableIntervals] = useState<string[]>([]);
   const [selectedWells, setSelectedWells] = useState<string[]>([]);
   const [selectedIntervals, setSelectedIntervals] = useState<string[]>([]);
-  const [plotType, setPlotType] = useState<PlotType>('default');
   const [wellColumns, setWellColumns] = useState<Record<string, string[]>>({});
-  const [plotFigure, setPlotFigure] = useState<PlotFigure>({ data: [], layout: {} });
+  const [plotType, setPlotType] = useState<PlotType>('default');
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  // State terpusat untuk data plot, status loading, dan error
+  const [plotFigure, setPlotFigure] = useState<PlotFigure>({ data: [], layout: {} });
+  const [isLoadingPlot, setIsLoadingPlot] = useState(false);
+  const [plotError, setPlotError] = useState<string | null>(null);
+  
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
+  // Mengambil daftar well & interval saat aplikasi pertama kali dimuat
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    const fetchWellsFromServer = async () => {
+    const fetchInitialData = async () => {
+      // Mengambil daftar sumur
       try {
-        if (!apiUrl) {
-          throw new Error("API URL is not configured.");
-        }
-
-        const endpoint = `${apiUrl}/api/list-wells`;
-        console.log(`Fetching available wells from server: ${endpoint}`);
-
-        const response = await fetch(endpoint);
-        if (!response.ok) {
-          throw new Error('Network response from /api/list-wells was not ok');
-        }
-
+        if (!apiUrl) throw new Error("API URL is not configured.");
+        const response = await fetch(`${apiUrl}/api/list-wells`);
+        if (!response.ok) throw new Error('Failed to fetch well list');
         const wellNames: string[] = await response.json();
-
         if (Array.isArray(wellNames)) {
           setAvailableWells(wellNames);
-          // Don't automatically select wells - let user choose from DirectorySidebar
         }
       } catch (error) {
-        console.error("Failed to fetch well list from server:", error);
+        console.error("Failed to fetch well list:", error);
       }
-
+      // Mengambil daftar interval
       try {
-        const intervalsResponse = await fetch('http://127.0.0.1:5001/api/list-intervals');
-        if (!intervalsResponse.ok) throw new Error('Gagal mengambil daftar interval');
+        const intervalsResponse = await fetch(`${apiUrl}/api/list-intervals`);
+        if (!intervalsResponse.ok) throw new Error('Failed to fetch interval list');
         const intervalsData = await intervalsResponse.json();
         if (Array.isArray(intervalsData)) {
           setAvailableIntervals(intervalsData);
@@ -89,78 +83,140 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         console.error("Error fetching intervals:", error);
       }
     };
+    fetchInitialData();
+  }, [apiUrl]);
 
-    fetchWellsFromServer();
-  }, []); // Run only once when the provider mounts
-
-  const fetchPlotData = useCallback(async () => {
-    if (selectedWells.length === 0 || !apiUrl) {
-      setPlotFigure({ 
-        data: [], 
-        layout: { title: { text: 'Please select a well to begin.' } } 
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true); // 3. Atur state loading dan error di sini
-    setError(null);
-    
-    try {
-      const response = await fetch(`${apiUrl}/api/get-plot`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          selected_wells: selectedWells,
-          selected_intervals: selectedIntervals,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Network response was not ok');
-      }
-
-      const plotJson = await response.json(); // Backend seharusnya mengembalikan objek, bukan string ganda
-      setPlotFigure(plotJson); // Simpan seluruh objek plot (data dan layout)
-
-    } catch (err) {
-      console.error("Failed to fetch plot data:", err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-      setPlotFigure({ data: [], layout: {} });
-    } finally {
-      setIsLoading(false); // Matikan loading setelah selesai
-    }
-  }, [selectedWells, selectedIntervals, apiUrl]);
-
-
-  // Don't automatically fetch plot data - plots will be triggered explicitly
-  // from CSV file selection in DirectorySidebar or other user actions
-  // useEffect(() => {
-  //   fetchPlotData();
-  // }, [fetchPlotData]);
-
-  const fetchWellColumns = async (wells: string[]) => {
-    try {
-      const response = await fetch(`${apiUrl}/api/get-well-columns`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wells }),
-      });
-      if (!response.ok) throw new Error('Network error saat ambil kolom well');
-
-      const data = await response.json();
-      setWellColumns(data);
-    } catch (err) {
-      console.error('Gagal mengambil kolom well:', err);
-    }
-  };
-
+  // Mengambil nama-nama kolom dari sumur yang dipilih di Dashboard
   useEffect(() => {
-    if (selectedWells.length > 0) {
-      fetchWellColumns(selectedWells);
+    const fetchWellColumns = async () => {
+        if (selectedWells.length === 0) {
+            setWellColumns({});
+            return;
+        }
+        try {
+            const response = await fetch(`${apiUrl}/api/get-well-columns`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ wells: selectedWells }),
+            });
+            if (!response.ok) throw new Error('Failed to fetch well columns');
+            setWellColumns(await response.json());
+        } catch (err) {
+            console.error('Failed to fetch well columns:', err);
+        }
+    };
+    fetchWellColumns();
+  }, [selectedWells, apiUrl]);
+
+  
+  // --- FUNGSI UTAMA BARU: Pusat Logika Pengambilan Data Plot ---
+  const fetchPlotData = useCallback(async () => {
+    setIsLoadingPlot(true);
+    setPlotError(null);
+    setPlotFigure({ data: [], layout: {} }); // Selalu reset plot saat memulai fetch baru
+
+    // Menentukan konteks: apakah dari Dashboard (well-based) atau Data Prep (file-based)
+    const isDataPrepFlow = !!selectedFilePath;
+    
+    // Validasi input untuk menghentikan proses jika tidak perlu
+    if (!isDataPrepFlow && selectedWells.length === 0) {
+        setPlotFigure({ data: [], layout: { title: { text: 'Please select a well from the list.' } } });
+        setIsLoadingPlot(false);
+        return;
     }
-  }, [selectedWells]);
+    if (isDataPrepFlow && !selectedFilePath) {
+        setPlotFigure({ data: [], layout: { title: { text: 'Please select a file from the browser.' } } });
+        setIsLoadingPlot(false);
+        return;
+    }
+
+    let endpointPath = '';
+    let requestBody: unknown;
+
+    // Tentukan endpoint dan body payload berdasarkan konteks
+    if (isDataPrepFlow) {
+        // Logika untuk alur kerja Data Prep (menggunakan file_path)
+        switch (plotType) {
+            case 'normalization-prep': endpointPath = '/api/get-normalization-prep-plot'; break;
+            case 'smoothing-prep': endpointPath = '/api/get-smoothing-prep-plot'; break;
+            case 'splicing': endpointPath = '/api/get-splicing-plot'; break;
+            default: endpointPath = '/api/get-module1-plot'; break;
+        }
+        requestBody = { file_path: selectedFilePath };
+    } else {
+        // Logika untuk alur kerja Dashboard (menggunakan selected_wells)
+        switch (plotType) {
+            case 'normalization':
+              endpointPath = '/api/get-normalization-plot';
+              break;
+            case 'smoothing':
+              endpointPath = '/api/get-smoothing-plot';
+              break;
+            case 'splicing':
+              endpointPath = '/api/get-splicing-plot';
+              break;
+            case 'porosity':
+              endpointPath = '/api/get-porosity-plot';
+              break;
+            case 'gsa':
+              endpointPath = '/api/get-gsa-plot';
+              break;
+            case 'vsh':
+              endpointPath = '/api/get-vsh-plot';
+              break;
+            case 'sw':
+              endpointPath = '/api/get-sw-plot';
+              break;
+            case 'rwa':
+              endpointPath = '/api/get-rwa-plot';
+              break;
+            case 'module2':
+              endpointPath = '/api/get-module2-plot';
+              break;
+            case 'rpbe-rgbe':
+              endpointPath = '/api/get-rgbe-rpbe-plot';
+              break;
+            case 'iqual':
+              endpointPath = '/api/get-iqual';
+              break;
+            case 'swgrad':
+              endpointPath = '/api/get-swgrad-plot';
+              break;
+            case 'dns-dnsv':
+              endpointPath = '/api/get-dns-dnsv-plot';
+              break;
+            case 'rt-ro':
+              endpointPath = '/api/get-rt-r0-plot';
+              break;
+            default: endpointPath = '/api/get-plot'; break;
+        }
+        requestBody = { selected_wells: selectedWells, selected_intervals: selectedIntervals };
+    }
+
+    try {
+        const response = await fetch(`${apiUrl}${endpointPath}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+        });
+        if (!response.ok) throw new Error((await response.json()).error || 'Failed to fetch plot from server');
+        
+        const plotData = await response.json();
+        const parsed = typeof plotData === 'string' ? JSON.parse(plotData) : plotData;
+
+        if (parsed && (parsed.data || parsed.layout)) {
+             setPlotFigure({ data: parsed.data || [], layout: parsed.layout || {} });
+        } else {
+            throw new Error("Invalid plot data structure received from server.");
+        }
+    } catch (err) {
+        console.error(`Error fetching plot for type "${plotType}":`, err);
+        setPlotError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+        setIsLoadingPlot(false);
+    }
+  }, [apiUrl, plotType, selectedFilePath, selectedWells, selectedIntervals]);
+
 
   const toggleWellSelection = (well: string) => {
     setSelectedWells(prev =>
@@ -176,108 +232,25 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  const getCurrentLogs = (): LogCurve[] => {
-    console.log("Getting current logs from plot data:", plotFigure.data);
-
-    // First, identify all valid log curves (type: scattergl)
-    const logTraces = plotFigure.data.filter((trace) => {
-      const t = trace as any;
-      return t.type === 'scattergl' &&
-        t.name &&
-        !t.name.toLowerCase().includes('xover') &&
-        t.name !== 'MARKER';
-    });
-
-    console.log("Found log curves:", logTraces.map(t => (t as any).name));
-
-    const logs: LogCurve[] = [];
-
-    for (const trace of logTraces) {
-      const t = trace as any;
-      if (!t.name) continue;
-
-      try {
-        // Get the x and y data arrays, handling both direct arrays and objects with _inputArray
-        let xData: number[] = [];
-        let yData: number[] = [];
-
-        // Extract x values
-        if (t.x && t.x._inputArray instanceof Float64Array) {
-          xData = Array.from(t.x._inputArray);
-        } else if (Array.isArray(t.x)) {
-          xData = t.x;
-        } else if (t.x && Array.isArray(t.x.data)) {
-          xData = t.x.data;
-        }
-
-        // Extract y values
-        if (t.y && t.y._inputArray instanceof Float64Array) {
-          yData = Array.from(t.y._inputArray);
-        } else if (Array.isArray(t.y)) {
-          yData = t.y;
-        } else if (t.y && Array.isArray(t.y.data)) {
-          yData = t.y.data;
-        }
-
-        if (xData.length === 0 || yData.length === 0) {
-          console.log(`No valid data arrays for log ${t.name}`);
-          continue;
-        }
-
-        // Create pairs of depth (y) and value (x)
-        const pairs: [number, number | null][] = [];
-        for (let i = 0; i < yData.length; i++) {
-          const depth = Number(yData[i]);
-          const value = xData[i];
-          const numValue = value !== undefined && value !== null ? Number(value) : null;
-
-          if (!isNaN(depth) && (numValue === null || !isNaN(numValue))) {
-            pairs.push([depth, numValue]);
-          }
-        }
-
-        if (pairs.length === 0) {
-          console.log(`No valid data points found for log ${t.name}`);
-          continue;
-        }
-
-        console.log(`Processed ${pairs.length} points for log ${t.name}`);
-
-        logs.push({
-          curveName: t.name,
-          data: pairs,
-          wellName: selectedWells[0] || 'Unknown Well',
-          plotData: plotFigure.data,
-        });
-      } catch (err) {
-        console.error(`Error processing log ${t.name}: ${err}`);
-      }
-    }
-
-    console.log("Transformed logs:", logs);
-    return logs;
-  };
-
-  const value = {
+  // Kumpulkan semua nilai yang akan disediakan oleh provider
+  const value: DashboardContextType = {
     availableWells,
     selectedWells,
     toggleWellSelection,
+    availableIntervals,
     selectedIntervals,
     toggleInterval,
+    wellColumns,
     plotType,
     setPlotType,
-    wellColumns,
-    fetchWellColumns,
     plotFigure,
     setPlotFigure,
     selectedFilePath,
     setSelectedFilePath,
-    isLoading,
-    error,
-    getCurrentLogs,
-    availableIntervals,
-    plotData: plotFigure.data,
-    setPlotData: (data: Data[]) => setPlotFigure(prev => ({ ...prev, data })),
+    // Nilai-nilai baru yang disediakan oleh context
+    isLoadingPlot,
+    plotError,
+    fetchPlotData,
   };
 
   return (
@@ -287,6 +260,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// Hook kustom untuk memudahkan penggunaan context di komponen lain
 export const useDashboard = (): DashboardContextType => {
   const context = useContext(DashboardContext);
   if (context === undefined) {
