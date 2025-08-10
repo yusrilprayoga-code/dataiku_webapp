@@ -12,16 +12,18 @@ import VshDNCalculationParams from '@/features/vsh-dn-calculation/VshDNParameter
 import PorosityCalculationParams from '@/features/porosity/PorosityCalculationParams';
 import SWCalculationParams from '@/features/sw-calculation/WaterSaturationParams';
 import RWACalculationParams from '@/features/water-resistivity-calculation/WaterResistivityParams';
-import GsaCalculationParams from '@/features/rgsa-ngsa-dgsa/GsaCalculationParams';
 import TrimDataParams from '@/features/trim_data/TrimDataParams';
 import DnsDnsvCalculationPage from '@/features/dns-dnsv/page';
 import RgbeRpbePage from '@/features/rgbe-rpbe/page';
 import RtRoPage from '@/features/rt-ro/page';
-import SworadPage from '@/features/sworad/page';
+import SwgradParams from '@/features/swgrad/page';
 import FillMissingPage from '@/features/fill_missing/page';
 import SmoothingPage from '@/features/smoothing/page';
 import GWDPage from '@/features/gwd/page';
 import SplicingParams from '@/features/splicing-merging/page';
+import RGSAParams from '@/features/rgsa/RGSAParams';
+import NGSAParams from '@/features/ngsa/NGSAParams';
+import DGSAParams from '@/features/dgsa/DGSAParams';
 
 // Komponen untuk menampilkan pesan error jika modul tidak ditemukan
 const ErrorComponent = ({ moduleName }: { moduleName: string }) => (
@@ -50,12 +52,15 @@ const moduleMap: Record<string, React.ComponentType<unknown>> = {
     'porosity-calculation': PorosityCalculationParams,
     'sw-calculation': SWCalculationParams,
     'water-resistivity-calculation': RWACalculationParams,
-    'rgsa-ngsa-dgsa': GsaCalculationParams,
+    // 'rgsa-ngsa-dgsa': GsaCalculationParams,
+    'rgsa': RGSAParams,
+    'ngsa': NGSAParams,
+    'dgsa': DGSAParams,
     'trim-data': TrimDataParams,
     'dns-dnsv': DnsDnsvCalculationPage,
     'rgbe-rpbe': RgbeRpbePage,
     'rt-ro': RtRoPage,
-    'swgrad': SworadPage,
+    'swgrad': SwgradParams,
     'fill-missing': FillMissingPage,
     'smoothing': SmoothingPage,
     'gwd': GWDPage,

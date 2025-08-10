@@ -30,10 +30,12 @@ const getRouteForItem = (itemName: string) => {
     
     // RGSA routes
     case 'RGSA':
+      return 'rgsa';
     case 'DGSA':
+      return 'dgsa';
     case 'NGSA':
-      return 'rgsa-ngsa-dgsa';
-    
+      return 'ngsa';
+
     // Data Preparation routes
     case 'TRIM DATA':
       return 'trim-data';

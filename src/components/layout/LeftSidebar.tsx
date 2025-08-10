@@ -170,6 +170,7 @@ export default function LeftSidebar() {
                             <option value="swgrad">Layout SWGRAD</option>
                             <option value="dns-dnsv">Layout DNS-DNSV</option>
                             <option value="rt-ro">Layout RT-RO</option>
+                            <option value="module3">Layout Module 3</option>
                         </select>
                     </div>
                     <div>

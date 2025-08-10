@@ -7,7 +7,7 @@ import React, { createContext, useState, useContext, ReactNode, useEffect, useCa
 export type PlotType = 
   'default' | 'normalization' | 'smoothing' | 'porosity' | 'sw' | 
   'vsh' | 'rwa' | 'module2' | 'gsa' | 'rpbe-rgbe' | 'iqual' | 
-  'swgrad' | 'dns-dnsv' | 'rt-ro' | 'splicing' | 
+  'swgrad' | 'dns-dnsv' | 'rt-ro' | 'module3' | 'splicing' | 
   'get-module1-plot'| 'normalization-prep'| 'smoothing-prep';
 
 // Struktur data untuk sebuah objek plot dari Plotly
@@ -187,6 +187,12 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
               break;
             case 'rt-ro':
               endpointPath = '/api/get-rt-r0-plot';
+              break;
+            case 'rt-ro':
+              endpointPath = '/api/get-rt-r0-plot';
+              break;
+            case 'module3':
+              endpointPath = '/api/get-module3-plot';
               break;
             default: endpointPath = '/api/get-plot'; break;
         }
