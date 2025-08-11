@@ -46,16 +46,21 @@ const createInitialParameters = (intervals: string[], relevantParamNames: string
 };
 
 export default function GsaBaseParams({ moduleTitle, apiEndpoint, relevantParams }: GsaBaseParamsProps) {
-    const { selectedWells, selectedIntervals, wellColumns } = useDashboard();
+    const { selectedWells, selectedIntervals, wellColumns, selectedZones } = useDashboard();
     const router = useRouter();
     const [parameters, setParameters] = useState<ParameterRow[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [linkedRows, setLinkedRows] = useState<Record<number, boolean>>({});
 
-    // Gunakan relevantParams dari props untuk inisialisasi parameter
-    useEffect(() => { 
-        setParameters(createInitialParameters(selectedIntervals, relevantParams)); 
-    }, [selectedIntervals, relevantParams]);
+    // Determine which intervals/zones to use based on priority
+    const activeIntervals = selectedZones.length > 0 ? selectedZones : selectedIntervals;
+    const isUsingZones = selectedZones.length > 0;
+
+    // Use effective selection for parameter initialization
+    useEffect(() => {
+        const effectiveSelection = selectedZones.length > 0 ? selectedZones : selectedIntervals;
+        setParameters(createInitialParameters(effectiveSelection, relevantParams)); 
+    }, [selectedIntervals, selectedZones, relevantParams]);
 
     const combinedColumns = useMemo(() => {
         if (!selectedWells || selectedWells.length === 0) return [];
@@ -86,10 +91,15 @@ export default function GsaBaseParams({ moduleTitle, apiEndpoint, relevantParams
         e.preventDefault();
         setIsSubmitting(true);
 
+        // Use the effective selection for value extraction
+        const firstActiveKey = isUsingZones 
+            ? (selectedZones[0] || 'default') 
+            : (selectedIntervals[0] || 'default');
+
         const formParams = parameters
             .filter(p => p.isEnabled)
             .reduce((acc, param) => {
-                const value = param.values[selectedIntervals[0] || 'default'];
+                const value = param.values[firstActiveKey] || param.values[Object.keys(param.values)[0]];
                 acc[param.name] = value;
                 return acc;
             }, {} as Record<string, string | number>);
@@ -97,7 +107,8 @@ export default function GsaBaseParams({ moduleTitle, apiEndpoint, relevantParams
         const payload = {
             params: formParams,
             selected_wells: selectedWells,
-            selected_intervals: selectedIntervals
+            selected_intervals: isUsingZones ? [] : selectedIntervals,
+            selected_zones: isUsingZones ? selectedZones : [],
         };
         
         // Gunakan endpoint dari props
@@ -152,6 +163,9 @@ export default function GsaBaseParams({ moduleTitle, apiEndpoint, relevantParams
     };
 
     const staticHeaders = ['#', 'Location', 'Mode', 'Comment', 'Unit', 'Name', 'P'];
+    
+    // Get display columns - avoid duplication between intervals and zones
+    const displayColumns = isUsingZones ? selectedZones : selectedIntervals;
 
     return (
         <div className="p-4 md:p-6 h-full flex flex-col bg-white rounded-lg shadow-md">
@@ -161,7 +175,8 @@ export default function GsaBaseParams({ moduleTitle, apiEndpoint, relevantParams
             <form onSubmit={handleSubmit} className="flex-grow flex flex-col min-h-0">
                 <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50">
                     <p className="text-sm font-medium text-gray-700">
-                        Well: {selectedWells.join(', ') || 'N/A'} / Intervals: {selectedIntervals.length} selected
+                        Well: {selectedWells.join(', ') || 'N/A'} / 
+                        {isUsingZones ? 'Zones' : 'Intervals'}: {activeIntervals.length} selected
                     </p>
                     <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                         <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
@@ -178,7 +193,7 @@ export default function GsaBaseParams({ moduleTitle, apiEndpoint, relevantParams
                             <thead className="bg-gray-200 sticky top-0 z-10">
                                 <tr>
                                     {staticHeaders.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r">{header}</th>))}
-                                    {selectedIntervals.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r">{header}</th>))}
+                                    {displayColumns.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r">{header}</th>))}
                                 </tr>
                             </thead>
                             <tbody className="bg-white">
@@ -193,8 +208,8 @@ export default function GsaBaseParams({ moduleTitle, apiEndpoint, relevantParams
                                         <td className={`px-3 py-2 border-r text-center ${getRowBgColor(param.location, param.mode)}`}>
                                             <input type="checkbox" className="h-4 w-4 rounded" checked={!!linkedRows[param.id]} onChange={e => handleRowToggle(param.id, e.target.checked)} />
                                         </td>
-                                        {selectedIntervals.map(interval => {
-                                            const currentValue = param.values[interval] ?? '';
+                                        {displayColumns.map(column => {
+                                            const currentValue = param.values[column] ?? '';
                                             const useDropdown = ['GR', 'DENS', 'NEUT', 'RES'].includes(param.name);
                                             
                                             let filteredOptions: string[] = combinedColumns;
@@ -204,11 +219,11 @@ export default function GsaBaseParams({ moduleTitle, apiEndpoint, relevantParams
                                             else if (param.name === 'RES') filteredOptions = combinedColumns.filter(c => c.includes('RT'));
 
                                             return (
-                                                <td key={interval} className="px-3 py-2 border-r bg-white text-black">
+                                                <td key={column} className="px-3 py-2 border-r bg-white text-black">
                                                     {useDropdown ? (
                                                         <select
                                                             value={String(currentValue)}
-                                                            onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                                                            onChange={(e) => handleValueChange(param.id, column, e.target.value)}
                                                             className="w-full p-1 bg-white"
                                                         >
                                                             {!filteredOptions.includes(String(currentValue)) && <option value={String(currentValue)}>{String(currentValue)}</option>}
@@ -218,7 +233,7 @@ export default function GsaBaseParams({ moduleTitle, apiEndpoint, relevantParams
                                                         <input
                                                             type="text"
                                                             value={String(currentValue)}
-                                                            onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                                                            onChange={(e) => handleValueChange(param.id, column, e.target.value)}
                                                             className="w-full min-w-[100px] p-1 bg-white"
                                                         />
                                                     )}
