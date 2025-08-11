@@ -54,15 +54,20 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
 };
 
 export default function RtRoParams() {
-    const { selectedWells, selectedIntervals, wellColumns } = useDashboard();
+    const { selectedWells, selectedIntervals, wellColumns, selectedZones } = useDashboard();
     const router = useRouter();
     const [parameters, setParameters] = useState<ParameterRow[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [linkedRows, setLinkedRows] = useState<Record<number, boolean>>({});
 
+    // Determine which intervals/zones to use based on priority
+    const activeIntervals = selectedZones.length > 0 ? selectedZones : selectedIntervals;
+    const isUsingZones = selectedZones.length > 0;
+
     useEffect(() => {
-        setParameters(createInitialParameters(selectedIntervals));
-    }, [selectedIntervals]);
+        const effectiveSelection = selectedZones.length > 0 ? selectedZones : selectedIntervals;
+        setParameters(createInitialParameters(effectiveSelection));
+    }, [selectedIntervals, selectedZones]);
 
     const combinedColumns = useMemo(() => {
         if (!selectedWells || selectedWells.length === 0) return [];
@@ -91,10 +96,15 @@ export default function RtRoParams() {
         e.preventDefault();
         setIsSubmitting(true);
 
+        // Use the effective selection for value extraction
+        const firstActiveKey = isUsingZones 
+            ? (selectedZones[0] || 'default') 
+            : (selectedIntervals[0] || 'default');
+
         const formParams = parameters
             .filter(p => p.isEnabled)
             .reduce((acc, param) => {
-                const value = param.values[selectedIntervals[0] || 'default'];
+                const value = param.values[firstActiveKey] || param.values[Object.keys(param.values)[0]];
                 acc[param.name] = value;
                 return acc;
             }, {} as Record<string, string | number>);
@@ -102,7 +112,8 @@ export default function RtRoParams() {
         const payload = {
             params: formParams,
             selected_wells: selectedWells,
-            selected_intervals: selectedIntervals,
+            selected_intervals: isUsingZones ? [] : selectedIntervals,
+            selected_zones: isUsingZones ? selectedZones : [],
         };
 
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -157,6 +168,9 @@ export default function RtRoParams() {
     };
     
     const staticHeaders = ['#', 'Location', 'Mode', 'Comment', 'Unit', 'Name', 'P'];
+    
+    // Get display columns - avoid duplication between intervals and zones
+    const displayColumns = isUsingZones ? selectedZones : selectedIntervals;
 
     return (
         <div className="p-4 md:p-6 h-full flex flex-col bg-white rounded-lg shadow-md">
@@ -164,7 +178,10 @@ export default function RtRoParams() {
 
             <form onSubmit={handleSubmit} className="flex-grow flex flex-col min-h-0">
                 <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50">
-                    <p className="text-sm font-medium text-gray-700">Well: {selectedWells.join(', ') || 'N/A'} / Intervals: {selectedIntervals.length} selected</p>
+                    <p className="text-sm font-medium text-gray-700">
+                        Well: {selectedWells.join(', ') || 'N/A'} / 
+                        {isUsingZones ? 'Zones' : 'Intervals'}: {activeIntervals.length} selected
+                    </p>
                     <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                         <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
                         <button type="submit" className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
@@ -180,7 +197,7 @@ export default function RtRoParams() {
                             <thead className="bg-gray-200 sticky top-0 z-10">
                                 <tr>
                                     {staticHeaders.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r">{header}</th>))}
-                                    {selectedIntervals.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r">{header}</th>))}
+                                    {displayColumns.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r">{header}</th>))}
                                 </tr>
                             </thead>
                             <tbody className="bg-white">
@@ -195,8 +212,8 @@ export default function RtRoParams() {
                                         <td className="px-3 py-2 border-r text-center">
                                             <input type="checkbox" className="h-4 w-4 rounded" checked={!!linkedRows[param.id]} onChange={e => handleRowToggle(param.id, e.target.checked)} />
                                         </td>
-                                        {selectedIntervals.map(interval => {
-                                            const currentValue = param.values[interval] ?? '';
+                                        {displayColumns.map(column => {
+                                            const currentValue = param.values[column] ?? '';
                                             const isLogInput = param.location === 'Log' && param.mode === 'Input';
                                             
                                             let filteredOptions: string[] = combinedColumns;
@@ -206,11 +223,11 @@ export default function RtRoParams() {
                                             if (param.name === 'RT') filteredOptions = combinedColumns.filter(c => c.toUpperCase().includes('RT'));
                                             
                                             return (
-                                                <td key={interval} className="px-3 py-2 border-r bg-white text-black">
+                                                <td key={column} className="px-3 py-2 border-r bg-white text-black">
                                                     {isLogInput ? (
                                                         <select
                                                             value={String(currentValue)}
-                                                            onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                                                            onChange={(e) => handleValueChange(param.id, column, e.target.value)}
                                                             className="w-full p-1 bg-white"
                                                             disabled={!param.isEnabled}
                                                         >
@@ -221,7 +238,7 @@ export default function RtRoParams() {
                                                         <input
                                                             type="text"
                                                             value={String(currentValue)}
-                                                            onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                                                            onChange={(e) => handleValueChange(param.id, column, e.target.value)}
                                                             className="w-full min-w-[100px] p-1 bg-white"
                                                             disabled={!param.isEnabled || param.mode === 'Output'}
                                                         />
