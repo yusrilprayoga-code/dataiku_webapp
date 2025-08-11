@@ -78,9 +78,7 @@ export default function VshCalculationParams() {
                     console.error("Gagal mengambil nilai default GR dari autoplot.");
                     return;
                 }
-                
                 const data = await response.json(); 
-
                 setParameters(prevParams => 
                     prevParams.map(param => {
                         if (param.name === "GR_MA") {

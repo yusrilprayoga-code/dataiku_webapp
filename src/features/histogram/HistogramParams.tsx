@@ -16,47 +16,59 @@ const FormField: React.FC<{ label: string; children: React.ReactNode }> = ({ lab
 );
 
 export default function HistogramParams() {
-  const { selectedWells, wellColumns, fetchWellColumns, selectedIntervals } = useDashboard();
-  const [selectedLog, setSelectedLog] = useState<string>('');  
+  const { selectedWells, wellColumns, selectedIntervals } = useDashboard();
+  const [selectedLog, setSelectedLog] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [plotResult, setPlotResult] = useState<{ data: Data[], layout: Partial<Layout> } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const availableLogs = useMemo(() => {
-    if (selectedWells.length === 0 || Object.keys(wellColumns).length === 0) {
-      return [];
-    }
-    const firstWellName = selectedWells[0];
-    let commonLogs = new Set(wellColumns[firstWellName] || []);
+        console.log('selectedWells:', selectedWells);
+        console.log('wellColumns:', wellColumns);
+        
+        if (selectedWells.length === 0 || Object.keys(wellColumns).length === 0) {
+            return [];
+        }
 
-    for (let i = 1; i < selectedWells.length; i++) {
-        const wellName = selectedWells[i];
-        const currentWellCols = new Set(wellColumns[wellName] || []);
-        commonLogs = new Set([...commonLogs].filter(col => currentWellCols.has(col)));
-    }
+        const allLogs = new Set<string>();
+        
+        selectedWells.forEach(wellName => {
+            // Try both with and without .csv extension
+            let columns = wellColumns[wellName] || wellColumns[`${wellName}.csv`];
+            
+            // If still not found, try to find a key that contains the well name
+            if (!columns) {
+                const matchingKey = Object.keys(wellColumns).find(key => 
+                    key.includes(wellName) || key.replace('.csv', '') === wellName
+                );
+                if (matchingKey) {
+                    columns = wellColumns[matchingKey];
+                }
+            }
+            
+            if (columns && Array.isArray(columns)) {
+                columns.forEach(col => allLogs.add(col));
+            }
+        });
 
-    const excludedColumns = new Set(['MARKER', 'STRUKTUR', 'WELL_NAME', 'SP', 'DEPTH', 'CALI']);
-    const finalLogs = Array.from(commonLogs).filter(log => !excludedColumns.has(log));
-    
-    return finalLogs;
+        // Daftar kolom yang akan dikecualikan
+        const excludedColumns = new Set(['MARKER', 'STRUKTUR', 'WELL_NAME', 'SP', 'DEPTH', 'CALI']);
+        
+        // Filter daftar gabungan untuk membuang yang tidak diinginkan
+        const finalLogs = Array.from(allLogs).filter(log => !excludedColumns.has(log));
+        
+        console.log('finalLogs:', finalLogs);
+        return finalLogs; // Urutkan secara alfabetis agar rapi
   }, [selectedWells, wellColumns]);
 
+  // set default selected log hanya berdasarkan perubahan availableLogs (fungsi update prev => ...)
   useEffect(() => {
-    if (selectedWells.length === 0) return;
-
-    const allAlreadyFetched = selectedWells.every(well => wellColumns[well]?.length > 0);
-    if (!allAlreadyFetched) {
-      fetchWellColumns(selectedWells);
-    }
-  }, [selectedWells, wellColumns, fetchWellColumns]);
-
-  useEffect(() => {
-    if (availableLogs.length > 0 && !availableLogs.includes(selectedLog)) {
-        setSelectedLog(availableLogs[0]);
-    } else if (availableLogs.length === 0) {
-        setSelectedLog('');
-    }
-  }, [availableLogs, selectedLog]);
+    setSelectedLog(prev => {
+      if (availableLogs.length === 0) return '';
+      if (prev && availableLogs.includes(prev)) return prev;
+      return availableLogs[0];
+    });
+  }, [availableLogs]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,15 +87,20 @@ export default function HistogramParams() {
     };
 
     try {
-      const response = await fetch('http://127.0.0.1:5001/api/get-histogram-plot', {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5001';
+      const response = await fetch(`${base}/api/get-histogram-plot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) { throw new Error((await response.json()).error || 'Server error'); }
+      if (!response.ok) { 
+        const errJson = await response.json().catch(() => null);
+        throw new Error(errJson?.error || 'Server error'); 
+      }
       
-      const plotObject = JSON.parse(await response.json());
+      const resJson = await response.json();
+      const plotObject = typeof resJson === 'string' ? JSON.parse(resJson) : resJson;
       setPlotResult(plotObject);
 
     } catch (err) {
@@ -109,20 +126,21 @@ export default function HistogramParams() {
                 className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
                 disabled={availableLogs.length === 0}
               >
-                <option value="" disabled>Select a log...</option>
+                <option value="" disabled>
+                  {availableLogs.length === 0 ? 'No logs available' : 'Select a log...'}
+                </option>
                 {availableLogs.map(log => <option key={log} value={log}>{log}</option>)}
               </select>
             </FormField>
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-4 mt-4 border-t">
-          <button type="submit" className="px-6 py-2 rounded-md text-white bg-blue-600 font-semibold" disabled={isSubmitting || selectedWells.length === 0}>
+          <button type="submit" className="px-6 py-2 rounded-md text-white bg-blue-600 font-semibold" disabled={isSubmitting || selectedWells.length === 0 || !selectedLog}>
             {isSubmitting ? <Loader2 className="animate-spin" /> : 'Generate'}
           </button>
         </div>
       </form>
       
-      {/* Area untuk menampilkan hasil plot */}
       <div className="flex justify-center items-center mt-6">
         <div className="w-full aspect-square border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center p-4">
           {isSubmitting && (
