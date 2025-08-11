@@ -167,6 +167,14 @@ export default function DirectorySidebar() {
     }
   }, [currentFolder]);
 
+  useEffect(() => {
+    if (selectedFilePath) {
+      console.log(`Selected file path changed: ${selectedFilePath}`);
+      // Trigger plot data fetch when selected file path changes
+      fetchPlotData();
+    }
+  }, [selectedFilePath, plotType, fetchPlotData]);
+
   const handleFolderSelect = (folderName: string) => {
     if (currentFolder === folderName) {
       // Deselect if clicking the same folder

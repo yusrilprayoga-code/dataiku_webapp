@@ -13,13 +13,17 @@ export default function LeftSidebar() {
         toggleWellSelection, 
         availableIntervals, 
         selectedIntervals, 
-        toggleInterval, 
+        toggleInterval,
+        availableZones,
+        selectedZones,
+        toggleZone,
         plotType, 
         setPlotType,
         fetchPlotData // Fungsi terpusat untuk mengambil plot
     } = useDashboard();
     
     const [isMounted, setIsMounted] = useState(false);
+    const [intervalType, setIntervalType] = useState<'markers' | 'zones'>('markers');
     const router = useRouter();
 
     useEffect(() => {
@@ -48,14 +52,37 @@ export default function LeftSidebar() {
     };
 
     const handleSelectAllIntervals = (checked: boolean) => {
-        if (checked) {
-            availableIntervals.forEach(interval => {
-                if (!selectedIntervals.includes(interval)) {
-                    toggleInterval(interval);
-                }
-            });
+        if (intervalType === 'markers') {
+            if (checked) {
+                availableIntervals.forEach(interval => {
+                    if (!selectedIntervals.includes(interval)) {
+                        toggleInterval(interval);
+                    }
+                });
+            } else {
+                selectedIntervals.forEach(interval => toggleInterval(interval));
+            }
         } else {
-            selectedIntervals.forEach(interval => toggleInterval(interval));
+            // Handle zones selection - select/deselect all zones
+            if (checked) {
+                availableZones.forEach(zone => {
+                    if (!selectedZones.includes(zone)) {
+                        toggleZone(zone);
+                    }
+                });
+            } else {
+                selectedZones.forEach(zone => toggleZone(zone));
+            }
+        }
+    };
+
+    const handleIntervalTypeChange = (type: 'markers' | 'zones') => {
+        setIntervalType(type);
+        // Clear selections when switching types
+        if (type === 'zones') {
+            selectedZones.forEach(zone => toggleZone(zone)); // Clear all selected zones
+        } else {
+            selectedIntervals.forEach(interval => toggleInterval(interval)); // Clear all selected intervals
         }
     };
 
@@ -116,29 +143,87 @@ export default function LeftSidebar() {
 
                 {/* Intervals Section */}
                 <div className="flex flex-col bg-white rounded-lg shadow-sm overflow-hidden">
-                     <div className="flex items-center gap-2 p-1.5 bg-gray-50 border-b">
+                    <div className="flex items-center gap-2 p-1.5 bg-gray-50 border-b">
                         <input
                             type="checkbox"
                             className="h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500"
-                            checked={isMounted && availableIntervals.length > 0 && selectedIntervals.length === availableIntervals.length}
+                            checked={isMounted && (
+                                intervalType === 'markers' 
+                                    ? availableIntervals.length > 0 && selectedIntervals.length === availableIntervals.length
+                                    : availableZones.length > 0 && selectedZones.length === availableZones.length
+                            )}
                             onChange={(e) => handleSelectAllIntervals(e.target.checked)}
                         />
-                        <h3 className="text-xs font-bold text-gray-700">Intervals</h3>
-                        <span className="text-xs text-gray-500 ml-auto">{selectedIntervals.length}/{availableIntervals.length}</span>
+                        <h3 className="text-xs font-bold text-gray-700">
+                            {intervalType === 'markers' ? 'Markers' : 'Zones'}
+                        </h3>
+                        <span className="text-xs text-gray-500 ml-auto">
+                            {intervalType === 'markers' 
+                                ? `${selectedIntervals.length}/${availableIntervals.length}`
+                                : `${selectedZones.length}/${availableZones.length}`
+                            }
+                        </span>
                     </div>
+                    
+                    {/* Toggle buttons for markers/zones */}
+                    <div className="flex bg-gray-50 border-b">
+                        <button
+                            type="button"
+                            onClick={() => handleIntervalTypeChange('markers')}
+                            className={`flex-1 px-2 py-1 text-xs font-medium transition-colors ${
+                                intervalType === 'markers' 
+                                    ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-500' 
+                                    : 'text-gray-600 hover:text-gray-800'
+                            }`}
+                        >
+                            Markers
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleIntervalTypeChange('zones')}
+                            className={`flex-1 px-2 py-1 text-xs font-medium transition-colors ${
+                                intervalType === 'zones' 
+                                    ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-500' 
+                                    : 'text-gray-600 hover:text-gray-800'
+                            }`}
+                        >
+                            Zones
+                        </button>
+                    </div>
+                    
                     <div className="overflow-y-auto flex-1 p-1">
                         <div className="flex flex-col gap-0.5">
-                            {availableIntervals.map(interval => (
-                                <label key={interval} className="flex items-center gap-2 px-2 py-0.5 rounded hover:bg-gray-50 cursor-pointer text-xs">
-                                    <input
-                                        type="checkbox"
-                                        className="h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500"
-                                        checked={selectedIntervals.includes(interval)}
-                                        onChange={() => toggleInterval(interval)}
-                                    />
-                                    <span className="truncate">{interval}</span>
-                                </label>
-                            ))}
+                            {intervalType === 'markers' ? (
+                                availableIntervals.map(interval => (
+                                    <label key={interval} className="flex items-center gap-2 px-2 py-0.5 rounded hover:bg-gray-50 cursor-pointer text-xs">
+                                        <input
+                                            type="checkbox"
+                                            className="h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500"
+                                            checked={selectedIntervals.includes(interval)}
+                                            onChange={() => toggleInterval(interval)}
+                                        />
+                                        <span className="truncate">{interval}</span>
+                                    </label>
+                                ))
+                            ) : (
+                                availableZones.length === 0 ? (
+                                    <div className="flex items-center justify-center py-2 text-xs text-gray-500">
+                                        No zones available
+                                    </div>
+                                ) : (
+                                    availableZones.map(zone => (
+                                        <label key={zone} className="flex items-center gap-2 px-2 py-0.5 rounded hover:bg-gray-50 cursor-pointer text-xs">
+                                            <input
+                                                type="checkbox"
+                                                className="h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500"
+                                                checked={selectedZones.includes(zone)}
+                                                onChange={() => toggleZone(zone)}
+                                            />
+                                            <span className="truncate">{zone}</span>
+                                        </label>
+                                    ))
+                                )
+                            )}
                         </div>
                     </div>
                 </div>
