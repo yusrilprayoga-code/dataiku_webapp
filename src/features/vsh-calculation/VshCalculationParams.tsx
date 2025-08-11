@@ -7,10 +7,10 @@ import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 
-const createInitialVshParameters = (intervals: string[]): ParameterRow[] => {
+const createInitialVshParameters = (selection: string[]): ParameterRow[] => {
     // Jika tidak ada interval dipilih, gunakan satu kolom 'default' agar UI tetap muncul
-    const effectiveIntervals = intervals.length > 0 ? intervals : ['default'];
-    const createValues = (val: string | number) => Object.fromEntries(effectiveIntervals.map(i => [i, val]));
+    const effectiveSelection = selection.length > 0 ? selection : ['default'];
+    const createValues = (val: string | number) => Object.fromEntries(effectiveSelection.map(i => [i, val]));
 
   // Definisikan master list parameter yang relevan untuk VSH
   const allPossibleParams: Omit<ParameterRow, 'values'>[] = [
@@ -39,7 +39,7 @@ const createInitialVshParameters = (intervals: string[]): ParameterRow[] => {
 };
 
 export default function VshCalculationParams() {
-    const { selectedIntervals, selectedWells } = useDashboard();
+  const { selectedIntervals, selectedWells, wellColumns, selectedZones } = useDashboard();
     const router = useRouter();
     const [parameters, setParameters] = useState<ParameterRow[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,9 +47,14 @@ export default function VshCalculationParams() {
     const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
     const { setVshParams } = useAppDataStore();
 
+      // Determine which intervals/zones to use based on priority
+    const activeIntervals = selectedZones.length > 0 ? selectedZones : selectedIntervals;
+    const isUsingZones = selectedZones.length > 0;
+
     useEffect(() => {
-        setParameters(createInitialVshParameters(selectedIntervals));
-    }, [selectedIntervals]);
+        const effectiveSelection = selectedZones.length > 0 ? selectedZones : selectedIntervals;
+        setParameters(createInitialVshParameters(effectiveSelection));
+    }, [selectedIntervals, selectedZones]);
 
     // --- PERBAIKAN 1: Tambahkan useEffect untuk mengambil nilai default ---
     useEffect(() => {
@@ -65,6 +70,7 @@ export default function VshCalculationParams() {
                     body: JSON.stringify({
                         selected_wells: selectedWells,
                         selected_intervals: selectedIntervals,
+                        selected_zones: selectedZones,
                     }),
                 });
 
@@ -72,9 +78,7 @@ export default function VshCalculationParams() {
                     console.error("Gagal mengambil nilai default GR dari autoplot.");
                     return;
                 }
-                
-                const data = await response.json(); // Respons: { gr_ma: ..., gr_sh: ... }
-
+                const data = await response.json(); 
                 setParameters(prevParams => 
                     prevParams.map(param => {
                         if (param.name === "GR_MA") {
@@ -96,7 +100,7 @@ export default function VshCalculationParams() {
         };
 
         fetchGrDefaults();
-    }, [selectedWells, selectedIntervals]);
+    }, [selectedWells, selectedIntervals, selectedZones]);
     // ----------------------------------------------------------------------
 
     // const combinedColumns = useMemo(() => {
@@ -131,17 +135,22 @@ export default function VshCalculationParams() {
   };
 
 
-  const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
+    // Use the effective selection for value extraction
+    const firstActiveKey = isUsingZones 
+        ? (selectedZones[0] || 'default') 
+        : (selectedIntervals[0] || 'default');
+
     const formParams = parameters
-      .filter(p => p.isEnabled)
-      .reduce((acc, param) => {
-        const value = param.values[selectedIntervals[0] || 'default'] || param.values[Object.keys(param.values)[0]];
-        acc[param.name] = isNaN(Number(value)) ? value : Number(value);
-        return acc;
-      }, {} as Record<string, string | number>);
+        .filter(p => p.isEnabled)
+        .reduce((acc, param) => {
+            const value = param.values[firstActiveKey] || param.values[Object.keys(param.values)[0]];
+            acc[param.name] = isNaN(Number(value)) ? value : Number(value);
+            return acc;
+        }, {} as Record<string, string | number>);
 
     setVshParams({
       gr_ma: Number(formParams.GR_MA),
@@ -151,7 +160,8 @@ export default function VshCalculationParams() {
     const payload = {
       params: formParams,
       selected_wells: selectedWells,
-      selected_intervals: selectedIntervals,
+      selected_intervals: isUsingZones ? [] : selectedIntervals,
+      selected_zones: isUsingZones ? selectedZones : [],
     };
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -218,7 +228,7 @@ export default function VshCalculationParams() {
             <h2 className="text-xl font-bold mb-4 text-gray-800 flex-shrink-0">VSH by Gamma Ray Method</h2>
             <form onSubmit={handleSubmit} className="flex-grow flex flex-col min-h-0">
                 <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50">
-                    <p className="text-sm font-medium text-gray-700">Well: {selectedWells.join(', ') || 'N/A'} / Intervals: {selectedIntervals.length} selected</p>
+                    <p className="text-sm font-medium text-gray-700">Well: {selectedWells.join(', ') || 'N/A'} / Intervals: {selectedIntervals.length || selectedZones.length} selected</p>
                     <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                         <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md">Cancel</button>
                         <button type="submit" className="px-6 py-2 rounded-md text-white bg-blue-600" disabled={isSubmitting || isFetchingDefaults}>
@@ -234,6 +244,7 @@ export default function VshCalculationParams() {
                                 <tr>
                                     {tableHeaders.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r">{header}</th>))}
                                     {selectedIntervals.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r">{header}</th>))}
+                                    {selectedZones.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r">{header}</th>))}
                                 </tr>
                             </thead>
                             <tbody className="bg-white">
@@ -255,6 +266,18 @@ export default function VshCalculationParams() {
                                                     type="text"
                                                     value={param.values[interval] ?? ''}
                                                     onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                                                    className="w-full min-w-[150px] p-1 bg-white"
+                                                    disabled={param.mode === 'Output'}
+                                                />
+                                            </td>
+                                        ))}
+                                          {isUsingZones && selectedZones.map(zone => (
+                                            <td key={`${param.id}-${zone}`} className="px-3 py-2 border-r bg-white text-black">
+                                                {/* Logika Dropdown untuk Input Log */}
+                                                <input
+                                                    type="text"
+                                                    value={param.values[zone] ?? ''}
+                                                    onChange={(e) => handleValueChange(param.id, zone, e.target.value)}
                                                     className="w-full min-w-[150px] p-1 bg-white"
                                                     disabled={param.mode === 'Output'}
                                                 />

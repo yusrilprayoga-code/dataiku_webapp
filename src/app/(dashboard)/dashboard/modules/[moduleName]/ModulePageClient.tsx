@@ -24,6 +24,7 @@ import SplicingParams from '@/features/splicing-merging/page';
 import RGSAParams from '@/features/rgsa/RGSAParams';
 import NGSAParams from '@/features/ngsa/NGSAParams';
 import DGSAParams from '@/features/dgsa/DGSAParams';
+import SwSimandouxParams from '@/features/sw-simandoux/page';
 
 // Komponen untuk menampilkan pesan error jika modul tidak ditemukan
 const ErrorComponent = ({ moduleName }: { moduleName: string }) => (
@@ -51,6 +52,7 @@ const moduleMap: Record<string, React.ComponentType<unknown>> = {
     'vsh-dn-calculation': VshDNCalculationParams,
     'porosity-calculation': PorosityCalculationParams,
     'sw-calculation': SWCalculationParams,
+    'sw-simandoux': SwSimandouxParams,
     'water-resistivity-calculation': RWACalculationParams,
     // 'rgsa-ngsa-dgsa': GsaCalculationParams,
     'rgsa': RGSAParams,

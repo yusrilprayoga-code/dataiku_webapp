@@ -21,6 +21,9 @@ interface DashboardContextType {
   availableIntervals: string[];
   selectedIntervals: string[];
   toggleInterval: (interval: string) => void;
+  availableZones: string[];
+  selectedZones: string[];
+  toggleZone: (zone: string) => void;
   wellColumns: Record<string, string[]>;
   plotType: PlotType;
   setPlotType: (type: PlotType) => void;
@@ -39,8 +42,10 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [availableWells, setAvailableWells] = useState<string[]>([]);
   const [availableIntervals, setAvailableIntervals] = useState<string[]>([]);
+  const [availableZones, setAvailableZones] = useState<string[]>([]);
   const [selectedWells, setSelectedWells] = useState<string[]>([]);
   const [selectedIntervals, setSelectedIntervals] = useState<string[]>([]);
+  const [selectedZones, setSelectedZones] = useState<string[]>([]);
   const [wellColumns, setWellColumns] = useState<Record<string, string[]>>({});
   const [plotType, setPlotType] = useState<PlotType>('default');
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
@@ -80,6 +85,16 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         console.error("Error fetching intervals:", error);
+      }
+      try {
+        const zonesResponse = await fetch(`${apiUrl}/api/list-zones`);
+        if (!zonesResponse.ok) throw new Error('Failed to fetch zone list');
+        const zonesData = await zonesResponse.json();
+        if (Array.isArray(zonesData)) {
+          setAvailableZones(zonesData);
+        }
+      } catch (error) {
+        console.error("Error fetching zones:", error);
       }
     };
     fetchInitialData();
@@ -236,6 +251,14 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
+  const toggleZone = (zone: string) => {
+    setSelectedZones(prev =>
+      prev.includes(zone)
+        ? prev.filter(z => z !== zone)
+        : [...prev, zone]
+    );
+  };
+
   const value: DashboardContextType = {
     availableWells,
     selectedWells,
@@ -243,6 +266,9 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     availableIntervals,
     selectedIntervals,
     toggleInterval,
+    availableZones,
+    selectedZones,
+    toggleZone,
     wellColumns,
     plotType,
     setPlotType,
