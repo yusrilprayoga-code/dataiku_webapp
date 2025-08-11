@@ -11,7 +11,7 @@ interface MyPageProps {
 const VALID_MODULES = [
   'histogram', 'crossplot', 'trim-data', 'depth-matching', 'normalization',
   'smoothing', 'splicing-merging', 'vsh-calculation', 'vsh-dn-calculation',
-  'porosity-calculation', 'rgsa-ngsa-dgsa', 'fill-missing', 'sw-calculation',
+  'porosity-calculation', 'rgsa-ngsa-dgsa', 'fill-missing', 'sw-calculation', 'sw-simandoux',
   'water-resistivity-calculation', 'rgbe-rpbe', 'swgrad', 'dns-dnsv',
   'rt-ro', 'gwd',
 ];

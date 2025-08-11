@@ -22,6 +22,7 @@ import FillMissingPage from '@/features/fill_missing/page';
 import SmoothingPage from '@/features/smoothing/page';
 import GWDPage from '@/features/gwd/page';
 import SplicingParams from '@/features/splicing-merging/page';
+import SwSimandouxParams from '@/features/sw-simandoux/page';
 
 // Komponen untuk menampilkan pesan error jika modul tidak ditemukan
 const ErrorComponent = ({ moduleName }: { moduleName: string }) => (
@@ -49,6 +50,7 @@ const moduleMap: Record<string, React.ComponentType<unknown>> = {
     'vsh-dn-calculation': VshDNCalculationParams,
     'porosity-calculation': PorosityCalculationParams,
     'sw-calculation': SWCalculationParams,
+    'sw-simandoux': SwSimandouxParams,
     'water-resistivity-calculation': RWACalculationParams,
     'rgsa-ngsa-dgsa': GsaCalculationParams,
     'trim-data': TrimDataParams,
