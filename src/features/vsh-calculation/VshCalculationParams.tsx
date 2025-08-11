@@ -39,7 +39,7 @@ const createInitialVshParameters = (selection: string[]): ParameterRow[] => {
 };
 
 export default function VshCalculationParams() {
-  const { selectedIntervals, selectedWells, wellColumns, selectedZones } = useDashboard();
+  const { selectedIntervals, selectedWells, selectedZones } = useDashboard();
     const router = useRouter();
     const [parameters, setParameters] = useState<ParameterRow[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,7 +48,6 @@ export default function VshCalculationParams() {
     const { setVshParams } = useAppDataStore();
 
       // Determine which intervals/zones to use based on priority
-    const activeIntervals = selectedZones.length > 0 ? selectedZones : selectedIntervals;
     const isUsingZones = selectedZones.length > 0;
 
     useEffect(() => {

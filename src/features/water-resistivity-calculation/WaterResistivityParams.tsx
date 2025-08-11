@@ -6,9 +6,10 @@ import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
 
-const createInitialRWAParameters = (): ParameterRow[] => {
+const createInitialRWAParameters = (selection: string[]): ParameterRow[] => {
   // Untuk RWA, nilai parameter tidak bergantung pada interval, jadi kita hardcode 'default'
-  const createValues = (val: string | number) => ({ 'default': val });
+  const effectiveSelection = selection.length > 0 ? selection : ['default'];
+      const createValues = (val: string | number) => Object.fromEntries(effectiveSelection.map(i => [i, val]));
 
   // Definisikan master list parameter yang relevan untuk RWA
   const allPossibleParams: Omit<ParameterRow, 'values'>[] = [
@@ -32,15 +33,19 @@ const createInitialRWAParameters = (): ParameterRow[] => {
 };
 
 export default function RWACalculationParams() {
-  const { selectedIntervals, selectedWells, wellColumns } = useDashboard();
+  const { selectedIntervals, selectedWells, wellColumns, selectedZones } = useDashboard();
   const router = useRouter();
   const [parameters, setParameters] = useState<ParameterRow[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
 
+  const isUsingZones = selectedZones.length > 0;
+  
+
   useEffect(() => {
-    setParameters(createInitialRWAParameters());
-  }, []);
+            const effectiveSelection = selectedZones.length > 0 ? selectedZones : selectedIntervals;
+            setParameters(createInitialRWAParameters(effectiveSelection));
+        }, [selectedIntervals, selectedZones]);
 
   const combinedColumns = selectedWells.flatMap(well => wellColumns[well] || []);
 
@@ -74,10 +79,14 @@ export default function RWACalculationParams() {
     e.preventDefault();
     setIsSubmitting(true);
 
+    const firstActiveKey = isUsingZones 
+            ? (selectedZones[0] || 'default') 
+            : (selectedIntervals[0] || 'default');
+
     const formParams = parameters
       .filter(p => p.isEnabled)
       .reduce((acc, param) => {
-        const value = param.values[selectedIntervals[0] || 'default'] || param.values[Object.keys(param.values)[0]];
+        const value = param.values[firstActiveKey] || param.values['default'] || '';
         acc[param.name] = isNaN(Number(value)) ? value : Number(value);
         return acc;
       }, {} as Record<string, string | number>);
@@ -86,6 +95,7 @@ export default function RWACalculationParams() {
       params: formParams,
       selected_wells: selectedWells,
       selected_intervals: selectedIntervals,
+      selected_zones: selectedZones,
     };
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -156,7 +166,7 @@ export default function RWACalculationParams() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-4 items-start">
             {/* Baris informasi */}
             <div className="md:col-span-4">
-              <p className="text-sm font-medium text-gray-700">Well: {selectedWells + ', ' || 'N/A'} / Intervals: {selectedIntervals.length} selected</p>
+              <p className="text-sm font-medium text-gray-700">Well: {selectedWells + ', ' || 'N/A'} / Intervals: {selectedIntervals.length || selectedZones.length} selected</p>
             </div>
 
             {/* Baris input */}
@@ -196,6 +206,7 @@ export default function RWACalculationParams() {
                 <tr>
                   {tableHeaders.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th>))}
                   {selectedIntervals.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th>))}
+                  {selectedZones.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th>))}
                 </tr>
               </thead>
               <tbody className="bg-white">
@@ -238,6 +249,42 @@ export default function RWACalculationParams() {
                           <input
                             type="text"
                             value={param.values[interval] ?? param.values['default'] ?? ''}
+                            onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                            className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                          />
+                        )}
+                      </td>
+                    ))}
+                    {isUsingZones && selectedZones.map(zone => (
+                      <td key={`${param.id}-${zone}`} className="px-3 py-2 border-r bg-white text-black">
+                        {param.name === 'OPT_GR' ? (
+                          <select
+                            value={String(param.values[zone] ?? param.values['default'] ?? '')}
+                            onChange={(e) => handleValueChange(param.id, zone, e.target.value)}
+                            className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                          >
+                            <option value="LINEAR">LINEAR</option>
+                          </select>
+                        ) : param.name === 'GR' ? (
+                          (() => {
+                            const filteredOptions: string[] = combinedColumns.filter(col => col.toUpperCase().includes('GR'));
+                            return (
+                              <select
+                                value={String(param.values[zone] ?? param.values['default'] ?? '')}
+                                onChange={(e) => handleValueChange(param.id, zone, e.target.value)}
+                                className="w-full min-w-[100px] p-1 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                              >
+                                {filteredOptions.length === 0 && <option value="">No match</option>}
+                                {filteredOptions.map(opt => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            );
+                          })()
+                        ) : (
+                          <input
+                            type="text"
+                            value={param.values[zone] ?? param.values['default'] ?? ''}
                             onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
                             className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
                           />

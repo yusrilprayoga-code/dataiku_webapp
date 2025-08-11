@@ -8,10 +8,10 @@ import { Loader2 } from 'lucide-react';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 
 // Fungsi diubah untuk menerima selectedIntervals dan membuat struktur data yang sesuai
-const createInitialVshDNParameters = (intervals: string[]): ParameterRow[] => {
+const createInitialVshDNParameters = (selection: string[]): ParameterRow[] => {
     // Membuat objek values dengan key dari setiap interval yang dipilih
-    const createValues = (val: string | number) => 
-        Object.fromEntries(intervals.map(i => [i, val]));
+    const effectiveSelection = selection.length > 0 ? selection : ['default'];
+        const createValues = (val: string | number) => Object.fromEntries(effectiveSelection.map(i => [i, val]));
 
     const allPossibleParams: Omit<ParameterRow, "values">[] = [
         { id: 1, location: "Interval", mode: "In_Out", comment: "Matrix density", unit: "G/C3", name: "RHOB_MA", isEnabled: true },
@@ -44,22 +44,20 @@ const createInitialVshDNParameters = (intervals: string[]): ParameterRow[] => {
 };
 
 export default function VshDNCalculationParams() {
-    const { selectedIntervals, selectedWells } = useDashboard();
+    const { selectedIntervals, selectedWells, selectedZones } = useDashboard();
     const router = useRouter();
     const [parameters, setParameters] = useState<ParameterRow[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFetchingDefaults, setIsFetchingDefaults] = useState(false);
     const [rowSync, setRowSync] = useState<Record<number, boolean>>({}); // State untuk checkbox "P" dikembalikan
     const { setVshDNParams } = useAppDataStore();
+    
+    const isUsingZones = selectedZones.length > 0;
 
-    // Inisialisasi parameter berdasarkan interval yang dipilih
     useEffect(() => {
-        if (selectedIntervals.length > 0) {
-            setParameters(createInitialVshDNParameters(selectedIntervals));
-        } else {
-            setParameters([]);
-        }
-    }, [selectedIntervals]);
+            const effectiveSelection = selectedZones.length > 0 ? selectedZones : selectedIntervals;
+            setParameters(createInitialVshDNParameters(effectiveSelection));
+        }, [selectedIntervals, selectedZones]);
 
     // useEffect untuk mengambil nilai default dari backend
     useEffect(() => {
@@ -75,6 +73,7 @@ export default function VshDNCalculationParams() {
                     body: JSON.stringify({
                         selected_wells: selectedWells,
                         selected_intervals: selectedIntervals,
+                        selected_zones: selectedZones,
                     }),
                 });
 
@@ -108,7 +107,7 @@ export default function VshDNCalculationParams() {
         };
 
         fetchIntersectionDefaults();
-    }, [selectedWells, selectedIntervals]);
+    }, [selectedWells, selectedIntervals, selectedZones]);
 
     // Fungsi handleValueChange dikembalikan untuk menangani input per interval
     const handleValueChange = (id: number, interval: string, newValue: string) => {
@@ -137,12 +136,15 @@ export default function VshDNCalculationParams() {
         e.preventDefault();
         setIsSubmitting(true);
 
+        const firstActiveKey = isUsingZones 
+                ? (selectedZones[0] || 'default') 
+                : (selectedIntervals[0] || 'default');
+
         const formParams = parameters
             .filter(p => p.isEnabled)
             .reduce((acc, param) => {
                 // Ambil nilai dari interval pertama sebagai representasi
-                const firstInterval = selectedIntervals[0] || Object.keys(param.values)[0];
-                const value = param.values[firstInterval];
+                const value = param.values[firstActiveKey];
                 acc[param.name] = isNaN(Number(value)) ? value : String(value);
                 return acc;
             }, {} as Record<string, string | number>);
@@ -156,7 +158,9 @@ export default function VshDNCalculationParams() {
             prcnt_qz: 0,
             prcnt_wtr: 0
         });
-        const payload = { params: formParams, selected_wells: selectedWells, selected_intervals: selectedIntervals };
+        const payload = { params: formParams, selected_wells: selectedWells, selected_intervals: isUsingZones ? [] : selectedIntervals,
+        selected_zones: isUsingZones ? selectedZones : []
+         };
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         const endpoint = `${apiUrl}/api/run-vsh-dn-calculation`;
         try {
@@ -195,7 +199,7 @@ export default function VshDNCalculationParams() {
             <form onSubmit={handleSubmit} className="flex-grow flex flex-col min-h-0">
                 <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50 flex flex-col gap-4">
                     <div className="md:col-span-4">
-                        <p className="text-sm font-medium text-gray-700">Well: {selectedWells.join(', ') || 'N/A'} / Intervals: {selectedIntervals.length} selected</p>
+                        <p className="text-sm font-medium text-gray-700">Well: {selectedWells.join(', ') || 'N/A'} / Intervals: {selectedIntervals.length || selectedZones.length} selected</p>
                     </div>
                     <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                         <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
@@ -214,6 +218,7 @@ export default function VshDNCalculationParams() {
                                     {tableHeaders.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th>))}
                                     {/* Header tabel dinamis dikembalikan */}
                                     {selectedIntervals.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th>))}
+                                    {selectedZones.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r">{header}</th>))}
                                 </tr>
                             </thead>
                             <tbody className="bg-white">
@@ -236,6 +241,16 @@ export default function VshDNCalculationParams() {
                                                     type="text"
                                                     value={param.values[interval] ?? ''}
                                                     onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                                                    className="w-full min-w-[150px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
+                                                />
+                                            </td>
+                                        ))}
+                                        {isUsingZones && selectedZones.map(zone => (
+                                            <td key={`${param.id}-${zone}`} className="px-3 py-2 border-r bg-white text-black">
+                                                <input
+                                                    type="text"
+                                                    value={param.values[zone] ?? ''}
+                                                    onChange={(e) => handleValueChange(param.id, zone, e.target.value)}
                                                     className="w-full min-w-[150px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
                                                 />
                                             </td>
