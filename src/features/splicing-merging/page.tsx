@@ -80,15 +80,14 @@ export default function SplicingParams() {
     // Fetch well columns from API
     const fetchWellColumns = async (wells: string[]) => {
         if (wells.length === 0) return {};
-        
         setIsLoadingColumns(true);
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        
+        const wellsWithFullPath = wells.map(well => getWellFilePath(well));
         try {
             const response = await fetch(`${apiUrl}/api/get-well-columns`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ wells }),
+                body: JSON.stringify({ wells: wellsWithFullPath }),
             });
             
             if (!response.ok) {
@@ -143,8 +142,15 @@ export default function SplicingParams() {
     useEffect(() => {
         if (selectedRun1Well) {
             fetchWellColumns([selectedRun1Well]).then(data => {
-                if (data[selectedRun1Well]) {
-                    setRun1Columns(data[selectedRun1Well]);
+                // Construct the key that matches the API response (filename + .csv)
+                const responseKey = `${selectedRun1Well}.csv`; 
+                
+                if (data && data[responseKey]) {
+                    console.log(`[RUN 1] SUCCESS: Columns found for key "${responseKey}"`);
+                    setRun1Columns(data[responseKey]);
+                } else {
+                    console.error(`[RUN 1] FAILED: Key "${responseKey}" not found in API response.`, data);
+                    setRun1Columns([]); // Reset on failure
                 }
             });
         } else {
@@ -156,8 +162,15 @@ export default function SplicingParams() {
     useEffect(() => {
         if (selectedRun2Well) {
             fetchWellColumns([selectedRun2Well]).then(data => {
-                if (data[selectedRun2Well]) {
-                    setRun2Columns(data[selectedRun2Well]);
+                // Construct the key that matches the API response (filename + .csv)
+                const responseKey = `${selectedRun2Well}.csv`;
+
+                if (data && data[responseKey]) {
+                    console.log(`[RUN 2] SUCCESS: Columns found for key "${responseKey}"`);
+                    setRun2Columns(data[responseKey]);
+                } else {
+                    console.error(`[RUN 2] FAILED: Key "${responseKey}" not found in API response.`, data);
+                    setRun2Columns([]); // Reset on failure
                 }
             });
         } else {
