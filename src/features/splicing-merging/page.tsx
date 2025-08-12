@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
 import { useDashboard } from '@/contexts/DashboardContext';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 // Fungsi untuk membuat parameter awal
 const createInitialSplicingParameters = (): ParameterRow[] => {
@@ -64,6 +65,8 @@ export default function SplicingParams() {
     const [run1FilePath, setRun1FilePath] = useState<string>('');
     const [run2FilePath, setRun2FilePath] = useState<string>('');
 
+    const { fieldName, structureName, wellFolder } = useAppDataStore();
+    
     // Get available wells from wellColumns or selectedWells
     const availableWells = Object.keys(wellColumns).length > 0 ? Object.keys(wellColumns) : selectedWells;
     
@@ -71,7 +74,7 @@ export default function SplicingParams() {
     const getWellFilePath = (wellName: string): string => {
         // This assumes the file path follows a pattern - adjust based on your actual file structure
         // For now, using a generic pattern that matches your backend structure
-        return `data/structures/adera/benuang/BNG-057/${wellName}`;
+        return `data/structures/${fieldName}/${structureName}/${wellFolder}/${wellName}`;
     };
     
     // Fetch well columns from API

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 const createInitialSWParameters = (selection: string[]): ParameterRow[] => {
   // Untuk SW, nilai parameter tidak bergantung pada interval, jadi kita hardcode 'default'
@@ -53,6 +54,7 @@ export default function SWCalculationParams() {
   const [parameters, setParameters] = useState<ParameterRow[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
+  const { wellsDir } = useAppDataStore();
 
   const isUsingZones = selectedZones.length > 0;
 
@@ -107,6 +109,7 @@ export default function SWCalculationParams() {
 
     const payload = {
       params: formParams,
+      full_path: wellsDir,
       selected_wells: selectedWells,
       selected_intervals: selectedIntervals,
       selected_zones: selectedZones,

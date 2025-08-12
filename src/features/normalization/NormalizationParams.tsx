@@ -5,6 +5,7 @@ import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 const createInitialParameters = (intervals: string[]): ParameterRow[] => {
     // Use a default interval if none are provided (like splicing-merging)
@@ -55,6 +56,8 @@ export default function NormalizationParams() {
     // Check if we're in DataPrep context by checking the current pathname
     const isDataPrep = pathname?.startsWith('/data-prep') || false;
 
+    const { wellsDir } = useAppDataStore();
+
     useEffect(() => {
         // Always create parameters, even if no intervals are selected (like splicing-merging)
         setParameters(createInitialParameters(selectedIntervals));
@@ -70,6 +73,7 @@ export default function NormalizationParams() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        file_paths: wellsDir,
                         selected_wells: selectedWells,
                         selected_intervals: selectedIntervals,
                         log_column: logColumn,

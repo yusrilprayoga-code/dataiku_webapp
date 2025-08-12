@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 const createInitialParameters = (intervals: string[]): ParameterRow[] => {
     const effectiveIntervals = intervals.length > 0 ? intervals : ['default'];
@@ -51,6 +52,7 @@ export default function SwgradParams() {
     const [parameters, setParameters] = useState<ParameterRow[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [linkedRows, setLinkedRows] = useState<Record<number, boolean>>({});
+    const { wellsDir } = useAppDataStore();
 
     // Determine which intervals/zones to use based on priority
     const activeIntervals = selectedZones.length > 0 ? selectedZones : selectedIntervals;
@@ -105,6 +107,7 @@ export default function SwgradParams() {
 
         const payload = {
             params: formParams,
+            full_path: wellsDir,
             selected_wells: selectedWells,
             selected_intervals: isUsingZones ? [] : selectedIntervals,
             selected_zones: isUsingZones ? selectedZones : [],

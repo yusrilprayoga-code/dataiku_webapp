@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 // Fungsi diubah untuk menerima selectedIntervals agar struktur data benar
 const createInitialPorosityParameters = (selection: string[]): ParameterRow[] => {
@@ -48,7 +49,7 @@ export default function PorosityCalculationParams() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
     const [isFetchingDefaults, setIsFetchingDefaults] = useState(false); // State loading
-
+    const { wellsDir } = useAppDataStore();
     const isUsingZones = selectedZones.length > 0;
 
     // Inisialisasi atau re-inisialisasi parameter saat interval berubah
@@ -69,6 +70,7 @@ export default function PorosityCalculationParams() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        full_path: wellsDir,
                         selected_wells: selectedWells,
                         selected_intervals: selectedIntervals,
                     }),
@@ -139,7 +141,7 @@ export default function PorosityCalculationParams() {
                 return acc;
             }, {} as Record<string, string | number>);
 
-        const payload = { params: formParams, selected_wells: selectedWells, selected_intervals: selectedIntervals, selected_zones: selectedZones };
+        const payload = { params: formParams, full_path: wellsDir, selected_wells: selectedWells, selected_intervals: selectedIntervals, selected_zones: selectedZones };
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         const endpoint = `${apiUrl}/api/run-porosity-calculation`;
 

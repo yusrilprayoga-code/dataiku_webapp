@@ -45,7 +45,7 @@ export default function VshCalculationParams() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFetchingDefaults, setIsFetchingDefaults] = useState(false);
     const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
-    const { setVshParams } = useAppDataStore();
+    const { setVshParams, wellsDir } = useAppDataStore();
 
       // Determine which intervals/zones to use based on priority
     const isUsingZones = selectedZones.length > 0;
@@ -67,6 +67,7 @@ export default function VshCalculationParams() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        full_path: wellsDir,
                         selected_wells: selectedWells,
                         selected_intervals: selectedIntervals,
                         selected_zones: selectedZones,
@@ -99,7 +100,7 @@ export default function VshCalculationParams() {
         };
 
         fetchGrDefaults();
-    }, [selectedWells, selectedIntervals, selectedZones]);
+    }, [selectedWells, selectedIntervals, selectedZones, wellsDir]);
     // ----------------------------------------------------------------------
 
     // const combinedColumns = useMemo(() => {
@@ -158,6 +159,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     const payload = {
       params: formParams,
+      full_path: wellsDir,
       selected_wells: selectedWells,
       selected_intervals: isUsingZones ? [] : selectedIntervals,
       selected_zones: isUsingZones ? selectedZones : [],
