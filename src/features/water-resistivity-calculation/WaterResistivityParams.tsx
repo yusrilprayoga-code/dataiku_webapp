@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 const createInitialRWAParameters = (selection: string[]): ParameterRow[] => {
   // Untuk RWA, nilai parameter tidak bergantung pada interval, jadi kita hardcode 'default'
@@ -41,6 +42,7 @@ export default function RWACalculationParams() {
 
   const isUsingZones = selectedZones.length > 0;
   
+  const { wellsDir } = useAppDataStore();
 
   useEffect(() => {
             const effectiveSelection = selectedZones.length > 0 ? selectedZones : selectedIntervals;
@@ -93,6 +95,7 @@ export default function RWACalculationParams() {
 
     const payload = {
       params: formParams,
+      full_path: wellsDir,
       selected_wells: selectedWells,
       selected_intervals: selectedIntervals,
       selected_zones: selectedZones,

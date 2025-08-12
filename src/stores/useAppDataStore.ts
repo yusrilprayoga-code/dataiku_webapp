@@ -47,6 +47,14 @@ interface AppState {
   setVshParams: (params: VshParams) => void;
   setVshDNParams: (params: VshDNParams) => void;
 
+  wellsDir: string;
+  fieldName: string;
+  wellFolder: string;
+  structureName: string;
+
+  setWellsDir: (path: string) => void;
+  setStructure: (field: string, structure: string, wellFolder: string) => void;
+
   // --- Actions ---
   setStagedStructure: (structure: StagedStructure) => void;
   setQcResults: (results: QCResponse | null) => void;
@@ -88,6 +96,34 @@ export const useAppDataStore = create<AppState>()(
         prcnt_qz: 5,
         prcnt_wtr: 5
       },
+
+      
+      wellsDir: 'data/structures/adera/benuang',
+      fieldName: 'adera',
+      structureName: 'benuang',
+      wellFolder: 'BNG-057',
+
+      setWellsDir: (path) => {
+        console.log(`Updating wellsDir to: ${path}`);
+        set({ wellsDir: path });
+      },
+
+      setStructure: (field, structure, wellFolder) => {
+        const newWellsDir = `data/structures/${field.toLowerCase()}/${structure.toLowerCase()}`;
+        console.log(`Updating structure settings:
+          fieldName: ${field.toLowerCase()}
+          structureName: ${structure.toLowerCase()}
+          wellFolder: ${wellFolder.toLowerCase()}
+          wellsDir: ${newWellsDir}`);
+        
+        set({
+          fieldName: field.toLowerCase(),
+          structureName: structure.toLowerCase(),
+          wellFolder: wellFolder.toLowerCase(),
+          wellsDir: newWellsDir
+        });
+      },
+
 
       // --- Actions Implementation ---
       setStagedStructure: (structure: StagedStructure) => set({ stagedStructure: structure }),

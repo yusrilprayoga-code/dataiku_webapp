@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 // Fungsi untuk membuat struktur parameter awal untuk Smoothing
 const createInitialParameters = (): ParameterRow[] => {
@@ -23,9 +24,6 @@ const createInitialParameters = (): ParameterRow[] => {
     return smoothingParams.map(p => ({ ...p, values: createValues(defaultValues[p.name] || '') }));
 };
 
-// Konstanta path untuk data mentah
-const dataPrepPath = { field: 'adera', structure: 'benuang', wellFolder: 'BNG-057' };
-
 export default function DataPrepSmoothingParams() {
     const router = useRouter();
     const [parameters, setParameters] = useState<ParameterRow[]>(createInitialParameters());
@@ -36,6 +34,7 @@ export default function DataPrepSmoothingParams() {
     const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
     const [wellColumns, setWellColumns] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const { fieldName, structureName, wellFolder } = useAppDataStore();
 
     // 1. Ambil daftar file dari direktori data mentah
     useEffect(() => {
@@ -43,8 +42,7 @@ export default function DataPrepSmoothingParams() {
             setIsLoading(true);
             const apiUrl = process.env.NEXT_PUBLIC_API_URL;
             try {
-                const { field, structure, wellFolder } = dataPrepPath;
-                const response = await fetch(`${apiUrl}/api/well-folder-files/${field}/${structure}/${wellFolder}`);
+                const response = await fetch(`${apiUrl}/api/well-folder-files/${fieldName}/${structureName}/${wellFolder}`);
                 if (!response.ok) throw new Error("Gagal mengambil daftar file.");
                 const data = await response.json();
                 setAvailableFiles(data.csv_files || []);
@@ -59,9 +57,8 @@ export default function DataPrepSmoothingParams() {
 
     // Helper untuk membuat path lengkap dari nama file
     const constructFilePaths = useCallback((files: string[]) => {
-        const { field, structure, wellFolder } = dataPrepPath;
-        return files.map(file => `data/structures/${field}/${structure}/${wellFolder}/${file}`);
-    }, []);
+        return files.map(file => `data/structures/${fieldName}/${structureName}/${wellFolder}/${file}`);
+    }, [fieldName, structureName, wellFolder]);
 
     // 2. Ambil daftar kolom saat pilihan file berubah
     useEffect(() => {
@@ -167,7 +164,7 @@ export default function DataPrepSmoothingParams() {
             
             <div className="mb-6 p-4 border rounded-lg bg-gray-50">
                 <h3 className="text-lg font-semibold mb-2">Select File(s) for Smoothing</h3>
-                <p className="text-sm text-gray-500 mb-4">Files from: `{`.../${dataPrepPath.structure}/${dataPrepPath.wellFolder}`}`</p>
+                <p className="text-sm text-gray-500 mb-4">Files from: `{`.../${structureName}/${wellFolder}`}`</p>
                 {isLoading ? <Loader2 className="animate-spin" /> : (
                     <div className="max-h-40 overflow-y-auto grid grid-cols-2 md:grid-cols-3 gap-2 border p-2 rounded-md bg-white">
                         {availableFiles.map(file => (

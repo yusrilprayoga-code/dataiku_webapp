@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import Select from 'react-select';
 import { Loader2 } from 'lucide-react';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 export default function FillMissingParams() {
     // --- CONTEXT & ROUTER ----
@@ -21,11 +22,7 @@ export default function FillMissingParams() {
 
     const isDataPrep = pathname.startsWith('/data-prep');
 
-    // --- helper: normalize selectedFilePath menjadi array of paths ---
-    const normalizedSelectedFilePaths = useMemo(() => {
-        if (!selectedFilePath) return [] as string[];
-        return Array.isArray(selectedFilePath) ? selectedFilePath : [selectedFilePath];
-    }, [selectedFilePath]);
+    const { fieldName, structureName, wellFolder, wellsDir } = useAppDataStore();
 
     // --- fetch kolom ketika di mode Data Prep dan ada file terpilih ---
     useEffect(() => {
@@ -34,7 +31,7 @@ export default function FillMissingParams() {
             return;
         }
 
-        if (!normalizedSelectedFilePaths || normalizedSelectedFilePaths.length === 0) {
+        if (!selectedFilePath) {
             setLocalColumns([]);
             return;
         }
@@ -47,7 +44,7 @@ export default function FillMissingParams() {
                 const resp = await fetch(`${apiUrl}/api/get-well-columns`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ file_paths: normalizedSelectedFilePaths }),
+                    body: JSON.stringify({ full_path: wellsDir }),
                 });
                 if (!resp.ok) {
                     const txt = await resp.text();
@@ -88,7 +85,7 @@ export default function FillMissingParams() {
         fetchColumns();
 
         return () => { cancelled = true; };
-    }, [isDataPrep, normalizedSelectedFilePaths]);
+    }, [isDataPrep, wellsDir]);
 
     // --- build dropdown options (DataPrep: localColumns, Dashboard: wellColumns for selectedWells) ---
     const logOptions = useMemo(() => {
@@ -121,7 +118,7 @@ export default function FillMissingParams() {
     // --- payload creator (normalisasi file_paths) ---
     const createPayload = () => {
         if (isDataPrep) {
-            const selectedPaths = normalizedSelectedFilePaths;
+            const selectedPaths = wellsDir;
             if (!selectedPaths || selectedPaths.length === 0) {
                 alert("Please select at least one file from the Wells Browser sidebar.");
                 return null;
@@ -148,7 +145,7 @@ export default function FillMissingParams() {
             const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/flag-missing`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...basePayload, logs_to_check: selectedLogs }),
+                body: JSON.stringify({ ...basePayload, logs_to_check: selectedLogs, full_path: wellsDir }),
             });
             const result = await resp.json();
             if (!resp.ok) throw new Error(result?.error || 'Failed to run flagging process.');
@@ -171,7 +168,7 @@ export default function FillMissingParams() {
             const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/fill-flagged-missing`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...basePayload, logs_to_fill: selectedLogs, max_consecutive_nan: maxConsecutive }),
+                body: JSON.stringify({ ...basePayload, logs_to_fill: selectedLogs, max_consecutive_nan: maxConsecutive, full_path: wellsDir }),
             });
             const result = await resp.json();
             if (!resp.ok) throw new Error(result?.error || 'Failed to run filling process.');
@@ -197,7 +194,7 @@ export default function FillMissingParams() {
             <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50">
                 <p className="text-sm font-medium text-gray-700 mb-2">
                     {isDataPrep
-                        ? `Context: Data Preparation (${normalizedSelectedFilePaths.length} files selected)`
+                        ? `Context: Data Preparation (${wellsDir.length} files selected)`
                         : `Context: Dashboard (${(selectedWells || []).length} wells selected)`
                     }
                 </p>

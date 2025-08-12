@@ -40,6 +40,7 @@ export default function DnsDnsvParams() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [linkedRows, setLinkedRows] = useState<Record<number, boolean>>({});
     const { vshDNParams } = useAppDataStore();
+    const { wellsDir } = useAppDataStore();
 
     // Determine which intervals/zones to use based on priority
     const activeIntervals = selectedZones.length > 0 ? selectedZones : selectedIntervals;
@@ -94,6 +95,7 @@ export default function DnsDnsvParams() {
 
         const payload = {
             params: formParams,
+            full_path: wellsDir,
             selected_wells: selectedWells,
             selected_intervals: isUsingZones ? [] : selectedIntervals,
             selected_zones: isUsingZones ? selectedZones : [],

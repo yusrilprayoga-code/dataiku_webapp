@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 const createInitialSmoothingParameters = (intervals: string[]): ParameterRow[] => {
     // Use a default interval if none are provided (like splicing-merging and normalization)
@@ -33,7 +34,7 @@ const createInitialSmoothingParameters = (intervals: string[]): ParameterRow[] =
 };
 
 export default function SmoothingParams() {
-    const { selectedWells, selectedIntervals, wellColumns, selectedFilePath } = useDashboard();
+    const { selectedWells, selectedIntervals, wellColumns} = useDashboard();
     const router = useRouter();
     const pathname = usePathname();
     const [parameters, setParameters] = useState<ParameterRow[]>([]);
@@ -41,6 +42,7 @@ export default function SmoothingParams() {
     const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
     const [availableColumns, setAvailableColumns] = useState<string[]>([]);
 
+    const { fieldName, structureName, wellFolder, wellsDir } = useAppDataStore();
     // Check if we're in DataPrep context by checking the current pathname
     const isDataPrep = pathname?.startsWith('/data-prep') || false;
 
@@ -52,14 +54,14 @@ export default function SmoothingParams() {
     // Fetch available columns for DataPrep context
     useEffect(() => {
         const fetchWellColumns = async () => {
-            if (!isDataPrep || !selectedFilePath) return;
+            if (!isDataPrep || !wellsDir) return;
 
             try {
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
                 const response = await fetch(`${apiUrl}/api/get-well-columns`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ file_path: selectedFilePath }),
+                    body: JSON.stringify({ full_path: wellsDir }),
                 });
 
                 if (!response.ok) {
@@ -80,7 +82,7 @@ export default function SmoothingParams() {
         };
 
         fetchWellColumns();
-    }, [isDataPrep, selectedFilePath]);
+    }, [isDataPrep, wellsDir]);
     
     // --- PERUBAHAN DI SINI ---
     const allAvailableColumns = useMemo(() => {
@@ -142,6 +144,7 @@ export default function SmoothingParams() {
             }, {} as Record<string, string | number>);
 
         const payload = {
+            full_path: wellsDir,
             params: formParams,
             selected_wells: selectedWells,
             selected_intervals: selectedIntervals

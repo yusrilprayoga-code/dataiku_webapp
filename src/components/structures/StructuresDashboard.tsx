@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { StructuresData, FieldDetails, StructureDetails } from '@/types/structures';
 import { FolderIcon, FileTextIcon, Loader2 } from 'lucide-react';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 interface StructuresDashboardProps {
   initialData: StructuresData;
@@ -18,6 +19,7 @@ export default function StructuresDashboard({ initialData }: StructuresDashboard
   const [structureDetails, setStructureDetails] = useState<StructureDetails | null>(null);
   const [isLoadingField, setIsLoadingField] = useState(false);
   const [isLoadingStructure, setIsLoadingStructure] = useState(false);
+  const setStructure = useAppDataStore(state => state.setStructure);
 
   const handleFieldSelect = async (fieldName: string) => {
     if (selectedField === fieldName) return;
@@ -79,25 +81,27 @@ export default function StructuresDashboard({ initialData }: StructuresDashboard
           apiStructureName = 'gunungkemala';
         }
       }
+
+      setStructure(fieldName, structureName, '');
       
-      // Make API call to select structure using environment variable
-      if (apiFieldName && apiStructureName) {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        const response = await fetch(`${apiUrl}/api/select-structure`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            field_name: apiFieldName,
-            structure_name: apiStructureName
-          })
-        });
+      // // Make API call to select structure using environment variable
+      // if (apiFieldName && apiStructureName) {
+      //   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      //   const response = await fetch(`${apiUrl}/api/select-structure`, {
+      //     method: 'POST',
+      //     headers: { 'Content-Type': 'application/json' },
+      //     body: JSON.stringify({
+      //       field_name: apiFieldName,
+      //       structure_name: apiStructureName
+      //     })
+      //   });
         
-        if (response.ok) {
-          console.log('Structure selection API call successful');
-        } else {
-          console.error('Structure selection API call failed');
-        }
-      }
+      //   if (response.ok) {
+      //     console.log('Structure selection API call successful');
+      //   } else {
+      //     console.error('Structure selection API call failed');
+      //   }
+      // }
     } catch (error) {
       console.error('Error calling select-structure API:', error);
     }

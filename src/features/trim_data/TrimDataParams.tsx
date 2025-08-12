@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 // Fungsi untuk membuat struktur parameter awal
 const createInitialTrimParameters = (): ParameterRow[] => {
@@ -31,6 +32,8 @@ export default function TrimDataParams() {
     
     const [parameters, setParameters] = useState<ParameterRow[]>(createInitialTrimParameters());
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const { wellsDir } = useAppDataStore();
     
     // Mendeteksi konteks saat ini (Dashboard atau Data Prep)
     const isDataPrep = pathname?.startsWith('/data-prep') || false;
@@ -70,12 +73,14 @@ export default function TrimDataParams() {
             payload = {
                 params: formParams,
                 file_paths: [selectedFilePath], // Kirim path file yang dipilih dari context
+                selected_wells: selectedWells,                
                 selected_intervals: []
             };
         } else {
             // Payload untuk Dashboard: gunakan selectedWells dan selectedIntervals
             payload = {
                 params: formParams,
+                full_path: wellsDir,
                 selected_wells: selectedWells,
                 selected_intervals: selectedIntervals
             };

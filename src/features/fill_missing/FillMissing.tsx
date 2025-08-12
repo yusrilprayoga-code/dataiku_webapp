@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import Select from 'react-select';
 import { Loader2 } from 'lucide-react';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 export default function FillMissingParams() {
     // Ambil state yang relevan dari context
@@ -27,6 +28,8 @@ export default function FillMissingParams() {
     const [localColumns, setLocalColumns] = useState<string[]>([]);
     const [isLoadingColumns, setIsLoadingColumns] = useState(false);
 
+    const { fieldName, structureName, wellFolder, wellsDir } = useAppDataStore();
+
     // useEffect untuk mengambil kolom saat file dipilih di Data Prep
     useEffect(() => {
         // Hanya berjalan jika di mode Data Prep dan ada file yang dipilih
@@ -39,7 +42,7 @@ export default function FillMissingParams() {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         // Kirim path file tunggal DI DALAM SEBUAH ARRAY
-                        body: JSON.stringify({ file_paths: [selectedFilePath] }),
+                        body: JSON.stringify({ full_path: wellsDir }),
                     });
                     if (!response.ok) throw new Error("Gagal mengambil kolom.");
                     
@@ -107,7 +110,7 @@ export default function FillMissingParams() {
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/flag-missing`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...basePayload, logs_to_check: selectedLogs }),
+                body: JSON.stringify({ ...basePayload, logs_to_check: selectedLogs, full_path: wellsDir }),
             });
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || 'Failed to run flagging process.');
@@ -130,7 +133,7 @@ export default function FillMissingParams() {
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/fill-flagged-missing`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...basePayload, logs_to_fill: selectedLogs, max_consecutive_nan: maxConsecutive }),
+                body: JSON.stringify({ ...basePayload, logs_to_fill: selectedLogs, max_consecutive_nan: maxConsecutive, full_path: wellsDir }),
             });
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || 'Failed to run filling process.');

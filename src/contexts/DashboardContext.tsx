@@ -1,5 +1,7 @@
 'use client';
 
+import { useAppDataStore } from '@/stores/useAppDataStore';
+import { usePathname } from 'next/navigation';
 import { Data, Layout } from 'plotly.js';
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useRef } from 'react';
 
@@ -54,7 +56,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [isLoadingPlot, setIsLoadingPlot] = useState(false);
   const [plotError, setPlotError] = useState<string | null>(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  const pathname = usePathname();
+  const isDataPrep = pathname.startsWith('/data-prep');
+  const { wellsDir } = useAppDataStore();
 
   // refs untuk deduplikasi
   const fetchedWellsRef = useRef<Set<string>>(new Set());
@@ -63,11 +69,26 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   // Ambil daftar wells & intervals saat mount (tetap sama)
   useEffect(() => {
     const fetchInitialData = async () => {
+      // This initial data is only for the main dashboard flow
+      if (isDataPrep || !wellsDir) {
+        // If we are in data-prep or the directory isn't set, do nothing.
+        setAvailableWells([]);
+        setAvailableIntervals([]);
+        setAvailableZones([]);
+        return;
+      }
+
       try {
         if (!apiUrl) throw new Error("API URL is not configured.");
-        const response = await fetch(`${apiUrl}/api/list-wells`);
-        if (!response.ok) throw new Error('Failed to fetch well list');
-        const wellNames: string[] = await response.json();
+        
+        // Fetch Wells with POST
+        const wellsResponse = await fetch(`${apiUrl}/api/list-wells`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ full_path: wellsDir }),
+        });
+        if (!wellsResponse.ok) throw new Error('Failed to fetch well list');
+        const wellNames: string[] = await wellsResponse.json();
         if (Array.isArray(wellNames)) {
           setAvailableWells(wellNames);
         }
@@ -76,7 +97,12 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
-        const intervalsResponse = await fetch(`${apiUrl}/api/list-intervals`);
+        // Fetch Intervals with POST
+        const intervalsResponse = await fetch(`${apiUrl}/api/list-intervals`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ full_path: wellsDir }),
+        });
         if (intervalsResponse.ok) {
           const intervalsData = await intervalsResponse.json();
           if (Array.isArray(intervalsData)) {
@@ -86,8 +112,14 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       } catch (error) {
         console.error("Error fetching intervals:", error);
       }
+      
       try {
-        const zonesResponse = await fetch(`${apiUrl}/api/list-zones`);
+        // Fetch Zones with POST
+        const zonesResponse = await fetch(`${apiUrl}/api/list-zones`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ full_path: wellsDir }),
+        });
         if (!zonesResponse.ok) throw new Error('Failed to fetch zone list');
         const zonesData = await zonesResponse.json();
         if (Array.isArray(zonesData)) {
@@ -97,9 +129,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         console.error("Error fetching zones:", error);
       }
     };
+    
     fetchInitialData();
-  }, [apiUrl]);
+  }, [apiUrl, isDataPrep, wellsDir]);
 
+  // fetchWellColumns: hanya fetch wells yang belum pernah di-fetch dan tidak sedang inflight
   // fetchWellColumns: hanya fetch wells yang belum pernah di-fetch dan tidak sedang inflight
   const fetchWellColumns = useCallback(async (wells: string[]) => {
     if (!apiUrl) {
@@ -107,48 +141,59 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     if (!wells || wells.length === 0) {
-      // jika tidak ada wells terpilih, reset
       setWellColumns({});
       fetchedWellsRef.current.clear();
       return;
     }
 
-    // cari wells yang belum pernah di-fetch dan tidak sedang inflight
     const wellsToFetch = wells.filter(w => 
       !fetchedWellsRef.current.has(w) && !inflightWellsRef.current.has(w)
     );
 
     if (wellsToFetch.length === 0) {
-      // tidak perlu fetch apapun
       return;
     }
 
-    // tandai sebagai inflight
+    // Define the request body based on the context (Data Prep vs. Dashboard)
+    let requestBody;
+    if (isDataPrep) {
+      // For data-prep, the backend might only need the list of wells
+      requestBody = { wells: wellsToFetch };
+    } else {
+      // For the dashboard, the backend needs the full_path
+      if (!wellsDir) {
+        console.warn("wellsDir is not set; cannot fetch columns for dashboard.");
+        return;
+      }
+      requestBody = { 
+        full_path: wellsDir,
+        wells: wellsToFetch 
+      };
+    }
+
     wellsToFetch.forEach(w => inflightWellsRef.current.add(w));
 
     try {
       const response = await fetch(`${apiUrl}/api/get-well-columns`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wells: wellsToFetch }),
+        // Use the dynamically created request body
+        body: JSON.stringify(requestBody),
       });
       if (!response.ok) throw new Error('Failed to fetch well columns');
-      const data = await response.json(); // ekspektasi: { wellA: [...], wellB: [...] }
+      const data = await response.json(); 
 
-      // gabungkan dengan state lama
       setWellColumns(prev => ({ ...prev, ...data }));
 
-      // tandai sebagai sudah di-fetch
       wellsToFetch.forEach(w => {
         fetchedWellsRef.current.add(w);
         inflightWellsRef.current.delete(w);
       });
     } catch (err) {
-      // hapus tanda inflight jika terjadi error supaya bisa dicoba lagi
       wellsToFetch.forEach(w => inflightWellsRef.current.delete(w));
       console.error('Failed to fetch well columns:', err);
     }
-  }, [apiUrl]);
+  }, [apiUrl, isDataPrep, wellsDir]);
 
   // Ketika selectedWells berubah, minta kolom hanya untuk wells yang belum ada
   useEffect(() => {
@@ -210,7 +255,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         case 'module3': endpointPath = '/api/get-module3-plot'; break;
         default: endpointPath = '/api/get-plot'; break;
       }
-      requestBody = { selected_wells: selectedWells, selected_intervals: selectedIntervals };
+      requestBody = { selected_wells: selectedWells, selected_intervals: selectedIntervals, full_path: wellsDir };
     }
 
     try {

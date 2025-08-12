@@ -50,8 +50,8 @@ export default function VshDNCalculationParams() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFetchingDefaults, setIsFetchingDefaults] = useState(false);
     const [rowSync, setRowSync] = useState<Record<number, boolean>>({}); // State untuk checkbox "P" dikembalikan
-    const { setVshDNParams } = useAppDataStore();
-    
+    const { setVshDNParams, wellsDir } = useAppDataStore();
+
     const isUsingZones = selectedZones.length > 0;
 
     useEffect(() => {
@@ -71,6 +71,7 @@ export default function VshDNCalculationParams() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        full_path: wellsDir,
                         selected_wells: selectedWells,
                         selected_intervals: selectedIntervals,
                         selected_zones: selectedZones,
@@ -107,7 +108,7 @@ export default function VshDNCalculationParams() {
         };
 
         fetchIntersectionDefaults();
-    }, [selectedWells, selectedIntervals, selectedZones]);
+    }, [selectedWells, selectedIntervals, selectedZones, wellsDir]);
 
     // Fungsi handleValueChange dikembalikan untuk menangani input per interval
     const handleValueChange = (id: number, interval: string, newValue: string) => {
@@ -158,7 +159,7 @@ export default function VshDNCalculationParams() {
             prcnt_qz: 0,
             prcnt_wtr: 0
         });
-        const payload = { params: formParams, selected_wells: selectedWells, selected_intervals: isUsingZones ? [] : selectedIntervals,
+        const payload = { params: formParams, full_path: wellsDir, selected_wells: selectedWells, selected_intervals: isUsingZones ? [] : selectedIntervals,
         selected_zones: isUsingZones ? selectedZones : []
          };
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;

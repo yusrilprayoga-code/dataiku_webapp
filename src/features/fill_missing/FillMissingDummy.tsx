@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import Select from 'react-select';
 import { Loader2 } from 'lucide-react';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 export default function FillMissingPage() {
     const { selectedWells, wellColumns } = useDashboard();
+    const { wellsDir } = useAppDataStore();
     const router = useRouter();
 
     const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
@@ -39,6 +41,7 @@ export default function FillMissingPage() {
                 body: JSON.stringify({
                     selected_wells: selectedWells,
                     logs_to_check: selectedLogs,
+                    full_path: wellsDir
                 }),
             });
             const result = await response.json();
@@ -66,6 +69,7 @@ export default function FillMissingPage() {
                     selected_wells: selectedWells,
                     logs_to_fill: selectedLogs,
                     max_consecutive_nan: maxConsecutive,
+                    full_path: wellsDir
                 }),
             });
             const result = await response.json();
