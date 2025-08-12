@@ -56,7 +56,7 @@ export default function DataPrepNormalizationParams() {
             }
         };
         fetchFilesFromDirectory();
-    }, []);
+    }, [ wellFolder, fieldName, structureName]);
 
     // Helper untuk membuat path lengkap dari nama file
     const constructFilePaths = useCallback((files: string[]) => {
@@ -72,11 +72,11 @@ export default function DataPrepNormalizationParams() {
             }
             const apiUrl = process.env.NEXT_PUBLIC_API_URL;
             try {
-                const fullPaths = constructFilePaths(selectedFiles);
+                const filePaths = constructFilePaths(selectedFiles);
                 const response = await fetch(`${apiUrl}/api/get-well-columns`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ full_path: wellsDir }),
+                    body: JSON.stringify({ file_paths: filePaths }),
                 });
                 if (!response.ok) throw new Error("Gagal mengambil kolom.");
                 const data = await response.json();
@@ -87,7 +87,7 @@ export default function DataPrepNormalizationParams() {
             }
         };
         fetchColumns();
-    }, [constructFilePaths, selectedFiles]);
+    }, [constructFilePaths, selectedFiles, wellsDir]);
     
     const currentLogIn = useMemo(() =>
         parameters.find(p => p.name === 'LOG_IN')?.values['default'] as string,

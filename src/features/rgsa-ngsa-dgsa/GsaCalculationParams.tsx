@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 // Definisikan tipe untuk props yang akan diterima komponen ini
 interface GsaBaseParamsProps {
@@ -56,6 +57,8 @@ export default function GsaBaseParams({ moduleTitle, apiEndpoint, relevantParams
     const activeIntervals = selectedZones.length > 0 ? selectedZones : selectedIntervals;
     const isUsingZones = selectedZones.length > 0;
 
+    const {wellsDir} = useAppDataStore();  
+
     // Use effective selection for parameter initialization
     useEffect(() => {
         const effectiveSelection = selectedZones.length > 0 ? selectedZones : selectedIntervals;
@@ -106,6 +109,7 @@ export default function GsaBaseParams({ moduleTitle, apiEndpoint, relevantParams
 
         const payload = {
             params: formParams,
+            full_path: wellsDir,
             selected_wells: selectedWells,
             selected_intervals: isUsingZones ? [] : selectedIntervals,
             selected_zones: isUsingZones ? selectedZones : [],
