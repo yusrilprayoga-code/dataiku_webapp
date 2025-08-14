@@ -30,7 +30,7 @@ const createInitialParameters = (intervals: string[], relevantParamNames: string
 
     // Definisikan nilai default
     const defaultValues: Record<string, string | number> = {
-        'SLIDING_WINDOW': 10,
+        'SLIDING_WINDOW': 100,
         'GR': 'GR',
         'DENS': 'RHOB',
         'NEUT': 'NPHI',
