@@ -22,15 +22,27 @@ const createInitialParameters = (intervals: string[], relevantParamNames: string
     // Definisikan master list dari SEMUA parameter GSA yang mungkin
     const allPossibleParams: Omit<ParameterRow, 'values'>[] = [
         { id: 1, location: 'Constant', mode: 'Input', comment: 'Window wide of sliding average', unit: 'METRES', name: 'SLIDING_WINDOW', isEnabled: true },
-        { id: 3, location: 'Log', mode: 'Input', comment: 'Input gamma ray log', unit: 'GAPI', name: 'GR', isEnabled: true },
-        { id: 4, location: 'Log', mode: 'Input', comment: 'Input density log', unit: 'G/C3', name: 'DENS', isEnabled: true },
-        { id: 5, location: 'Log', mode: 'Input', comment: 'Input neutron log', unit: 'V/V', name: 'NEUT', isEnabled: true },
-        { id: 6, location: 'Log', mode: 'Input', comment: 'Input resistivity log', unit: 'OHMM', name: 'RES', isEnabled: true },
+        { id: 2, location: 'Constant', mode: 'Input', comment: 'Maximum resistivity in water zone', unit: 'OHMM', name: 'RESWAT_MAX', isEnabled: true },
+        { id: 3, location: 'Constant', mode: 'Input', comment: 'Minimum resistivity in water zone', unit: 'OHMM', name: 'RESWAT_MIN', isEnabled: true },
+        { id: 4, location: 'Constant', mode: 'Input', comment: 'Maximum hydrogen index in water zone', unit: 'OHMM', name: 'NPHIWAT_MAX', isEnabled: true },
+        { id: 5, location: 'Constant', mode: 'Input', comment: 'Minimum hydrogen index in water zone', unit: 'OHMM', name: 'NPHIWAT_MIN', isEnabled: true },
+        { id: 6, location: 'Constant', mode: 'Input', comment: 'Maximum density in water zone', unit: 'OHMM', name: 'RHOBWAT_MAX', isEnabled: true },
+        { id: 7, location: 'Constant', mode: 'Input', comment: 'Minimum density in water zone', unit: 'OHMM', name: 'RHOBWAT_MIN', isEnabled: true },
+        { id: 8, location: 'Log', mode: 'Input', comment: 'Input gamma ray log', unit: 'GAPI', name: 'GR', isEnabled: true },
+        { id: 9, location: 'Log', mode: 'Input', comment: 'Input density log', unit: 'G/C3', name: 'DENS', isEnabled: true },
+        { id: 10, location: 'Log', mode: 'Input', comment: 'Input neutron log', unit: 'V/V', name: 'NEUT', isEnabled: true },
+        { id: 11, location: 'Log', mode: 'Input', comment: 'Input resistivity log', unit: 'OHMM', name: 'RES', isEnabled: true },
     ];
 
     // Definisikan nilai default
     const defaultValues: Record<string, string | number> = {
-        'SLIDING_WINDOW': 100,
+        'SLIDING_WINDOW': 30,
+        'RESWAT_MAX': 20,
+        'RESWAT_MIN': 0.1,
+        'NPHIWAT_MAX': 0.55,
+        'NPHIWAT_MIN': 0,
+        'RHOBWAT_MAX': 2.8,
+        'RHOBWAT_MIN': 2,
         'GR': 'GR',
         'DENS': 'RHOB',
         'NEUT': 'NPHI',

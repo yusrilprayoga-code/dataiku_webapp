@@ -83,7 +83,19 @@ export default function LeftSidebar() {
             processedColumns.push('PHIE', 'PHIE_PHIT');
         }
 
-        // 4. Finally, filter out 'DEPTH' from the list, then sort it
+        // 3. Handle PHIE/PHIT special sequence
+        const hasRt = processedColumns.includes('RT');
+        const hasRgsa = processedColumns.includes('RGSA');
+        if (hasRt && hasRgsa) {
+            // Remove original RT and RGSA to avoid duplicates
+            processedColumns = processedColumns.filter(
+                col => col !== 'RT' && col !== 'RGSA'
+            );
+            // Add the specific required items for the plot sequence
+            processedColumns.push('RT', 'RT_RGSA');
+        }
+
+        // 5. Finally, filter out 'DEPTH' from the list, then sort it
         processedColumns = processedColumns
             .filter(col => col !== 'DEPTH')
             .sort();

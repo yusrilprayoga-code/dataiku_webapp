@@ -7,7 +7,7 @@ export default function RgsaParams() {
         <GsaBaseParams
             moduleTitle="RGSA (Resistivity-Gamma Ray) Calculation"
             apiEndpoint="/api/run-rgsa"
-            relevantParams={['SLIDING_WINDOW', 'GR', 'RES']}
+            relevantParams={['SLIDING_WINDOW', 'RESWAT_MAX', 'RESWAT_MIN', 'GR', 'RES']}
         />
     );
 }
