@@ -104,7 +104,7 @@ export default function PorosityCalculationParams() {
         };
 
         fetchIntersectionDefaults();
-    }, [selectedWells, selectedIntervals]);
+    }, [selectedWells, selectedIntervals, wellsDir]);
 
     const handleValueChange = (id: number, interval: string, newValue: string) => {
         setParameters(prev =>

@@ -7,7 +7,7 @@ export default function NgsaParams() {
         <GsaBaseParams
             moduleTitle="NGSA (Neutron-Gamma Ray) Calculation"
             apiEndpoint="/api/run-ngsa"
-            relevantParams={['SLIDING_WINDOW', 'GR', 'NEUT']}
+            relevantParams={['SLIDING_WINDOW', 'NPHIWAT_MAX', 'NPHIWAT_MIN', 'GR', 'NEUT']}
         />
     );
 }

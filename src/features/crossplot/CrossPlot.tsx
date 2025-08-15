@@ -19,7 +19,7 @@ const FormField: React.FC<{ label: string; children: React.ReactNode }> = ({ lab
 
 export default function CrossplotViewer() {
     const { selectedWells, selectedIntervals, wellColumns } = useDashboard();
-    const { vshDNParams, setVshDNParams, vshParams, setVshParams } = useAppDataStore();
+    const { vshDNParams, setVshDNParams, vshParams, setVshParams, wellsDir } = useAppDataStore();
     const searchParams = useSearchParams();
 
     const [xCol, setXCol] = useState<string>('');
@@ -44,6 +44,7 @@ export default function CrossplotViewer() {
 
         const endpoint = "http://127.0.0.1:5001/api/get-crossplot";
         const payload = {
+            full_path:wellsDir,
             selected_wells: selectedWells,
             selected_intervals: selectedIntervals,
             x_col: xAxis,
@@ -66,7 +67,7 @@ export default function CrossplotViewer() {
         } finally {
             setLoading(false);
         }
-    }, [selectedWells, selectedIntervals, vshDNParams, vshParams]);
+    }, [selectedWells, wellsDir, selectedIntervals, vshDNParams, vshParams]);
 
     useEffect(() => {
         const xFromUrl = searchParams.get('x');

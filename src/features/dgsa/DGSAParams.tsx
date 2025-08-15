@@ -7,7 +7,7 @@ export default function DgsaParams() {
         <GsaBaseParams
             moduleTitle="DGSA (Density-Gamma Ray) Calculation"
             apiEndpoint="/api/run-dgsa"
-            relevantParams={['SLIDING_WINDOW', 'GR', 'DENS']}
+            relevantParams={['SLIDING_WINDOW', 'RHOBWAT_MAX', 'RHOBWAT_MIN', 'GR', 'DENS']}
         />
     );
 }
