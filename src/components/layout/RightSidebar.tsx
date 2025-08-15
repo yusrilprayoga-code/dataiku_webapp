@@ -196,7 +196,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
   
   const gowsButtons: (string | DropdownButton)[] = [
     {
-      label: 'RGSA',
+      label: 'GSA',
       items: ['RGSA', 'DGSA', 'NGSA']
     },
     'IQUAL',

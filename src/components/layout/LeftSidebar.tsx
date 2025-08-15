@@ -3,25 +3,29 @@
 import { PlotType, useDashboard } from '@/contexts/DashboardContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 export default function LeftSidebar() {
-    // Ambil semua state dan fungsi yang relevan dari context
-    const { 
-        availableWells, 
-        selectedWells, 
-        toggleWellSelection, 
-        availableIntervals, 
-        selectedIntervals, 
+    const {
+        availableWells,
+        selectedWells,
+        toggleWellSelection,
+        availableIntervals,
+        selectedIntervals,
         toggleInterval,
         availableZones,
         selectedZones,
         toggleZone,
-        plotType, 
+        wellColumns,
+        plotType,
         setPlotType,
-        fetchPlotData // Fungsi terpusat untuk mengambil plot
+        selectedCustomColumns,
+        toggleCustomColumn,
+        fetchPlotData,
+        isLoadingPlot,
+        columnError
     } = useDashboard();
-    
+
     const [isMounted, setIsMounted] = useState(false);
     const [intervalType, setIntervalType] = useState<'markers' | 'zones'>('markers');
     const router = useRouter();
@@ -30,21 +34,84 @@ export default function LeftSidebar() {
         setIsMounted(true);
     }, []);
 
-    // Gunakan useEffect untuk secara otomatis mengambil plot baru saat pilihan berubah
-    useEffect(() => {
-        // Hanya jalankan fetch jika ada sumur yang dipilih untuk menghindari permintaan yang tidak perlu
-        if (selectedWells.length > 0) {
-            fetchPlotData();
+    const commonColumnsResult = useMemo(() => {
+        if (selectedWells.length === 0) {
+            return { isLoading: false, columns: [] };
         }
-    }, [selectedWells, selectedIntervals, plotType, fetchPlotData]);
 
+        // Check if we have column data for all selected wells
+        for (const wellName of selectedWells) {
+            if (!wellColumns[`${wellName}.csv`]) {
+                return { isLoading: true, columns: [] };
+            }
+        }
+
+        // All well columns are loaded, now find the intersection
+        const firstWellCols = [...wellColumns[`${selectedWells[0]}.csv`]];
+
+        const intersection = selectedWells.slice(1).reduce((acc, wellName) => {
+            const currentWellCols = wellColumns[`${wellName}.csv`];
+            return acc.filter(column => currentWellCols.includes(column));
+        }, firstWellCols);
+
+        // --- NEW LOGIC TO PROCESS THE COLUMN LIST ---
+
+        // 1. Create a mutable copy of the common columns
+        let processedColumns = [...intersection];
+
+        // 2. Check if both 'NPHI' and 'RHOB' are present
+        const hasNphi = processedColumns.includes('NPHI');
+        const hasRhob = processedColumns.includes('RHOB');
+
+        // 3. If both exist, filter them out and add the merged 'NPHI_RHOB'
+        if (hasNphi && hasRhob) {
+            processedColumns = processedColumns.filter(
+                col => col !== 'NPHI' && col !== 'RHOB'
+            );
+            processedColumns.push('NPHI_RHOB');
+        }
+
+        // 3. Handle PHIE/PHIT special sequence
+        const hasPhie = processedColumns.includes('PHIE');
+        const hasPhit = processedColumns.includes('PHIT');
+        if (hasPhie && hasPhit) {
+            // Remove original PHIE and PHIT to avoid duplicates
+            processedColumns = processedColumns.filter(
+                col => col !== 'PHIE' && col !== 'PHIT'
+            );
+            // Add the specific required items for the plot sequence
+            processedColumns.push('PHIE', 'PHIE_PHIT');
+        }
+
+        // 3. Handle PHIE/PHIT special sequence
+        const hasRt = processedColumns.includes('RT');
+        const hasRgsa = processedColumns.includes('RGSA');
+        if (hasRt && hasRgsa) {
+            // Remove original RT and RGSA to avoid duplicates
+            processedColumns = processedColumns.filter(
+                col => col !== 'RT' && col !== 'RGSA'
+            );
+            // Add the specific required items for the plot sequence
+            processedColumns.push('RT', 'RT_RGSA');
+        }
+
+        // 5. Finally, filter out 'DEPTH' from the list, then sort it
+        processedColumns = processedColumns
+            .filter(col => col !== 'DEPTH')
+            .sort();
+
+
+        return { isLoading: false, columns: processedColumns };
+    }, [selectedWells, wellColumns]);
+
+    const handleGeneratePlot = () => {
+        fetchPlotData();
+    };
 
     const handleSelectAllWells = (checked: boolean) => {
         if (checked) {
             availableWells.forEach(well => {
-                if (!selectedWells.includes(well)) {
-                    toggleWellSelection(well);
-                }
+                if (!selectedWells.includes(well)) toggleWellSelection(well);
             });
         } else {
             selectedWells.forEach(well => toggleWellSelection(well));
@@ -52,41 +119,37 @@ export default function LeftSidebar() {
     };
 
     const handleSelectAllIntervals = (checked: boolean) => {
+        const action = (item: string, isSelected: boolean, toggleFunc: (i: string) => void) => {
+            if (checked && !isSelected) toggleFunc(item);
+            if (!checked && isSelected) toggleFunc(item);
+        };
+
         if (intervalType === 'markers') {
-            if (checked) {
-                availableIntervals.forEach(interval => {
-                    if (!selectedIntervals.includes(interval)) {
-                        toggleInterval(interval);
-                    }
-                });
-            } else {
-                selectedIntervals.forEach(interval => toggleInterval(interval));
-            }
+            availableIntervals.forEach(interval => action(interval, selectedIntervals.includes(interval), toggleInterval));
         } else {
-            // Handle zones selection - select/deselect all zones
-            if (checked) {
-                availableZones.forEach(zone => {
-                    if (!selectedZones.includes(zone)) {
-                        toggleZone(zone);
-                    }
-                });
-            } else {
-                selectedZones.forEach(zone => toggleZone(zone));
-            }
+            availableZones.forEach(zone => action(zone, selectedZones.includes(zone), toggleZone));
+        }
+    };
+
+    const handleSelectAllCustomColumns = (checked: boolean) => {
+        if (checked) {
+            commonColumnsResult.columns.forEach(col => {
+                if (!selectedCustomColumns.includes(col)) toggleCustomColumn(col);
+            });
+        } else {
+            selectedCustomColumns.forEach(col => toggleCustomColumn(col));
         }
     };
 
     const handleIntervalTypeChange = (type: 'markers' | 'zones') => {
         setIntervalType(type);
-        // Clear selections when switching types
         if (type === 'zones') {
-            selectedZones.forEach(zone => toggleZone(zone)); // Clear all selected zones
+            selectedIntervals.forEach(interval => toggleInterval(interval));
         } else {
-            selectedIntervals.forEach(interval => toggleInterval(interval)); // Clear all selected intervals
+            selectedZones.forEach(zone => toggleZone(zone));
         }
     };
 
-    // Opsi untuk dropdown crossplot
     const crossplotOptions = [
         { label: "Pilih Crossplot...", value: "" },
         { label: "Crossplot GR vs NPHI", value: "GR-NPHI" },
@@ -100,18 +163,16 @@ export default function LeftSidebar() {
     const handleCrossplotChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const value = e.target.value;
         if (!value) return;
-
         const [yCol, xCol] = value.split('-');
-        // Arahkan ke halaman crossplot dengan parameter URL
         router.push(`/dashboard/modules/crossplot?y=${yCol}&x=${xCol}`);
-        e.target.value = ""; // Reset dropdown agar bisa dipilih lagi
+        e.target.value = "";
     };
 
     return (
         <aside className="w-52 bg-gray-100 flex flex-col gap-2 p-2 border-r border-gray-300 h-screen">
             <div className="flex flex-col h-full gap-2">
                 <div className="text-xs font-bold text-gray-800 px-2 py-1">Data Selection</div>
-                
+
                 {/* Well Data Section */}
                 <div className="flex flex-col bg-white rounded-lg shadow-sm overflow-hidden">
                     <div className="flex items-center gap-2 p-1.5 bg-gray-50 border-b">
@@ -124,7 +185,7 @@ export default function LeftSidebar() {
                         <h3 className="text-xs font-bold text-gray-700">Wells</h3>
                         <span className="text-xs text-gray-500 ml-auto">{selectedWells.length}/{availableWells.length}</span>
                     </div>
-                    <div className="overflow-y-auto flex-1 p-1">
+                    <div className="overflow-y-auto max-h-48 p-1">
                         <div className="flex flex-col gap-0.5">
                             {isMounted ? availableWells.map(well => (
                                 <label key={well} className="flex items-center gap-2 px-2 py-0.5 rounded hover:bg-gray-50 cursor-pointer text-xs">
@@ -148,50 +209,42 @@ export default function LeftSidebar() {
                             type="checkbox"
                             className="h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500"
                             checked={isMounted && (
-                                intervalType === 'markers' 
+                                intervalType === 'markers'
                                     ? availableIntervals.length > 0 && selectedIntervals.length === availableIntervals.length
                                     : availableZones.length > 0 && selectedZones.length === availableZones.length
                             )}
                             onChange={(e) => handleSelectAllIntervals(e.target.checked)}
                         />
-                        <h3 className="text-xs font-bold text-gray-700">
-                            {intervalType === 'markers' ? 'Markers' : 'Zones'}
-                        </h3>
+                        <h3 className="text-xs font-bold text-gray-700">{intervalType === 'markers' ? 'Markers' : 'Zones'}</h3>
                         <span className="text-xs text-gray-500 ml-auto">
-                            {intervalType === 'markers' 
+                            {intervalType === 'markers'
                                 ? `${selectedIntervals.length}/${availableIntervals.length}`
-                                : `${selectedZones.length}/${availableZones.length}`
-                            }
+                                : `${selectedZones.length}/${availableZones.length}`}
                         </span>
                     </div>
-                    
-                    {/* Toggle buttons for markers/zones */}
                     <div className="flex bg-gray-50 border-b">
                         <button
                             type="button"
                             onClick={() => handleIntervalTypeChange('markers')}
-                            className={`flex-1 px-2 py-1 text-xs font-medium transition-colors ${
-                                intervalType === 'markers' 
-                                    ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-500' 
-                                    : 'text-gray-600 hover:text-gray-800'
-                            }`}
+                            className={`flex-1 px-2 py-1 text-xs font-medium transition-colors ${intervalType === 'markers'
+                                ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-500'
+                                : 'text-gray-600 hover:text-gray-800'
+                                }`}
                         >
                             Markers
                         </button>
                         <button
                             type="button"
                             onClick={() => handleIntervalTypeChange('zones')}
-                            className={`flex-1 px-2 py-1 text-xs font-medium transition-colors ${
-                                intervalType === 'zones' 
-                                    ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-500' 
-                                    : 'text-gray-600 hover:text-gray-800'
-                            }`}
+                            className={`flex-1 px-2 py-1 text-xs font-medium transition-colors ${intervalType === 'zones'
+                                ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-500'
+                                : 'text-gray-600 hover:text-gray-800'
+                                }`}
                         >
                             Zones
                         </button>
                     </div>
-                    
-                    <div className="overflow-y-auto flex-1 p-1">
+                    <div className="overflow-y-auto p-1 max-h-32">
                         <div className="flex flex-col gap-0.5">
                             {intervalType === 'markers' ? (
                                 availableIntervals.map(interval => (
@@ -227,11 +280,9 @@ export default function LeftSidebar() {
                         </div>
                     </div>
                 </div>
-                
-                {/* Spacer agar Display menempel di bawah */}
+
                 <div className="flex-grow"></div>
 
-                {/* Display Section */}
                 <div className="bg-white rounded-lg shadow-sm p-2 flex flex-col gap-2">
                     <h3 className="text-xs font-bold text-gray-700">Display</h3>
                     <div>
@@ -242,6 +293,7 @@ export default function LeftSidebar() {
                             className="text-xs w-full bg-white border border-gray-200 rounded p-1 focus:ring-1 focus:ring-blue-500"
                         >
                             <option value="default">Layout Default</option>
+                            <option value="custom">Layout Custom</option>
                             <option value="normalization">Layout Normalisasi</option>
                             <option value="smoothing">Layout Smoothing</option>
                             <option value="vsh">Layout VSH</option>
@@ -258,23 +310,85 @@ export default function LeftSidebar() {
                             <option value="module3">Layout Module 3</option>
                         </select>
                     </div>
+
+                    {plotType === 'custom' && (
+                        <div className="flex flex-col border border-gray-200 rounded-md">
+                            <div className="flex items-center gap-2 p-1.5 bg-gray-50 border-b">
+                                <input
+                                    type="checkbox"
+                                    className="h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500"
+                                    checked={!commonColumnsResult.isLoading && commonColumnsResult.columns.length > 0 && selectedCustomColumns.length === commonColumnsResult.columns.length}
+                                    onChange={(e) => handleSelectAllCustomColumns(e.target.checked)}
+                                    disabled={commonColumnsResult.isLoading || commonColumnsResult.columns.length === 0}
+                                />
+                                <h3 className="text-xs font-bold text-gray-700">Custom Curves</h3>
+                                <span className="text-xs text-gray-500 ml-auto">
+                                    {!commonColumnsResult.isLoading && `${selectedCustomColumns.length}/${commonColumnsResult.columns.length}`}
+                                </span>
+                            </div>
+                            <div className="overflow-y-auto max-h-60 p-1"> {/* Increased max-h slightly */}
+                                {columnError ? (
+                                    <div className="p-2 text-xs text-red-600 text-center break-words">{columnError}</div>
+                                ) : commonColumnsResult.isLoading ? (
+                                    <div className="p-2 text-xs text-gray-500 text-center">Loading curves...</div>
+                                ) : commonColumnsResult.columns.length > 0 ? (
+                                    commonColumnsResult.columns.map(col => (
+                                        <label key={col} className="flex items-center gap-2 px-2 py-0.5 rounded hover:bg-gray-50 cursor-pointer text-xs">
+                                            <input
+                                                type="checkbox"
+                                                className="h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-1 focus:ring-blue-500"
+                                                checked={selectedCustomColumns.includes(col)}
+                                                onChange={() => toggleCustomColumn(col)}
+                                            />
+                                            <span className="truncate">{col}</span>
+                                        </label>
+                                    ))
+                                ) : (
+                                    <div className="p-2 text-xs text-gray-500 text-center">
+                                        {selectedWells.length > 0 ? "No common curves found." : "Select wells first."}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     <div>
                         <label className="text-xs text-gray-600 mb-1 block">Analysis</label>
                         <select
                             onChange={handleCrossplotChange}
-                            // Class 'appearance-none' dan 'text-center' dihapus agar sesuai referensi
                             className="text-xs w-full bg-white border border-gray-200 rounded p-1 focus:ring-1 focus:ring-blue-500"
                         >
                             {crossplotOptions.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
                             ))}
                         </select>
-                        </div>
+                    </div>
+                    <Link
+                        href="/dashboard/modules/histogram"
+                        className="text-xs w-full bg-gray-50 border border-gray-200 rounded p-1.5 text-center font-medium hover:bg-gray-100 focus:ring-1 focus:ring-blue-500 transition-colors"
+                    >
+                        Histogram
+                    </Link>
 
-                        {/* Link Histogram sekarang berada di luar div-select agar menjadi elemen terpisah di bawahnya */}
-                        <Link href="/dashboard/modules/histogram" className="text-xs w-full bg-gray-50 border border-gray-200 rounded p-1.5 text-center font-medium hover:bg-gray-100 focus:ring-1 focus:ring-blue-500 transition-colors">
-                            Histogram
-                        </Link>
+                    {/* Generate Plot Button */}
+                    <button
+                        type="button"
+                        onClick={handleGeneratePlot}
+                        disabled={isLoadingPlot}
+                        className="mt-2 w-full flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                        {isLoadingPlot ? (
+                            <>
+                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Loading...
+                            </>
+                        ) : (
+                            'Generate Plot'
+                        )}
+                    </button>
                 </div>
             </div>
         </aside>
