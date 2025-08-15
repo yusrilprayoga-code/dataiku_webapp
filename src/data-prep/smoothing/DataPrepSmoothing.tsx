@@ -53,7 +53,7 @@ export default function DataPrepSmoothingParams() {
             }
         };
         fetchFilesFromDirectory();
-    }, []);
+    }, [fieldName, structureName, wellFolder]);
 
     // Helper untuk membuat path lengkap dari nama file
     const constructFilePaths = useCallback((files: string[]) => {
@@ -125,7 +125,8 @@ export default function DataPrepSmoothingParams() {
         const payload = {
             params: formParams,
             file_paths: constructFilePaths(selectedFiles),
-            selected_intervals: [] // Interval selalu kosong di Data Prep
+            selected_intervals: [], // Interval selalu kosong di Data Prep
+            selected_zones: [] // Zone selalu kosong di Data Prep
         };
         
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;

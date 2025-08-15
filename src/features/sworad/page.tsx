@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Loader2, AlertTriangle } from 'lucide-react';
-import { useAppDataStore } from '@/stores/useAppDataStore';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type PlotData, type ParameterRow } from '@/types';
 import { useRouter } from 'next/navigation';
@@ -10,11 +9,11 @@ import SworadParams from './components/SworadParams';
 
 
 export default function SworadPage() {
-    const { selectedWells, selectedIntervals } = useDashboard();
+    const { selectedWells, selectedIntervals, selectedZones } = useDashboard();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [plot, setPlot] = useState<PlotData | null>(null);
+    const [setPlot] = useState<PlotData | null>(null);
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     const endpoint = `${apiUrl}/api/run-swgrad`;
     const createInitialParameters = (intervals: string[]): ParameterRow[] => {
@@ -102,6 +101,7 @@ export default function SworadPage() {
                 body: JSON.stringify({
                     selected_wells: selectedWells,
                     selected_intervals: selectedIntervals,
+                    selected_zones: selectedZones,
                     params: paramValues
                 }),
             });

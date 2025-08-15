@@ -16,7 +16,7 @@ const FormField: React.FC<{ label: string; children: React.ReactNode }> = ({ lab
 );
 
 export default function HistogramParams() {
-  const { selectedWells, wellColumns, selectedIntervals } = useDashboard();
+  const { selectedWells, wellColumns, selectedIntervals, selectedZones } = useDashboard();
   const [selectedLog, setSelectedLog] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [plotResult, setPlotResult] = useState<{ data: Data[], layout: Partial<Layout> } | null>(null);
@@ -84,6 +84,7 @@ export default function HistogramParams() {
       selected_wells: selectedWells,
       log_column: selectedLog,
       selected_intervals: selectedIntervals,
+      selected_zones: selectedZones,
     };
 
     try {

@@ -53,6 +53,8 @@ const getRouteForItem = (itemName: string) => {
       return 'porosity-calculation';
     case 'WATER RESISTIVITY CALCULATION':
       return 'water-resistivity-calculation';
+    case 'IQUAL':
+      return 'iqual';
     case 'RGBE-RPBE':
       return 'rgbe-rpbe';
     case 'AUTO FLUID':
@@ -197,6 +199,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
       label: 'RGSA',
       items: ['RGSA', 'DGSA', 'NGSA']
     },
+    'IQUAL',
     'RGBE-RPBE', 
     'AUTO FLUID',
     'RT RO',

@@ -44,7 +44,7 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
 };
 
 export default function NormalizationParams() {
-    const { selectedWells, selectedIntervals } = useDashboard();
+    const { selectedWells, selectedIntervals, selectedZones } = useDashboard();
     const [parameters, setParameters] = useState<ParameterRow[]>([]);
     const router = useRouter();
     const pathname = usePathname();
@@ -76,6 +76,7 @@ export default function NormalizationParams() {
                         file_paths: wellsDir,
                         selected_wells: selectedWells,
                         selected_intervals: selectedIntervals,
+                        selected_zones: selectedZones,
                         log_column: logColumn,
                     }),
                 });
@@ -165,7 +166,8 @@ export default function NormalizationParams() {
         const payload = {
             params: formParams,
             selected_wells: selectedWells,
-            selected_intervals: selectedIntervals
+            selected_intervals: selectedIntervals,
+            selected_zones: selectedZones
         };
 
         console.log("Payload yang dikirim ke backend:", payload);
@@ -214,7 +216,7 @@ export default function NormalizationParams() {
             <form onSubmit={handleSubmit} className="flex-grow flex flex-col min-h-0">
                 <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50">
                     <div className="md:col-span-4">
-                        <p className="text-sm font-medium text-gray-700">Well: {selectedWells.join(', ') || 'N/A'} / Intervals: {selectedIntervals.length} selected</p>
+                        <p className="text-sm font-medium text-gray-700">Well: {selectedWells.join(', ') || 'N/A'} / Intervals: {selectedIntervals.length} selected / Zones: {selectedZones.length} selected</p>
                     </div>
                     <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                         <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>

@@ -255,7 +255,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         case 'module3': endpointPath = '/api/get-module3-plot'; break;
         default: endpointPath = '/api/get-plot'; break;
       }
-      requestBody = { selected_wells: selectedWells, selected_intervals: selectedIntervals, full_path: wellsDir };
+      requestBody = { selected_wells: selectedWells, selected_intervals: selectedIntervals, full_path: wellsDir, selected_zones: selectedZones };
     }
 
     try {
@@ -280,7 +280,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoadingPlot(false);
     }
-  }, [apiUrl, plotType, selectedFilePath, selectedWells, selectedIntervals]);
+  }, [selectedFilePath, selectedWells, plotType, selectedIntervals, wellsDir, selectedZones, apiUrl]);
 
   const toggleWellSelection = (well: string) => {
     setSelectedWells(prev =>

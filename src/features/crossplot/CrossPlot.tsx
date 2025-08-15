@@ -18,7 +18,7 @@ const FormField: React.FC<{ label: string; children: React.ReactNode }> = ({ lab
 );
 
 export default function CrossplotViewer() {
-    const { selectedWells, selectedIntervals, wellColumns } = useDashboard();
+    const { selectedWells, selectedIntervals, wellColumns, selectedZones } = useDashboard();
     const { vshDNParams, setVshDNParams, vshParams, setVshParams, wellsDir } = useAppDataStore();
     const searchParams = useSearchParams();
 
@@ -47,6 +47,7 @@ export default function CrossplotViewer() {
             full_path:wellsDir,
             selected_wells: selectedWells,
             selected_intervals: selectedIntervals,
+            selected_zones: selectedZones,
             x_col: xAxis,
             y_col: yAxis,
             ...vshDNParams,
@@ -67,22 +68,51 @@ export default function CrossplotViewer() {
         } finally {
             setLoading(false);
         }
-    }, [selectedWells, wellsDir, selectedIntervals, vshDNParams, vshParams]);
+    }, [selectedWells, wellsDir, selectedIntervals, selectedZones, vshDNParams, vshParams]);
 
     useEffect(() => {
         const xFromUrl = searchParams.get('x');
         const yFromUrl = searchParams.get('y');
 
+        let currentX = xCol;
+        let currentY = yCol;
+
         if (xFromUrl && yFromUrl) {
-            setXCol(xFromUrl);
-            setYCol(yFromUrl);
-            fetchCrossplot(xFromUrl, yFromUrl);
-        } else if (availableLogs.length > 0) {
-            // Fallback jika tidak ada parameter URL
-            setXCol('NPHI');
-            setYCol('RHOB');
+            currentX = xFromUrl;
+            currentY = yFromUrl;
+        } else if (availableLogs.length > 0 && !xCol && !yCol) {
+            currentX = 'NPHI';
+            currentY = 'RHOB';
         }
-    }, [searchParams, fetchCrossplot, availableLogs]);
+
+        if (currentX !== xCol) setXCol(currentX);
+        if (currentY !== yCol) setYCol(currentY);
+
+        if (!currentX || !currentY) {
+            return;
+        }
+
+        // Jika ini adalah plot NPHI vs RHOB dan parameternya 0 (atau kosong),
+        // perbarui state ke nilai default yang aman dan hentikan eksekusi.
+        // useEffect akan berjalan lagi setelah state diperbarui.
+        if (currentX === 'NPHI' && currentY === 'RHOB') {
+            const { prcnt_qz, prcnt_wtr } = vshDNParams;
+            if (prcnt_qz === 0 || prcnt_wtr === 0 || prcnt_qz === null || prcnt_wtr === null) {
+                setVshDNParams({
+                    prcnt_qz: 5, prcnt_wtr: 5,
+                    rhob_ma: 0,
+                    rhob_sh: 0,
+                    nphi_ma: 0,
+                    nphi_sh: 0
+                });
+                return; // Keluar lebih awal, biarkan pembaruan state memicu fetch.
+            }
+        }
+
+        // Jika parameter sudah valid, atau ini bukan plot NPHI vs RHOB, lanjutkan untuk mengambil data.
+        fetchCrossplot(currentX, currentY);
+
+    }, [searchParams, availableLogs, vshDNParams, fetchCrossplot, xCol, yCol, setVshDNParams]);
     
     const handleParamChange = (key: string, value: string) => {
         const numericValue = parseFloat(value);
@@ -98,7 +128,7 @@ export default function CrossplotViewer() {
         <div className="p-4 md:p-6 bg-white rounded-lg shadow-md">
             <h2 className="text-xl font-bold mb-4 text-gray-800">Crossplot {yCol || ''} vs {xCol || ''}</h2>
             <p className="text-sm text-gray-600 mb-1">Wells: {selectedWells.join(', ') || 'N/A'}</p>
-            <p className="text-sm text-gray-600 mb-4">Intervals: {selectedIntervals.join(', ') || 'All'}</p>
+            <p className="text-sm text-gray-600 mb-4">Intervals: {selectedIntervals.join(', ') || selectedZones.join(', ') || 'All'}</p>
 
             <div className="p-4 border rounded-lg bg-gray-50 space-y-4 mb-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

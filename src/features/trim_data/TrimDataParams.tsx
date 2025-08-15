@@ -26,7 +26,7 @@ const createInitialTrimParameters = (): ParameterRow[] => {
 
 export default function TrimDataParams() {
     // Ambil state global dari context, termasuk selectedFilePath
-    const { selectedWells, selectedIntervals, selectedFilePath } = useDashboard();
+    const { selectedWells, selectedIntervals, selectedFilePath, selectedZones } = useDashboard();
     const router = useRouter();
     const pathname = usePathname();
     
@@ -73,8 +73,9 @@ export default function TrimDataParams() {
             payload = {
                 params: formParams,
                 file_paths: [selectedFilePath], // Kirim path file yang dipilih dari context
-                selected_wells: selectedWells,                
-                selected_intervals: []
+                selected_wells: selectedWells,
+                selected_intervals: [],
+                selected_zones: selectedZones
             };
         } else {
             // Payload untuk Dashboard: gunakan selectedWells dan selectedIntervals
@@ -82,7 +83,8 @@ export default function TrimDataParams() {
                 params: formParams,
                 full_path: wellsDir,
                 selected_wells: selectedWells,
-                selected_intervals: selectedIntervals
+                selected_intervals: selectedIntervals,
+                selected_zones: selectedZones
             };
         }
         // ---------------------------------------------

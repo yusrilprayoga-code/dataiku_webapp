@@ -19,7 +19,7 @@ const createInitialVshParameters = (selection: string[]): ParameterRow[] => {
     { id: 3, location: 'Interval', mode: 'In_Out', comment: 'Gamma ray shale', unit: 'GAPI', name: 'GR_SH', isEnabled: true },
     // { id: 4, location: 'Interval', mode: 'In_Out', comment: 'Option to allow coal logic', unit: 'LOGICAL', name: 'OPT_COAL', isEnabled: true },
     { id: 4, location: 'Log', mode: 'Input', comment: 'Gamma ray log', unit: 'GAPI', name: 'GR', isEnabled: true },
-    { id: 5, location: 'Log', mode: 'Output', comment: 'VSH from gamma ray', unit: 'V/V', name: 'VSH_GR', isEnabled: true },
+    { id: 5, location: 'Log', mode: 'Output', comment: 'VSH from gamma ray', unit: 'V/V', name: 'VSH_LINEAR', isEnabled: true },
   ];
 
   // Definisikan nilai default
@@ -28,7 +28,7 @@ const createInitialVshParameters = (selection: string[]): ParameterRow[] => {
     'GR_MA': 30,
     'GR_SH': 120,
     'GR': 'GR',
-    'VSH_GR': 'VSH_GR',
+    'VSH_LINEAR': 'VSH_LINEAR',
   };
 
   // Petakan untuk menghasilkan data awal yang benar

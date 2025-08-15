@@ -25,6 +25,7 @@ import RGSAParams from '@/features/rgsa/RGSAParams';
 import NGSAParams from '@/features/ngsa/NGSAParams';
 import DGSAParams from '@/features/dgsa/DGSAParams';
 import SwSimandouxParams from '@/features/sw-simandoux/page';
+import IqualCalculationParams from '@/features/iqual/IqualParams';
 
 // Komponen untuk menampilkan pesan error jika modul tidak ditemukan
 const ErrorComponent = ({ moduleName }: { moduleName: string }) => (
@@ -59,6 +60,7 @@ const moduleMap: Record<string, React.ComponentType<unknown>> = {
     'ngsa': NGSAParams,
     'dgsa': DGSAParams,
     'trim-data': TrimDataParams,
+    'iqual': IqualCalculationParams,
     'dns-dnsv': DnsDnsvCalculationPage,
     'rgbe-rpbe': RgbeRpbePage,
     'rt-ro': RtRoPage,

@@ -106,6 +106,7 @@ export default function DataPrepNormalizationParams() {
                     body: JSON.stringify({
                         file_paths: constructFilePaths(selectedFiles),
                         selected_intervals: [],
+                        selected_zones: [],
                         log_column: logColumn,
                     }),
                 });
@@ -166,7 +167,8 @@ export default function DataPrepNormalizationParams() {
         const payload = {
             params: formParams,
             file_paths: constructFilePaths(selectedFiles),
-            selected_intervals: []
+            selected_intervals: [],
+            selected_zones: []
         };
         
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;

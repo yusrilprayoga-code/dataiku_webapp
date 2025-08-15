@@ -42,7 +42,7 @@ export default function SmoothingParams() {
     const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
     const [availableColumns, setAvailableColumns] = useState<string[]>([]);
 
-    const { fieldName, structureName, wellFolder, wellsDir } = useAppDataStore();
+    const { wellsDir } = useAppDataStore();
     // Check if we're in DataPrep context by checking the current pathname
     const isDataPrep = pathname?.startsWith('/data-prep') || false;
 

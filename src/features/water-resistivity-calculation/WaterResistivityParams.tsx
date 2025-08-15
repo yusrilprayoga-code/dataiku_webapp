@@ -288,7 +288,7 @@ export default function RWACalculationParams() {
                           <input
                             type="text"
                             value={param.values[zone] ?? param.values['default'] ?? ''}
-                            onChange={(e) => handleValueChange(param.id, interval, e.target.value)}
+                            onChange={(e) => handleValueChange(param.id, zone, e.target.value)}
                             className="w-full min-w-[100px] p-1 bg-white text-black disabled:bg-gray-100 disabled:text-gray-500"
                           />
                         )}

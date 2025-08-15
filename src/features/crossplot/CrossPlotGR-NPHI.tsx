@@ -11,7 +11,7 @@ import { useAppDataStore } from '@/stores/useAppDataStore';
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 export default function CrossplotNPHI_GR() {
-  const { selectedIntervals, selectedWells } = useDashboard();
+  const { selectedIntervals, selectedWells, selectedZones } = useDashboard();
   const [plotResult, setPlotResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [circleShapes, setCircleShapes] = useState<any[]>([]);
@@ -59,6 +59,7 @@ export default function CrossplotNPHI_GR() {
         body: JSON.stringify({
           selected_wells: selectedWells,
           selected_intervals: selectedIntervals,
+          selected_zones: selectedZones,
           x_col: 'NPHI',
           y_col: 'GR',
           GR_MA: vshParams.gr_ma,
