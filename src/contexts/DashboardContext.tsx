@@ -155,6 +155,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       }
       
       const data = await response.json();
+    console.log("get-well-columns response:", data);
 
       // --- NEW VALIDATION LOGIC ---
       // Check if the received data is a non-empty object.
