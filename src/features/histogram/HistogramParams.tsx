@@ -5,6 +5,7 @@ import { useDashboard } from '@/contexts/DashboardContext';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { type Layout, type Data } from 'plotly.js';
+import { useAppDataStore } from '@/stores/useAppDataStore';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -17,6 +18,7 @@ const FormField: React.FC<{ label: string; children: React.ReactNode }> = ({ lab
 
 export default function HistogramParams() {
   const { selectedWells, wellColumns, selectedIntervals, selectedZones } = useDashboard();
+  const {wellsDir}=useAppDataStore();
   const [selectedLog, setSelectedLog] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [plotResult, setPlotResult] = useState<{ data: Data[], layout: Partial<Layout> } | null>(null);
@@ -82,6 +84,7 @@ export default function HistogramParams() {
     
     const payload = {
       selected_wells: selectedWells,
+      full_path: wellsDir,
       log_column: selectedLog,
       selected_intervals: selectedIntervals,
       selected_zones: selectedZones,
@@ -93,6 +96,7 @@ export default function HistogramParams() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+    
       });
 
       if (!response.ok) { 
