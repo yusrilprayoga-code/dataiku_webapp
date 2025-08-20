@@ -396,7 +396,7 @@ export default function DirectorySidebar() {
             
             if (response.ok) {
               const plotData = await response.json();
-              let parsedPlotData = typeof plotData === 'string' ? JSON.parse(plotData) : plotData;
+              const parsedPlotData = typeof plotData === 'string' ? JSON.parse(plotData) : plotData;
               
               if (parsedPlotData && (parsedPlotData.data || parsedPlotData.layout)) {
                 setPlotFigure({
@@ -577,8 +577,9 @@ export default function DirectorySidebar() {
               disabled={!selectedFilePath} // Disable if no file is selected
             >
               <option value="default">Layout Default</option>
-              <option value="normalization-prep">Layout Normalisasi</option>
+              <option value="fill-missing-prep">Layout Fill Missing</option>
               <option value="smoothing-prep">Layout Smoothing</option>
+              <option value="normalization-prep">Layout Normalisasi</option>
               <option value="splicing">Layout Splicing</option>
             </select>
           </div>

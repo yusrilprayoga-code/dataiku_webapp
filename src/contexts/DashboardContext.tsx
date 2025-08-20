@@ -9,7 +9,7 @@ export type PlotType =
   'default' | 'normalization' | 'smoothing' | 'porosity' | 'sw' |
   'vsh' | 'rwa' | 'module2' | 'gsa' | 'rpbe-rgbe' | 'iqual' |
   'swgrad' | 'dns-dnsv' | 'rt-ro' | 'module3' | 'splicing' |
-  'get-module1-plot' | 'normalization-prep' | 'smoothing-prep' | 'custom';
+  'get-module1-plot' | 'normalization-prep' | 'smoothing-prep' | 'fill-missing-prep' | 'custom';
 
 interface PlotFigure {
   data: Data[];
@@ -218,6 +218,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         switch (plotType) {
             case 'normalization-prep': endpointPath = '/api/get-normalization-prep-plot'; break;
             case 'smoothing-prep': endpointPath = '/api/get-smoothing-prep-plot'; break;
+            case 'fill-missing-prep': endpointPath = '/api/get-fill-missing-plot'; break;
             case 'splicing': endpointPath = '/api/get-splicing-plot'; break;
             case 'custom': endpointPath = '/api/get-custom-plot'; break;
             default: endpointPath = '/api/get-module1-plot'; break;
