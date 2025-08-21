@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
 import { useDashboard } from '@/contexts/DashboardContext';
-import { useAppDataStore } from '@/stores/useAppDataStore';
 
 // Fungsi untuk membuat parameter awal
 const createInitialSplicingParameters = (): ParameterRow[] => {
@@ -27,21 +26,11 @@ const createInitialSplicingParameters = (): ParameterRow[] => {
         { id: 13, location: 'Log', mode: 'Output', comment: 'Spliced Resistivity Output Log', unit: '', name: 'RT', isEnabled: true },
     ];
 
-    // Nilai default yang akan menjadi sumber opsi dropdown
     const defaultValues: Record<string, string | number> = {
-        'SPLICEDEPTH': 1520,
-        'GR_RUN1': 'GR_CAL',
-        'GR_RUN2': 'DGRCC',
-        'GR': 'GR',
-        'NPHI_RUN1': 'TNPH',
-        'NPHI_RUN2': 'TNPL',
-        'NPHI': 'NPHI',
-        'RHOB_RUN1': 'RHOZ',
-        'RHOB_RUN2': 'ALCDLC',
-        'RHOB': 'RHOB',
-        'RT_RUN1': 'RLA5',
-        'RT_RUN2': 'R39PC',
-        'RT': 'RT',
+        'SPLICEDEPTH': 1520, 'GR_RUN1': 'GR_CAL', 'GR_RUN2': 'DGRCC', 'GR': 'GR',
+        'NPHI_RUN1': 'TNPH', 'NPHI_RUN2': 'TNPL', 'NPHI': 'NPHI',
+        'RHOB_RUN1': 'RHOZ', 'RHOB_RUN2': 'ALCDLC', 'RHOB': 'RHOB',
+        'RT_RUN1': 'RLA5', 'RT_RUN2': 'R39PC', 'RT': 'RT',
     };
 
     return splicingParams.map(p => ({
@@ -51,158 +40,63 @@ const createInitialSplicingParameters = (): ParameterRow[] => {
 };
 
 export default function SplicingParams() {
-    const { selectedWells, wellColumns, setPlotFigure } = useDashboard();
+    const { 
+        selectedWells, 
+        wellColumns, 
+        setPlotFigure,
+        fetchWellColumns
+    } = useDashboard();
+
     const router = useRouter();
-    const [parameters, setParameters] = useState<ParameterRow[]>([]);
+    const [parameters, setParameters] = useState<ParameterRow[]>(createInitialSplicingParameters());
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [wellsForSplicing, setWellsForSplicing] = useState<string[]>([]);
-    const [selectedRun1Well, setSelectedRun1Well] = useState<string>('');
-    const [selectedRun2Well, setSelectedRun2Well] = useState<string>('');
-    const [run1Columns, setRun1Columns] = useState<string[]>([]);
-    const [run2Columns, setRun2Columns] = useState<string[]>([]);
-    const [isLoadingColumns, setIsLoadingColumns] = useState(false);
-    const [isGeneratingPlot, setIsGeneratingPlot] = useState(false);
-    const [run1FilePath, setRun1FilePath] = useState<string>('');
-    const [run2FilePath, setRun2FilePath] = useState<string>('');
-
-    const { fieldName, structureName, wellFolder } = useAppDataStore();
     
-    // Get available wells from wellColumns or selectedWells
-    const availableWells = Object.keys(wellColumns).length > 0 ? Object.keys(wellColumns) : selectedWells;
+    // State lokal untuk menunjuk file mana dari `selectedWells` yang akan digunakan untuk Run 1 dan Run 2
+    const [selectedRun1Path, setSelectedRun1Path] = useState<string>('');
+    const [selectedRun2Path, setSelectedRun2Path] = useState<string>('');
     
-    // Function to get file path for a well (you may need to adjust this based on your file structure)
-    const getWellFilePath = (wellName: string): string => {
-        // This assumes the file path follows a pattern - adjust based on your actual file structure
-        // For now, using a generic pattern that matches your backend structure
-        return `data/structures/${fieldName}/${structureName}/${wellFolder}/${wellName}`;
-    };
-    
-    // Fetch well columns from API
-    const fetchWellColumns = async (wells: string[]) => {
-        if (wells.length === 0) return {};
-        setIsLoadingColumns(true);
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        const wellsWithFullPath = wells.map(well => getWellFilePath(well));
-        try {
-            const response = await fetch(`${apiUrl}/api/get-well-columns`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ wells: wellsWithFullPath }),
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to fetch well columns');
-            }
-            
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error('Error fetching well columns:', error);
-            return {};
-        } finally {
-            setIsLoadingColumns(false);
+    // Panggil fetchWellColumns untuk mendapatkan daftar kolom dari file yang dipilih
+    useEffect(() => {
+        if (selectedWells.length > 0) {
+            fetchWellColumns(selectedWells);
         }
-    };
+    }, [selectedWells, fetchWellColumns]);
 
-    // Get available columns for specific parameter based on well assignment
+    // Atur pilihan default untuk dropdown Run 1 dan Run 2 saat daftar file berubah
+    useEffect(() => {
+        if (selectedWells.length >= 2) {
+            setSelectedRun1Path(selectedWells[0]);
+            setSelectedRun2Path(selectedWells[1]);
+        } else if (selectedWells.length === 1) {
+            setSelectedRun1Path(selectedWells[0]);
+            setSelectedRun2Path('');
+        } else {
+            setSelectedRun1Path('');
+            setSelectedRun2Path('');
+        }
+    }, [selectedWells]);
+
+    // Dapatkan daftar kolom untuk masing-masing file yang dipilih
+    const run1Columns = useMemo(() => wellColumns[selectedRun1Path] || [], [wellColumns, selectedRun1Path]);
+    const run2Columns = useMemo(() => wellColumns[selectedRun2Path] || [], [wellColumns, selectedRun2Path]);
+
+    // Sediakan daftar kolom yang sesuai untuk setiap parameter di tabel
     const getColumnsForParameter = (parameterName: string): string[] => {
-        // Default fallback options
         const fallbackOptions = ['GR', 'NPHI', 'RHOB', 'RT', 'GR_CAL', 'TNPH', 'RHOZ', 'RLA5', 'DGRCC', 'TNPL', 'ALCDLC', 'R39PC'];
-        
         if (parameterName.includes('_RUN1')) {
-            // Parameters for Run 1 (Upper) well
             return run1Columns.length > 0 ? run1Columns : fallbackOptions;
         } else if (parameterName.includes('_RUN2')) {
-            // Parameters for Run 2 (Lower) well
             return run2Columns.length > 0 ? run2Columns : fallbackOptions;
         } else {
-            // Output parameters - combine both wells' columns
-            const combinedColumns = [...new Set([...run1Columns, ...run2Columns])];
-            return combinedColumns.length > 0 ? combinedColumns : fallbackOptions;
+            const combined = [...new Set([...run1Columns, ...run2Columns])];
+            return combined.length > 0 ? combined : fallbackOptions;
         }
     };
-
-    // useEffect untuk mengatur parameter awal
-    useEffect(() => {
-        setParameters(createInitialSplicingParameters());
-    }, []);
-
-    // useEffect untuk auto-select wells saat availableWells berubah
-    useEffect(() => {
-        // Only auto-select if no wells are currently selected
-        if (!selectedRun1Well && !selectedRun2Well && availableWells.length >= 2) {
-            setSelectedRun1Well(availableWells[0]);
-            setSelectedRun2Well(availableWells[1]);
-        } else if (!selectedRun1Well && availableWells.length === 1) {
-            setSelectedRun1Well(availableWells[0]);
-        }
-    }, [availableWells, availableWells.length, selectedRun1Well, selectedRun2Well]);
-
-    // Fetch columns when Run 1 well changes
-    useEffect(() => {
-        if (selectedRun1Well) {
-            fetchWellColumns([selectedRun1Well]).then(data => {
-                // Construct the key that matches the API response (filename + .csv)
-                const responseKey = `${selectedRun1Well}.csv`; 
-                
-                if (data && data[responseKey]) {
-                    console.log(`[RUN 1] SUCCESS: Columns found for key "${responseKey}"`);
-                    setRun1Columns(data[responseKey]);
-                } else {
-                    console.error(`[RUN 1] FAILED: Key "${responseKey}" not found in API response.`, data);
-                    setRun1Columns([]); // Reset on failure
-                }
-            });
-        } else {
-            setRun1Columns([]);
-        }
-    }, [selectedRun1Well]);
-
-    // Fetch columns when Run 2 well changes
-    useEffect(() => {
-        if (selectedRun2Well) {
-            fetchWellColumns([selectedRun2Well]).then(data => {
-                // Construct the key that matches the API response (filename + .csv)
-                const responseKey = `${selectedRun2Well}.csv`;
-
-                if (data && data[responseKey]) {
-                    console.log(`[RUN 2] SUCCESS: Columns found for key "${responseKey}"`);
-                    setRun2Columns(data[responseKey]);
-                } else {
-                    console.error(`[RUN 2] FAILED: Key "${responseKey}" not found in API response.`, data);
-                    setRun2Columns([]); // Reset on failure
-                }
-            });
-        } else {
-            setRun2Columns([]);
-        }
-    }, [selectedRun2Well]);
-
-    // Update wellsForSplicing and file paths when individual well selections change
-    useEffect(() => {
-        const newWellsForSplicing = [];
-        if (selectedRun1Well) {
-            newWellsForSplicing.push(selectedRun1Well);
-            setRun1FilePath(getWellFilePath(selectedRun1Well));
-        } else {
-            setRun1FilePath('');
-        }
-        
-        if (selectedRun2Well && selectedRun2Well !== selectedRun1Well) {
-            newWellsForSplicing.push(selectedRun2Well);
-            setRun2FilePath(getWellFilePath(selectedRun2Well));
-        } else {
-            setRun2FilePath('');
-        }
-        
-        setWellsForSplicing(newWellsForSplicing);
-    }, [selectedRun1Well, selectedRun2Well]);
-
+    
     const handleValueChange = (id: number, newValue: string) => {
-        setParameters(prev => prev.map(row => {
-            if (row.id !== id) return row;
-            return { ...row, values: { 'default': newValue } };
-        }));
+        setParameters(prev => prev.map(row => 
+            row.id === id ? { ...row, values: { 'default': newValue } } : row
+        ));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -212,27 +106,20 @@ export default function SplicingParams() {
         const formParams = parameters
             .filter(p => p.isEnabled)
             .reduce((acc, param) => {
-                const value = param.values['default'];
-                acc[param.name] = value;
+                acc[param.name] = param.values['default'];
                 return acc;
             }, {} as Record<string, string | number>);
 
         const payload = {
             params: formParams,
-            selected_wells: wellsForSplicing,
-            run1_well: selectedRun1Well,
-            run2_well: selectedRun2Well,
-            run1_file_path: run1FilePath,
-            run2_file_path: run2FilePath,
+            run1_file_path: selectedRun1Path,
+            run2_file_path: selectedRun2Path,
         };
 
-        console.log("Payload yang dikirim ke backend:", payload);
-        
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         const endpoint = `${apiUrl}/api/run-splicing`;
 
         try {
-            // Run splicing process
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -245,64 +132,29 @@ export default function SplicingParams() {
             }
             
             const result = await response.json();
-            console.log("Splicing result:", result);
             
-            // After successful splicing, generate and display plot
-            setIsGeneratingPlot(true);
+            // Generate plot setelah splicing berhasil
+            const plotResponse = await fetch(`${apiUrl}/api/get-splicing-plot`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file_path: result.output_file_path }),
+            });
             
-            try {
-                const plotResponse = await fetch(`${apiUrl}/api/get-splicing-plot`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        file_path: result.output_file_path || `sample_data/structures/ADERA_Field/benuang/BNG-057.csv` // Use the output file path from backend
-                    }),
+            if (!plotResponse.ok) throw new Error('Failed to generate plot');
+            
+            const plotData = await plotResponse.json();
+            const parsedPlotData = typeof plotData === 'string' ? JSON.parse(plotData) : plotData;
+
+            if (parsedPlotData && (parsedPlotData.data || parsedPlotData.layout)) {
+                setPlotFigure({
+                    data: parsedPlotData.data || [],
+                    layout: parsedPlotData.layout || {}
                 });
-                
-                if (!plotResponse.ok) {
-                    throw new Error('Failed to generate plot');
-                }
-                
-                const plotData = await plotResponse.json();
-                console.log("Plot data received:", plotData);
-                
-                // Parse plot data similar to DirectorySidebar
-                let parsedPlotData;
-                try {
-                    if (typeof plotData === 'string') {
-                        parsedPlotData = JSON.parse(plotData);
-                    } else {
-                        parsedPlotData = plotData;
-                    }
-                    
-                    // Check if it looks like a valid Plotly figure
-                    if (parsedPlotData && typeof parsedPlotData === 'object' && (parsedPlotData.data || parsedPlotData.layout)) {
-                        setPlotFigure({
-                            data: parsedPlotData.data || [],
-                            layout: parsedPlotData.layout || {}
-                        });
-                        console.log('Splicing plot data updated in dashboard context');
-                    } else {
-                        console.error('Invalid plot data structure received');
-                        throw new Error('Invalid plot data structure');
-                    }
-                } catch (parseError) {
-                    console.error('Failed to parse plot data:', parseError);
-                    throw new Error('Could not parse plot data');
-                }
-                
-                alert(result.message || "Splicing/Merging completed successfully! Plot has been generated.");
-                
-            } catch (plotError) {
-                console.error("Plot generation error:", plotError);
-                alert(`Splicing completed successfully, but plot generation failed: ${plotError instanceof Error ? plotError.message : 'Unknown error'}`);
-            } finally {
-                setIsGeneratingPlot(false);
+                alert(result.message || "Splicing/Merging completed! Plot has been generated.");
+                router.push('/data-prep/viewer'); // Arahkan ke viewer untuk melihat plot
+            } else {
+                throw new Error('Invalid plot data structure');
             }
-            
-            // Navigate back to dashboard to see the plot
-            router.push('/dashboard');
-            
         } catch (error) {
             alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
@@ -312,11 +164,8 @@ export default function SplicingParams() {
     
     const getRowBgColor = (location: string, mode: string): string => {
         switch (location) {
-            case 'Parameter': return 'bg-orange-600';
-            case 'Constant': return mode === 'Input' ? 'bg-yellow-300' : 'bg-yellow-100';
+            case 'Constant': return 'bg-yellow-300';
             case 'Log': return mode === 'Input' ? 'bg-cyan-400' : 'bg-cyan-200';
-            case 'Output': return 'bg-yellow-600';
-            case 'Interval': return 'bg-green-400';
             default: return 'bg-white';
         }
     };
@@ -327,15 +176,14 @@ export default function SplicingParams() {
         <div className="p-4 md:p-6 h-full flex flex-col bg-white rounded-lg shadow-md">
             <h2 className="text-xl font-bold mb-4 text-gray-800 flex-shrink-0">Splicing / Merging Logs</h2>
             
-            {availableWells.length < 2 ? (
+            {selectedWells.length < 2 ? (
                 <div className="flex-grow flex items-center justify-center">
                     <div className="text-center p-8 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <h3 className="text-lg font-semibold text-yellow-800 mb-2">Insufficient Wells</h3>
+                        <h3 className="text-lg font-semibold text-yellow-800 mb-2">Insufficient Files Selected</h3>
                         <p className="text-yellow-700 mb-4">
-                            Splicing requires at least 2 wells to be selected. Currently available: {availableWells.length}
-                        </p>
-                        <p className="text-sm text-yellow-600">
-                            Please select more wells from the sidebar or ensure well data is loaded.
+                            Splicing requires at least 2 files to be selected from the Wells Browser.
+                            <br />
+                            Currently selected: {selectedWells.length}
                         </p>
                         <button 
                             onClick={() => router.back()} 
@@ -350,79 +198,43 @@ export default function SplicingParams() {
                 <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Run 1 Well (Upper Section):
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Run 1 Well (Upper Section):</label>
                             <select
-                                value={selectedRun1Well}
-                                onChange={(e) => setSelectedRun1Well(e.target.value)}
-                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                value={selectedRun1Path}
+                                onChange={(e) => setSelectedRun1Path(e.target.value)}
+                                className="w-full p-2 border border-gray-300 rounded-md"
                                 required
                             >
                                 <option value="">Select Run 1 Well...</option>
-                                {availableWells.map(well => (
-                                    <option key={well} value={well}>{well}</option>
+                                {selectedWells.map(path => (
+                                    <option key={path} value={path}>{path.split('/').pop()}</option>
                                 ))}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Run 2 Well (Lower Section):
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Run 2 Well (Lower Section):</label>
                             <select
-                                value={selectedRun2Well}
-                                onChange={(e) => setSelectedRun2Well(e.target.value)}
-                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                value={selectedRun2Path}
+                                onChange={(e) => setSelectedRun2Path(e.target.value)}
+                                className="w-full p-2 border border-gray-300 rounded-md"
                                 required
                             >
                                 <option value="">Select Run 2 Well...</option>
-                                {availableWells.filter(well => well !== selectedRun1Well).map(well => (
-                                    <option key={well} value={well}>{well}</option>
+                                {selectedWells.filter(path => path !== selectedRun1Path).map(path => (
+                                    <option key={path} value={path}>{path.split('/').pop()}</option>
                                 ))}
                             </select>
                         </div>
-                    </div>
-                    
-                    <div className="mb-4">
-                        {wellsForSplicing.length < 2 && (
-                            <p className="text-xs text-red-500 mt-1">
-                                Please select both Run 1 and Run 2 wells for splicing
-                            </p>
-                        )}
-                        {isLoadingColumns && (
-                            <p className="text-xs text-blue-500 mt-1 flex items-center gap-1">
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                                Loading well columns...
-                            </p>
-                        )}
-                        {isGeneratingPlot && (
-                            <p className="text-xs text-green-500 mt-1 flex items-center gap-1">
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                                Generating splicing plot...
-                            </p>
-                        )}
                     </div>
                     
                     <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                         <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
                         <button 
                             type="submit" 
-                            className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed" 
-                            disabled={isSubmitting || isGeneratingPlot || wellsForSplicing.length < 2}
+                            className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700 flex items-center justify-center disabled:bg-gray-400" 
+                            disabled={isSubmitting || !selectedRun1Path || !selectedRun2Path}
                         >
-                            {isSubmitting ? (
-                                <>
-                                    <Loader2 className="animate-spin mr-2" />
-                                    Processing...
-                                </>
-                            ) : isGeneratingPlot ? (
-                                <>
-                                    <Loader2 className="animate-spin mr-2" />
-                                    Generating Plot...
-                                </>
-                            ) : (
-                                'Start Splicing'
-                            )}
+                            {isSubmitting ? <Loader2 className="animate-spin" /> : 'Start Splicing'}
                         </button>
                     </div>
                 </div>
@@ -433,39 +245,35 @@ export default function SplicingParams() {
                         <table className="min-w-full text-sm table-auto">
                             <thead className="bg-gray-200 sticky top-0 z-10">
                                 <tr>
-                                    {staticHeaders.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th>))}
+                                    {staticHeaders.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r">{header}</th>))}
                                 </tr>
                             </thead>
                             <tbody className="bg-white">
                                 {parameters.map((param) => (
                                     <tr key={param.id} className={`border-b border-gray-200 ${getRowBgColor(param.location, param.mode)}`}>
-                                        <td className="px-3 py-2 border-r text-center text-sm">{param.id}</td>
-                                        <td className="px-3 py-2 border-r whitespace-nowrap text-sm">{param.location}</td>
-                                        <td className="px-3 py-2 border-r whitespace-nowrap text-sm">{param.mode}</td>
-                                        <td className="px-3 py-2 border-r whitespace-normal max-w-xs text-sm">{param.comment}</td>
-                                        <td className="px-3 py-2 border-r font-semibold whitespace-nowrap text-sm">{param.name}</td>
+                                        <td className="px-3 py-2 border-r text-center">{param.id}</td>
+                                        <td className="px-3 py-2 border-r">{param.location}</td>
+                                        <td className="px-3 py-2 border-r">{param.mode}</td>
+                                        <td className="px-3 py-2 border-r">{param.comment}</td>
+                                        <td className="px-3 py-2 border-r font-semibold">{param.name}</td>
                                         <td className="px-3 py-2 border-r bg-white text-black">
                                             {param.location === 'Log' ? (
                                                 <select 
                                                     value={param.values['default'] ?? ''} 
                                                     onChange={(e) => handleValueChange(param.id, e.target.value)} 
-                                                    className="w-full p-1 bg-white text-black"
-                                                    disabled={isLoadingColumns}
+                                                    className="w-full p-1 bg-white"
+                                                    disabled={param.mode === 'Output'}
                                                 >
-                                                    {isLoadingColumns ? (
-                                                        <option value="">Loading columns...</option>
-                                                    ) : (
-                                                        getColumnsForParameter(param.name).map((colName: string) => (
-                                                            <option key={colName} value={colName}>{colName}</option>
-                                                        ))
-                                                    )}
+                                                    {getColumnsForParameter(param.name).map((colName: string) => (
+                                                        <option key={colName} value={colName}>{colName}</option>
+                                                    ))}
                                                 </select>
                                             ) : (
                                                 <input 
                                                     type="text" 
                                                     value={param.values['default'] ?? ''} 
                                                     onChange={(e) => handleValueChange(param.id, e.target.value)} 
-                                                    className="w-full min-w-[100px] p-1 bg-white text-black" 
+                                                    className="w-full min-w-[100px] p-1 bg-white" 
                                                 />
                                             )}
                                         </td>
