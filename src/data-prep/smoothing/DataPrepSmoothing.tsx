@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
-import { useAppDataStore } from '@/stores/useAppDataStore';
+import { useDashboard } from '@/contexts/DashboardContext';
 
-// Fungsi untuk membuat struktur parameter awal untuk Smoothing
+// Fungsi untuk membuat struktur parameter awal untuk Smoothing (TIDAK BERUBAH)
 const createInitialParameters = (): ParameterRow[] => {
     const createValues = (val: string | number) => ({ 'default': val });
     const smoothingParams: Omit<ParameterRow, 'values'>[] = [
@@ -29,69 +29,31 @@ export default function DataPrepSmoothingParams() {
     const [parameters, setParameters] = useState<ParameterRow[]>(createInitialParameters());
     const [isSubmitting, setIsSubmitting] = useState(false);
     
-    // State khusus untuk Data Prep
-    const [availableFiles, setAvailableFiles] = useState<string[]>([]);
-    const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-    const [wellColumns, setWellColumns] = useState<string[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const { fieldName, structureName, wellFolder } = useAppDataStore();
-
-    // 1. Ambil daftar file dari direktori data mentah
-    useEffect(() => {
-        const fetchFilesFromDirectory = async () => {
-            setIsLoading(true);
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-            try {
-                const response = await fetch(`${apiUrl}/api/well-folder-files/${fieldName}/${structureName}/${wellFolder}`);
-                if (!response.ok) throw new Error("Gagal mengambil daftar file.");
-                const data = await response.json();
-                setAvailableFiles(data.csv_files || []);
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchFilesFromDirectory();
-    }, [fieldName, structureName, wellFolder]);
-
-    // Helper untuk membuat path lengkap dari nama file
-    const constructFilePaths = useCallback((files: string[]) => {
-        return files.map(file => `data/structures/${fieldName}/${structureName}/${wellFolder}/${file}`);
-    }, [fieldName, structureName, wellFolder]);
-
-    // 2. Ambil daftar kolom saat pilihan file berubah
-    useEffect(() => {
-        const fetchColumns = async () => {
-            if (selectedFiles.length === 0) {
-                setWellColumns([]);
-                return;
-            }
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-            try {
-                const fullPaths = constructFilePaths(selectedFiles);
-                const response = await fetch(`${apiUrl}/api/get-well-columns`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ file_paths: fullPaths }),
-                });
-                if (!response.ok) throw new Error("Gagal mengambil kolom.");
-                const data = await response.json();
-                const allCols = Object.values(data).flat() as string[];
-                const uniqueCols = [...new Set(allCols)];
-                setWellColumns(uniqueCols);
-            } catch (error) {
-                console.error(error);
-            }
-        };
-        fetchColumns();
-    }, [selectedFiles, constructFilePaths]);
+    const { 
+        selectedWells, 
+        wellColumns, 
+        fetchWellColumns
+    } = useDashboard(); 
     
+    useEffect(() => {
+        if (selectedWells.length > 0) {
+            const wellNamesOnly = selectedWells.map(well => well.replace(/\.csv$/, ''));
+            fetchWellColumns(wellNamesOnly);
+        }
+    }, [selectedWells, fetchWellColumns]);
+
+    const allAvailableColumns = useMemo(() => {
+        if (!selectedWells || selectedWells.length === 0 || !wellColumns) {
+            return [];
+        }
+        const allCols = Object.values(wellColumns).flat();
+        return [...new Set(allCols)];
+    }, [selectedWells, wellColumns]);
+
     const currentLogIn = useMemo(() =>
         parameters.find(p => p.name === 'LOG_IN')?.values['default'] as string,
     [parameters]);
 
-    // 3. Update LOG_OUT secara otomatis saat LOG_IN berubah
     useEffect(() => {
         if (currentLogIn) {
             setParameters(prev => prev.map(p => 
@@ -100,11 +62,6 @@ export default function DataPrepSmoothingParams() {
         }
     }, [currentLogIn]);
 
-    const handleFileSelection = (fileName: string) => {
-        setSelectedFiles(prev => 
-            prev.includes(fileName) ? prev.filter(f => f !== fileName) : [...prev, fileName]
-        );
-    };
 
     const handleValueChange = (id: number, newValue: string) => {
         setParameters(prev => prev.map(row => 
@@ -124,13 +81,15 @@ export default function DataPrepSmoothingParams() {
 
         const payload = {
             params: formParams,
-            file_paths: constructFilePaths(selectedFiles),
-            selected_intervals: [], // Interval selalu kosong di Data Prep
-            selected_zones: [] // Zone selalu kosong di Data Prep
+            file_paths: selectedWells, 
+            selected_intervals: [], 
+            selected_zones: [] 
         };
+
+        console.log('Payload for Smoothing:', payload);
         
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        const endpoint = `${apiUrl}/api/run-smoothing`; // Target endpoint smoothing
+        const endpoint = `${apiUrl}/api/run-smoothing`;
 
         try {
             const response = await fetch(endpoint, {
@@ -164,30 +123,28 @@ export default function DataPrepSmoothingParams() {
             <h2 className="text-xl font-bold mb-4 text-gray-800 flex-shrink-0">Data Prep: Smoothing</h2>
             
             <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-                <h3 className="text-lg font-semibold mb-2">Select File(s) for Smoothing</h3>
-                <p className="text-sm text-gray-500 mb-4">Files from: `{`.../${structureName}/${wellFolder}`}`</p>
-                {isLoading ? <Loader2 className="animate-spin" /> : (
-                    <div className="max-h-40 overflow-y-auto grid grid-cols-2 md:grid-cols-3 gap-2 border p-2 rounded-md bg-white">
-                        {availableFiles.map(file => (
-                            <label key={file} className="flex items-center gap-2 text-sm truncate p-1 rounded hover:bg-gray-100">
-                                <input 
-                                    type="checkbox"
-                                    checked={selectedFiles.includes(file)}
-                                    onChange={() => handleFileSelection(file)}
-                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                {file}
-                            </label>
-                        ))}
+                <h3 className="text-lg font-semibold mb-2">File(s) Selected for Smoothing</h3>
+                <p className="text-sm text-gray-500 mb-2">
+                    File-file berikut telah dipilih dari Wells Browser:
+                </p>
+                {selectedWells.length > 0 ? (
+                    <div className="max-h-28 overflow-y-auto text-sm text-blue-800 bg-blue-50 p-2 rounded-md">
+                        <ul className="list-disc list-inside">
+                            {selectedWells.map(well => <li key={well}>{well}</li>)}
+                        </ul>
                     </div>
+                ) : (
+                    <p className="text-sm text-red-600 font-medium">
+                        Tidak ada file yang dipilih. Silakan pilih file dari Wells Browser terlebih dahulu.
+                    </p>
                 )}
             </div>
 
             <form onSubmit={handleSubmit} className="flex-grow flex flex-col min-h-0">
                 <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50">
-                     <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2">
                         <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
-                        <button type="submit" className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700 flex items-center justify-center min-w-[80px]" disabled={isSubmitting || selectedFiles.length === 0}>
+                        <button type="submit" className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700 flex items-center justify-center min-w-[80px]" disabled={isSubmitting || selectedWells.length === 0}>
                             {isSubmitting ? <Loader2 className="animate-spin" /> : 'Start'}
                         </button>
                     </div>
@@ -212,9 +169,9 @@ export default function DataPrepSmoothingParams() {
                                         <td className="px-3 py-2 border-r font-semibold">{param.name}</td>
                                         <td className="px-3 py-2 border-r bg-white text-black">
                                             {param.name === 'LOG_IN' ? (
-                                                <select value={param.values['default'] ?? ''} onChange={(e) => handleValueChange(param.id, e.target.value)} className="w-full p-1 bg-white" disabled={wellColumns.length === 0}>
-                                                    {wellColumns.length > 0 ? (
-                                                        wellColumns.map(col => <option key={col} value={col}>{col}</option>)
+                                                <select value={param.values['default'] ?? ''} onChange={(e) => handleValueChange(param.id, e.target.value)} className="w-full p-1 bg-white" disabled={allAvailableColumns.length === 0}>
+                                                    {allAvailableColumns.length > 0 ? (
+                                                        allAvailableColumns.map(col => <option key={col} value={col}>{col}</option>)
                                                     ) : (
                                                         <option>Select a file first</option>
                                                     )}

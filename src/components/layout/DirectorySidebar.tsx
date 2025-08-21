@@ -189,142 +189,58 @@ export default function DirectorySidebar() {
   const handleFileSelect = async (file: WellFile) => {
     const filePath = file.path;
     
-    // Update selected files state - allow multiple selections
+    // Update selected files state (UI)
     const newSelectedFiles = selectedFiles.includes(filePath)
       ? selectedFiles.filter(path => path !== filePath)
-      : [...selectedFiles, filePath]; // Multiple selection
+      : [...selectedFiles, filePath];
     
     setSelectedFiles(newSelectedFiles);
     
-    // Handle well selection in dashboard context
-    // For spliced files, extract a more reasonable well name or use the file name as-is
-    let wellName;
-    if (file.name.toLowerCase().includes('spliced')) {
-      // For spliced files, use the filename without extension as the well identifier
-      wellName = file.name.replace(/\.[^/.]+$/, "");
-      console.log(`Spliced file detected: ${file.name}, using wellName: ${wellName}`);
-    } else {
-      // For regular files, remove file extension to get well name
-      wellName = file.name.replace(/\.[^/.]+$/, "");
-    }
+    // --- PERBAIKAN UTAMA ---
+    // Daripada mengirim nama file saja, kita kirim path relatif lengkap.
+    // Ini memberikan informasi yang dibutuhkan backend.
+    // `selectedWells` di context sekarang akan berisi path seperti:
+    // "data/structures/adera/benuang/BNG-057/bng-57_lwd_8_5_trim.csv"
+    toggleWellSelection(filePath);
     
-    if (selectedFiles.includes(filePath)) {
-      // File was deselected - remove well from selection
-      if (selectedWells.includes(wellName)) {
-        toggleWellSelection(wellName);
-      }
-    } else {
-      // File was selected - add well to selection
-      if (!selectedWells.includes(wellName)) {
-        toggleWellSelection(wellName);
-      }
-    }
-    
-    // If this is a CSV file selection (not deselection), trigger plot for the first selected CSV
-    if (!selectedFiles.includes(filePath) && file.extension === '.csv' && newSelectedFiles.length > 0) {
-      console.log(`File selected: ${file.name}`);
-      console.log(`File path: ${filePath}`);
-      console.log(`Is spliced file: ${file.name.toLowerCase().includes('spliced')}`);
+    // Jika file baru saja dipilih (bukan dibatalkan), lanjutkan untuk memuat plot
+    if (newSelectedFiles.includes(filePath) && file.extension === '.csv') {
+      console.log(`File selected with full path: ${filePath}`);
       
-      // Check if file contains "spliced" to determine plot type
-      if (file.name.toLowerCase().includes('spliced')) {
-        console.log('Setting plot type to splicing');
-        setPlotType('splicing');
-      } else {
-        console.log('Setting plot type to get-module1-plot');
-        setPlotType('get-module1-plot');
-      }
-      
-      // Store the selected file path in context for fallback API calls
+      const isSpliced = file.name.toLowerCase().includes('spliced');
+      const newPlotType = isSpliced ? 'splicing' : 'get-module1-plot';
+
+      setPlotType(newPlotType);
       setSelectedFilePath(filePath);
-      console.log(`Selected file path set to: ${filePath}`);
-      
-      // Clear any existing plot data before loading new plot
       setPlotFigure({ data: [], layout: {} });
 
-      // Call the appropriate plot API based on plot type
+      // Trigger plot generation
       try {
-        console.log(`Requesting plot for CSV file: ${filePath}`);
-        console.log(`Well name: ${wellName}, File: ${file.name}`);
-        console.log(`File path for backend: ${filePath}`);
-        
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        let fullUrl, requestBody;
-        
-        // Determine API endpoint and request body based on plot type
-        if (file.name.toLowerCase().includes('spliced')) {
-          fullUrl = `${apiUrl}/api/get-splicing-plot`;
-          requestBody = { file_path: filePath };
-        } else {
-          fullUrl = `${apiUrl}/api/get-module1-plot`;
-          requestBody = { file_path: filePath };
-        }
-        
-        console.log(`Full plot URL: ${fullUrl}`);
+        const fullUrl = `${apiUrl}/api/${isSpliced ? 'get-splicing-plot' : 'get-module1-plot'}`;
+        const requestBody = { file_path: filePath };
         
         const response = await fetch(fullUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody),
         });
 
-        console.log(`Plot response status: ${response.status} ${response.statusText}`);
-
         if (!response.ok) {
-          // Try to get detailed error from response
-          let errorMessage = `Failed to get plot: ${response.status} ${response.statusText}`;
-          try {
-            const errorText = await response.text();
-            if (errorText) {
-              errorMessage += ` - ${errorText}`;
-              console.error('Plot error response:', errorText);
-            }
-          } catch (parseErr) {
-            console.error('Could not parse plot error response:', parseErr);
-          }
-          throw new Error(errorMessage);
+          const errorText = await response.text();
+          throw new Error(`Failed to get plot: ${response.status} - ${errorText}`);
         }
 
-               const plotData = await response.json();
-        console.log('Plot data received from backend:', plotData);
-        console.log(`Plot data type: ${typeof plotData}`);
-        console.log(`Plot data length: ${typeof plotData === 'string' ? plotData.length : 'not string'}`);
-        
-        // Backend returns a JSON string that needs to be parsed
-        // The response is the result of fig_result.to_json() from Plotly
-        let parsedPlotData;
-        try {
-          if (typeof plotData === 'string') {
-            parsedPlotData = JSON.parse(plotData);
-          } else {
-            parsedPlotData = plotData;
-          }
-          
-          console.log('Parsed plot data:', parsedPlotData);
-          console.log(`Parsed plot data has data: ${!!parsedPlotData?.data}`);
-          console.log(`Parsed plot data has layout: ${!!parsedPlotData?.layout}`);
-          
-          // Check if it looks like a valid Plotly figure
-          if (parsedPlotData && typeof parsedPlotData === 'object' && (parsedPlotData.data || parsedPlotData.layout)) {
-            console.log('Using parsed plot data for setPlotFigure');
-            setPlotFigure({
-              data: parsedPlotData.data || [],
-              layout: parsedPlotData.layout || {}
-            });
-            console.log('Plot data updated in dashboard context');
-          } else if (plotData && plotData.error) {
-            // Handle error response
-            console.error('Plot request failed - backend error:', plotData.error);
-            setError(`Plot generation failed: ${plotData.error}`);
-          } else {
-            console.error('Plot request failed - invalid Plotly figure structure');
-            setError(`Plot generation failed: Invalid plot data structure`);
-          }
-        } catch (parseError) {
-          console.error('Failed to parse plot data:', parseError);
-          setError(`Plot generation failed: Could not parse plot data`);
+        const plotData = await response.json();
+        const parsedPlotData = typeof plotData === 'string' ? JSON.parse(plotData) : plotData;
+
+        if (parsedPlotData && (parsedPlotData.data || parsedPlotData.layout)) {
+          setPlotFigure({
+            data: parsedPlotData.data || [],
+            layout: parsedPlotData.layout || {}
+          });
+        } else {
+          throw new Error("Invalid plot data structure received");
         }
       } catch (error) {
         console.error('Error processing plot:', error);

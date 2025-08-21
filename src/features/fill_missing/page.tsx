@@ -2,11 +2,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Select from 'react-select';
 import { Loader2 } from 'lucide-react';
-import { useAppDataStore } from '@/stores/useAppDataStore';
+import { useDashboard } from '@/contexts/DashboardContext'; // 1. Impor hook useDashboard
 
 export default function FillMissingParams() {
     // --- STATE MANAGEMENT ---
@@ -16,88 +16,41 @@ export default function FillMissingParams() {
     const [isFlagging, setIsFlagging] = useState(false);
     const [isFilling, setIsFilling] = useState(false);
     
-    // State baru untuk pemilihan file dan kolom
-    const [availableFiles, setAvailableFiles] = useState<string[]>([]);
-    const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-    const [wellColumns, setWellColumns] = useState<string[]>([]);
-    const [isLoadingFiles, setIsLoadingFiles] = useState(true);
-
-    const { fieldName, structureName, wellFolder } = useAppDataStore();
+    // 2. Gunakan state dan fungsi dari DashboardContext
+    const {
+        selectedWells,
+        wellColumns,
+        fetchWellColumns
+    } = useDashboard();
 
     // --- DATA FETCHING ---
 
-    // 1. Ambil daftar file dari direktori saat komponen dimuat
     useEffect(() => {
-        const fetchFilesFromDirectory = async () => {
-            setIsLoadingFiles(true);
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-            try {
-                const response = await fetch(`${apiUrl}/api/well-folder-files/${fieldName}/${structureName}/${wellFolder}`);
-                if (!response.ok) throw new Error("Gagal mengambil daftar file.");
-                const data = await response.json();
-                setAvailableFiles(data.csv_files || []);
-            } catch (error) {
-                console.error(error);
-                alert("Error: Gagal memuat daftar file dari direktori.");
-            } finally {
-                setIsLoadingFiles(false);
-            }
-        };
-        fetchFilesFromDirectory();
-    }, [fieldName, structureName, wellFolder]);
+        if (selectedWells.length > 0) {
+            const wellNamesOnly = selectedWells.map(well => well.replace(/\.csv$/, ''));
+            fetchWellColumns(wellNamesOnly);
+        }
+    }, [selectedWells, fetchWellColumns]);
 
-    // Helper untuk membuat path lengkap dari nama file
-    const constructFilePaths = useCallback((files: string[]) => {
-        return files.map(file => `data/structures/${fieldName}/${structureName}/${wellFolder}/${file}`);
-    }, [fieldName, structureName, wellFolder]);
-
-    // 2. Ambil daftar kolom gabungan saat pilihan file berubah
-    useEffect(() => {
-        const fetchColumns = async () => {
-            if (selectedFiles.length === 0) {
-                setWellColumns([]);
-                return;
-            }
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-            try {
-                const fullPaths = constructFilePaths(selectedFiles);
-                const response = await fetch(`${apiUrl}/api/get-well-columns`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ file_paths: fullPaths }),
-                });
-                if (!response.ok) throw new Error("Gagal mengambil kolom dari file yang dipilih.");
-                const data = await response.json();
-                const allCols = Object.values(data).flat() as string[];
-                const uniqueCols = [...new Set(allCols)];
-                setWellColumns(uniqueCols);
-            } catch (error) {
-                console.error(error);
-                alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            }
-        };
-        fetchColumns();
-    }, [selectedFiles, constructFilePaths]);
-
-    // --- UI LOGIC & HANDLERS ---
+    const allAvailableColumns = useMemo(() => {
+        if (!selectedWells || selectedWells.length === 0 || !wellColumns) {
+            return [];
+        }
+        const allCols = Object.values(wellColumns).flat();
+        return [...new Set(allCols)];
+    }, [selectedWells, wellColumns]);
 
     const logOptions = useMemo(() => {
         const excludedLogs = new Set(['DEPTH', 'STRUKTUR', 'WELL_NAME', 'CALI', 'SP', 'MARKER', 'ZONE', 'MISSING_FLAG']);
-        return wellColumns
+        return allAvailableColumns
             .filter(c => c && !excludedLogs.has(c.toUpperCase()))
             .sort((a, b) => a.localeCompare(b))
             .map(c => ({ label: c, value: c }));
-    }, [wellColumns]);
-
-    const handleFileSelection = (fileName: string) => {
-        setSelectedFiles(prev => 
-            prev.includes(fileName) ? prev.filter(f => f !== fileName) : [...prev, fileName]
-        );
-    };
+    }, [allAvailableColumns]);
 
     const runProcess = async (stage: 'flag' | 'fill') => {
-        if (selectedFiles.length === 0) {
-            alert("Silakan pilih setidaknya satu file untuk diproses.");
+        if (selectedWells.length === 0) { // Gunakan selectedWells dari context
+            alert("Silakan pilih setidaknya satu file dari Wells Browser.");
             return;
         }
         if (selectedLogs.length === 0) {
@@ -108,7 +61,7 @@ export default function FillMissingParams() {
         stage === 'flag' ? setIsFlagging(true) : setIsFilling(true);
 
         const payload = {
-            file_paths: constructFilePaths(selectedFiles),
+            file_paths: selectedWells, // 4. Langsung gunakan selectedWells
             logs_to_check: selectedLogs, // untuk flag
             logs_to_fill: selectedLogs, // untuk fill
             max_consecutive_nan: maxConsecutive,
@@ -139,34 +92,32 @@ export default function FillMissingParams() {
         <div className="p-6 bg-white rounded-lg shadow-md max-w-4xl mx-auto">
             <h2 className="text-xl font-bold mb-4 text-gray-800">Fill Missing Values (Two Stages)</h2>
 
-            {/* --- BAGIAN BARU: PEMILIHAN FILE --- */}
+            {/* --- 5. HAPUS PEMILIHAN FILE LOKAL, GANTI DENGAN INFO DARI CONTEXT --- */}
             <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-                <h3 className="text-lg font-semibold mb-2">Select File(s) to Process</h3>
-                <p className="text-sm text-gray-500 mb-4">Files from: `{`.../${structureName}/${wellFolder}`}`</p>
-                {isLoadingFiles ? <Loader2 className="animate-spin" /> : (
-                    <div className="max-h-40 overflow-y-auto grid grid-cols-2 md:grid-cols-3 gap-2 border p-2 rounded-md bg-white">
-                        {availableFiles.map(file => (
-                            <label key={file} className="flex items-center gap-2 text-sm truncate p-1 rounded hover:bg-gray-100 cursor-pointer">
-                                <input 
-                                    type="checkbox"
-                                    checked={selectedFiles.includes(file)}
-                                    onChange={() => handleFileSelection(file)}
-                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                {file}
-                            </label>
-                        ))}
+                <h3 className="text-lg font-semibold mb-2">File(s) Selected to Process</h3>
+                <p className="text-sm text-gray-500 mb-2">
+                    File-file berikut telah dipilih dari Wells Browser:
+                </p>
+                {selectedWells.length > 0 ? (
+                    <div className="max-h-28 overflow-y-auto text-sm text-blue-800 bg-blue-50 p-2 rounded-md">
+                        <ul className="list-disc list-inside">
+                            {selectedWells.map(path => <li key={path}>{path.split('/').pop()}</li>)}
+                        </ul>
                     </div>
+                ) : (
+                    <p className="text-sm text-red-600 font-medium">
+                        Tidak ada file yang dipilih. Silakan pilih file dari Wells Browser terlebih dahulu.
+                    </p>
                 )}
             </div>
 
             <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50">
                 <div className="flex justify-end gap-2">
                     <button type="button" onClick={() => router.back()} className="px-4 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
-                    <button type="button" onClick={() => runProcess('flag')} className="px-4 py-2 rounded-md text-white font-semibold bg-orange-500 hover:bg-orange-600 flex items-center justify-center min-w-[150px]" disabled={isFlagging || isFilling || selectedFiles.length === 0}>
+                    <button type="button" onClick={() => runProcess('flag')} className="px-4 py-2 rounded-md text-white font-semibold bg-orange-500 hover:bg-orange-600 flex items-center justify-center min-w-[150px]" disabled={isFlagging || isFilling || selectedWells.length === 0}>
                         {isFlagging ? <><Loader2 className="animate-spin w-4 h-4 mr-2" />Flagging...</> : 'Stage 1: Flag Missing'}
                     </button>
-                    <button type="button" onClick={() => runProcess('fill')} className="px-4 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700 flex items-center justify-center min-w-[150px]" disabled={isFilling || isFlagging || selectedFiles.length === 0}>
+                    <button type="button" onClick={() => runProcess('fill')} className="px-4 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700 flex items-center justify-center min-w-[150px]" disabled={isFilling || isFlagging || selectedWells.length === 0}>
                         {isFilling ? <><Loader2 className="animate-spin w-4 h-4 mr-2" />Filling...</> : 'Stage 2: Fill Flagged'}
                     </button>
                 </div>
@@ -194,12 +145,33 @@ export default function FillMissingParams() {
                                     options={logOptions}
                                     value={logOptions.filter(opt => selectedLogs.includes(opt.value))}
                                     onChange={(selected: any) => setSelectedLogs(Array.isArray(selected) ? selected.map((s: any) => s.value) : [])}
-                                    className="min-w-[200px] text-sm text-black"
+                                    className="min-w-[200px] text-sm" // Hapus text-black dari sini
                                     classNamePrefix="react-select"
                                     menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
-                                    styles={{ menuPortal: base => ({ ...base, zIndex: 9999 })}}
-                                    placeholder={selectedFiles.length === 0 ? 'Select file(s) first' : 'Select logs...'}
-                                    isDisabled={selectedFiles.length === 0}
+                                    
+                                    // --- PERBAIKAN DI SINI ---
+                                    styles={{
+                                        singleValue: (baseStyles) => ({
+                                            ...baseStyles,
+                                            color: '#1f2937',
+                                        }),
+                                        input: (baseStyles) => ({
+                                            ...baseStyles,
+                                            color: '#1f2937',
+                                        }),
+                                        option: (baseStyles, state) => ({
+                                            ...baseStyles,
+                                            // Mengubah warna teks menjadi hitam saat dipilih atau di-hover
+                                            color: state.isSelected ? 'white' : '#1f2937',
+                                        }),
+                                        multiValueLabel: (baseStyles) => ({
+                                            ...baseStyles,
+                                            color: 'black',
+                                        }),
+                                    }}
+
+                                    placeholder={selectedWells.length === 0 ? 'Select file(s) first' : 'Select logs...'}
+                                    isDisabled={selectedWells.length === 0}
                                 />
                             </td>
                         </tr>
