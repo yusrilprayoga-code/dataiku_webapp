@@ -84,6 +84,18 @@ export default function LeftSidebar() {
             processedColumns.push('PHIE', 'PHIE_PHIT');
         }
 
+                // 3. Handle PHIE/PHIT special sequence
+        const hasPhieZ4 = processedColumns.includes('PHIE_Z4');
+        const hasPhitZ4 = processedColumns.includes('PHIT_Z4');
+        if (hasPhieZ4 && hasPhitZ4) {
+            // Remove original PHIE and PHIT to avoid duplicates
+            processedColumns = processedColumns.filter(
+                col => col !== 'PHIE_Z4' && col !== 'PHIT_Z4'
+            );
+            // Add the specific required items for the plot sequence
+            processedColumns.push('PHIE_Z4', 'PHIE_PHIT_Z4');
+        }
+
         // 3. Handle PHIE/PHIT special sequence
         const hasRt = processedColumns.includes('RT');
         const hasRgsa = processedColumns.includes('RGSA');
