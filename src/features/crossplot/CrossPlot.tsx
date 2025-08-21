@@ -4,9 +4,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { useAppDataStore } from '@/stores/useAppDataStore';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, ArrowLeft } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -126,7 +127,16 @@ export default function CrossplotViewer() {
 
     return (
         <div className="p-4 md:p-6 bg-white rounded-lg shadow-md">
-            <h2 className="text-xl font-bold mb-4 text-gray-800">Crossplot {yCol || ''} vs {xCol || ''}</h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Crossplot {yCol || ''} vs {xCol || ''}</h2>
+                <Link
+                    href="/dashboard"
+                    className="flex items-center px-4 py-2 bg-gray-200 text-gray-800 text-sm font-semibold rounded-md hover:bg-gray-300 transition-colors"
+                >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back
+                </Link>
+            </div>
             <p className="text-sm text-gray-600 mb-1">Wells: {selectedWells.join(', ') || 'N/A'}</p>
             <p className="text-sm text-gray-600 mb-4">Intervals: {selectedIntervals.join(', ') || selectedZones.join(', ') || 'All'}</p>
 

@@ -28,6 +28,7 @@ export default function LeftSidebar() {
 
     const [isMounted, setIsMounted] = useState(false);
     const [intervalType, setIntervalType] = useState<'markers' | 'zones'>('markers');
+    const [selectedCrossplot, setSelectedCrossplot] = useState('');
     const router = useRouter();
 
     useEffect(() => {
@@ -162,10 +163,13 @@ export default function LeftSidebar() {
 
     const handleCrossplotChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const value = e.target.value;
-        if (!value) return;
+        setSelectedCrossplot(value); // 1. Update state dengan pilihan baru
+
+        if (!value) return; // 2. Hentikan jika memilih opsi default
+
+        // 3. Lakukan navigasi seperti biasa
         const [yCol, xCol] = value.split('-');
         router.push(`/dashboard/modules/crossplot?y=${yCol}&x=${xCol}`);
-        e.target.value = "";
     };
 
     return (
@@ -355,6 +359,7 @@ export default function LeftSidebar() {
                     <div>
                         <label className="text-xs text-gray-600 mb-1 block">Analysis</label>
                         <select
+                            value={selectedCrossplot} // <-- PERUBAHAN: Ikat nilai select ke state
                             onChange={handleCrossplotChange}
                             className="text-xs w-full bg-white border border-gray-200 rounded p-1 focus:ring-1 focus:ring-blue-500"
                         >
