@@ -151,7 +151,7 @@ export default function SplicingParams() {
                     layout: parsedPlotData.layout || {}
                 });
                 alert(result.message || "Splicing/Merging completed! Plot has been generated.");
-                router.push('/data-prep/viewer'); // Arahkan ke viewer untuk melihat plot
+                router.push('/data-prep');
             } else {
                 throw new Error('Invalid plot data structure');
             }
