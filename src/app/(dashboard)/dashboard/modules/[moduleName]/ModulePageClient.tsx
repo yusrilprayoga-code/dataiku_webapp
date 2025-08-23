@@ -12,7 +12,7 @@ import VshDNCalculationParams from '@/features/vsh-dn-calculation/VshDNParameter
 import PorosityCalculationParams from '@/features/porosity/PorosityCalculationParams';
 import SWCalculationParams from '@/features/sw-calculation/WaterSaturationParams';
 import RWACalculationParams from '@/features/water-resistivity-calculation/WaterResistivityParams';
-import TrimDataParams from '@/features/trim_data/TrimDataParams';
+import TrimDataDashboard from '@/features/trim_data/TrimDataDashboard';
 import DnsDnsvCalculationPage from '@/features/dns-dnsv/page';
 import RgbeRpbePage from '@/features/rgbe-rpbe/page';
 import RtRoPage from '@/features/rt-ro/page';
@@ -59,7 +59,7 @@ const moduleMap: Record<string, React.ComponentType<unknown>> = {
     'rgsa': RGSAParams,
     'ngsa': NGSAParams,
     'dgsa': DGSAParams,
-    'trim-data': TrimDataParams,
+    'trim-data': TrimDataDashboard,
     'iqual': IqualCalculationParams,
     'dns-dnsv': DnsDnsvCalculationPage,
     'rgbe-rpbe': RgbeRpbePage,

@@ -6,7 +6,7 @@ import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 
 import DataPrepNormalizationParams from '@/data-prep/normalization/DataPrepNormalization';
-import TrimDataParams from '@/features/trim_data/TrimDataParams';
+import TrimDataParams from '@/data-prep/trimming/TrimDataParams';
 import DepthMatchingPage from '@/features/depth-matching/page';
 import FillMissingPage from '@/features/fill_missing/page';
 import SplicingMergingPage from '@/features/splicing-merging/page';
