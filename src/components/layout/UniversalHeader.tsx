@@ -4,18 +4,18 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Database, FileText, Folder, LayoutDashboard, Upload } from 'lucide-react';
 
 const navItems = [
-//   {
-//     label: 'Data Input',
-//     path: '/data-input',
-//     icon: Database,
-//     description: 'Import and manage data'
-//   },
-//   {
-//     label: 'File Upload',
-//     path: '/file-upload',
-//     icon: Upload,
-//     description: 'Upload files and documents'
-//   },
+  {
+    label: 'File Upload',
+    path: '/file-upload',
+    icon: Upload,
+    description: 'Upload files and documents'
+  },
+  {
+    label: 'QC Check',
+    path: '/data-input',
+    icon: Database,
+    description: 'Import and manage data'
+  },
   {
     label: 'Structures',
     path: '/structures',
