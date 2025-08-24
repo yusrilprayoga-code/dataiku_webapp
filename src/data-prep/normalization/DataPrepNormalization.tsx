@@ -116,7 +116,7 @@ export default function DataPrepNormalizationParams() {
                 console.error(error);
                 alert(`Could not fetch default percentiles: ${error instanceof Error ? error.message : 'Unknown error'}`);
             } finally {
-                setIsFetchingDefaults(false);
+                setIsFetchingDefaults(false);   
             }
         };
 

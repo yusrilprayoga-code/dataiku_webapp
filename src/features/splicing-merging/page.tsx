@@ -47,6 +47,13 @@ export default function SplicingParams() {
         fetchWellColumns
     } = useDashboard();
 
+    useEffect(() => {
+            if (selectedWells.length > 0) {
+                const wellNamesOnly = selectedWells.map(well => well.replace(/\.csv$/, ''));
+                fetchWellColumns(wellNamesOnly);
+            }
+    }, [selectedWells, fetchWellColumns]);
+
     const router = useRouter();
     const [parameters, setParameters] = useState<ParameterRow[]>(createInitialSplicingParameters());
     const [isSubmitting, setIsSubmitting] = useState(false);
