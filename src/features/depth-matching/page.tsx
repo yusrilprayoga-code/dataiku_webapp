@@ -13,11 +13,15 @@ const createInitialDepthMatchingParameters = (): ParameterRow[] => {
     const depthMatchingParams: Omit<ParameterRow, 'values'>[] = [
         { id: 1, location: 'Log', mode: 'Input', comment: 'Reference log for correlation (e.g., GR_CAL)', unit: '', name: 'REFERENCE_LOG', isEnabled: true },
         { id: 2, location: 'Log', mode: 'Input', comment: 'Log to be shifted to match the reference', unit: '', name: 'MATCHING_LOG', isEnabled: true },
-        { id: 3, location: 'Log', mode: 'Output', comment: 'Name for the new depth-matched log', unit: '', name: 'OUTPUT_LOG', isEnabled: true },
+        { id: 3, location: 'Constant', mode: 'Input', comment: 'Maximum allowed shift in depth units', unit: '', name: 'SLACK', isEnabled: true },
+        { id: 4, location: 'Constant', mode: 'Input', comment: 'Number of sections to divide the log into', unit: '', name: 'NUM_CHUNKS', isEnabled: true },
+        { id: 5, location: 'Log', mode: 'Output', comment: 'Name for the new depth-matched log', unit: '', name: 'OUTPUT_LOG', isEnabled: true },
     ];
     const defaultValues: Record<string, string | number> = {
         'REFERENCE_LOG': 'GR_CAL',
         'MATCHING_LOG': 'DGRCC',
+        'SLACK': 35,
+        'NUM_CHUNKS': 10,
         'OUTPUT_LOG': 'DGRCC_DS',
     };
     return depthMatchingParams.map(p => ({
@@ -56,14 +60,6 @@ export default function DepthMatchingPage() {
         const allCols = Object.values(wellColumns).flat();
         return [...new Set(allCols)];
     }, [selectedWells, wellColumns]);
-
-    const logOptions = useMemo(() => {
-        const excludedLogs = new Set(['DEPTH', 'STRUKTUR', 'WELL_NAME', 'CALI', 'SP', 'MARKER', 'ZONE', 'MISSING_FLAG']);
-        return allAvailableColumns
-            .filter(c => c && !excludedLogs.has(c.toUpperCase()))
-            .sort((a, b) => a.localeCompare(b))
-            .map(c => ({ label: c, value: c }));
-    }, [allAvailableColumns]);
      
     const handleValueChange = (id: number, newValue: string) => {
         setParameters(prev => prev.map(row => 
@@ -81,10 +77,22 @@ export default function DepthMatchingPage() {
             return acc;
         }, {} as Record<string, string | number>);
 
+        const getParamValue = (name: string) => {
+            const param = parameters.find(p => p.name === name);
+            // Return the value, converting to number if it's a numeric string
+            const value = param ? param.values['default'] : '';
+            return !isNaN(Number(value)) ? Number(value) : value;
+        };
+
+        // Construct the payload to match the backend's expectation
         const payload = {
-            params: formParams,
-            reference_well_path: referenceWellPath,
-            matching_well_path: matchingWellPath,
+            ref_las_path: referenceWellPath,
+            lwd_las_path: matchingWellPath,
+            ref_curve: getParamValue('REFERENCE_LOG'),
+            lwd_curve: getParamValue('MATCHING_LOG'),
+            slack: getParamValue('SLACK'),
+            num_chunks: getParamValue('NUM_CHUNKS'),
+            output_lwd_curve: getParamValue('OUTPUT_LOG')
         };
 
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
