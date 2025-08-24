@@ -494,6 +494,7 @@ export default function DirectorySidebar() {
             >
               <option value="default">Layout Default</option>
               <option value="trimming">Layout Trimming</option>
+              <option value="depth-matching">Layout Depth Matching</option>
               <option value="fill-missing-prep">Layout Fill Missing</option>
               <option value="smoothing-prep">Layout Smoothing</option>
               <option value="normalization-prep">Layout Normalization</option>
