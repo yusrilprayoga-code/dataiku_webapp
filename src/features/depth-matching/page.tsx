@@ -18,7 +18,7 @@ const createInitialDepthMatchingParameters = (): ParameterRow[] => {
     const defaultValues: Record<string, string | number> = {
         'REFERENCE_LOG': 'GR_CAL',
         'MATCHING_LOG': 'DGRCC',
-        'OUTPUT_LOG': 'MATCHED_LOG_DS',
+        'OUTPUT_LOG': 'DGRCC_DS',
     };
     return depthMatchingParams.map(p => ({
         ...p,
@@ -120,11 +120,15 @@ export default function DepthMatchingPage() {
     };
     
     const getRowBgColor = (location: string, mode: string): string => {
-        if (location === 'Constant') return 'bg-yellow-300';
-        if (location === 'Log' && mode === 'Input') return 'bg-cyan-400 text-white';
-        if (location === 'Log' && mode === 'Output') return 'bg-cyan-200';
-        return 'bg-white';
-    };
+        switch (location) {
+            case 'Parameter': return 'bg-orange-600';
+            case 'Constant': return mode === 'Input' ? 'bg-yellow-300' : 'bg-yellow-100';
+            case 'Log': return mode === 'Input' ? 'bg-cyan-400' : 'bg-cyan-200';
+            case 'Output': return 'bg-yellow-600';
+            case 'Interval': return 'bg-green-400';
+            default: return 'bg-white';
+        }
+    }; 
     
     if (selectedWells.length < 2) {
         return (
