@@ -5,17 +5,17 @@ import { Database, FileText, Folder, LayoutDashboard, Upload } from 'lucide-reac
 
 const navItems = [
   {
-    label: 'File Upload',
-    path: '/file-upload',
-    icon: Upload,
-    description: 'Upload files and documents'
-  },
-  {
-    label: 'QC Check',
-    path: '/data-input',
+    label: 'Data Input',
+    path: '/',
     icon: Database,
     description: 'Import and manage data'
   },
+//   {
+//     label: 'File Upload',
+//     path: '/file-upload',
+//     icon: Upload,
+//     description: 'Upload files and documents'
+//   },
   {
     label: 'Structures',
     path: '/structures',

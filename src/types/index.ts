@@ -26,15 +26,27 @@ export interface XptNote {
 
 
 // --- Types from your original code ---
+// export interface ProcessedFileDataForDisplay {
+//   id: string;
+//   name: string;
+//   originalName?: string;
+//   structurePath?: string;
+//   type: 'las-as-csv' | 'csv';
+//   content: any[];
+//   headers: string[];
+//   rawContentString: string;
+// }
+
 export interface ProcessedFileDataForDisplay {
-  id: string;
-  name: string;
-  originalName?: string;
-  structurePath?: string;
-  type: 'las-as-csv' | 'csv';
-  content: any[];
-  headers: string[];
-  rawContentString: string;
+  id: string;
+  name: string;
+  originalName?: string;
+  structurePath?: string;
+  type: 'las-as-csv' | 'csv';
+  fileCategory: 'well-log' | 'marker' | 'zone'; 
+  content: any[];
+  headers: string[];
+  rawContentString: string;
 }
 
 export interface StagedStructure {
@@ -85,3 +97,4 @@ export interface ParameterRow {
     [intervalKey: string]: string | number;
   };
 }
+

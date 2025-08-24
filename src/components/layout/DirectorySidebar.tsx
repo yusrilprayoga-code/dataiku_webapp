@@ -493,9 +493,10 @@ export default function DirectorySidebar() {
               disabled={!selectedFilePath} // Disable if no file is selected
             >
               <option value="default">Layout Default</option>
+              <option value="trimming">Layout Trimming</option>
               <option value="fill-missing-prep">Layout Fill Missing</option>
               <option value="smoothing-prep">Layout Smoothing</option>
-              <option value="normalization-prep">Layout Normalisasi</option>
+              <option value="normalization-prep">Layout Normalization</option>
               <option value="splicing">Layout Splicing</option>
             </select>
           </div>

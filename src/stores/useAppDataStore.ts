@@ -9,6 +9,10 @@ import {
   PreviewableFile,
 } from '@/types';
 
+interface FolderStructure {
+  [field: string]: string[]; // Contoh: { "Adera": ["Abab", "Benuang"], "Limau": [...] }
+}
+
 // FIX #1: Definisikan tipe untuk parameter VSH di sini
 interface VshParams {
   gr_ma: number;
@@ -39,6 +43,14 @@ interface AppState {
   plotLayout: Partial<Layout>;
   isLoadingPlot: boolean;
   plotError: string | null;
+
+  folderStructure: FolderStructure;
+  selectedField: string | null;
+  selectedStructure: string | null;
+
+  fetchFolderStructure: () => Promise<void>;
+  setSelectedField: (field: string | null) => void;
+  setSelectedStructure: (structure: string | null) => void;
 
   // State baru untuk menyimpan parameter VSH
   vshParams: VshParams;
@@ -82,6 +94,10 @@ export const useAppDataStore = create<AppState>()(
       plotLayout: {},
       isLoadingPlot: true,
       plotError: null,
+
+      folderStructure: {},
+      selectedField: null,
+      selectedStructure: null,
 
       // FIX #2: Tambahkan nilai awal untuk vshParams
       vshParams: {
@@ -161,6 +177,25 @@ export const useAppDataStore = create<AppState>()(
       fetchPlotData: async (wellId: string) => {
         // ... logika fetch Anda ...
       },
+
+      fetchFolderStructure: async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+          const response = await fetch(`${apiUrl}/api/get-folder-structure`);
+          if (!response.ok) throw new Error("Failed to fetch folder structure");
+          const structure: FolderStructure = await response.json();
+          set({ folderStructure: structure, selectedField: null, selectedStructure: null });
+        } catch (error) {
+          console.error("Error fetching folder structure:", error);
+          // Set state kosong jika gagal
+          set({ folderStructure: {} });
+        }
+      },
+      setSelectedField: (field) => {
+        // Saat field diganti, reset pilihan structure
+        set({ selectedField: field, selectedStructure: null });
+      },
+      setSelectedStructure: (structure) => set({ selectedStructure: structure }),
     }),
     {
       name: 'app-data-storage',
