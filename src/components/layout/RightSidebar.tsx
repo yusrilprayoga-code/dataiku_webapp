@@ -217,7 +217,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
     'SMOOTHING', 
     'NORMALIZATION', 
     'SPLICING/MERGING',
-    'PLOT-DM'
+    // 'PLOT-DM'
   ];
   
   const routePrefix = isDataPrep ? '/data-prep/modules' : '/dashboard/modules';
@@ -231,6 +231,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
           // Show all modules for data-prep routes - same as dashboard but in data-prep context
           <>
             <ModuleSection title="Data Preparation" buttons={dataPrepQualityControlButtons} activeButton={activeButton} routePrefix={routePrefix} />
+            <ModuleSection title="Interpretation" buttons={logInterpretationButtons} activeButton={activeButton} routePrefix={routePrefix} />
+            <ModuleSection title="Gas Oil Water Scanner (GOWS)" buttons={gowsButtons} activeButton={activeButton} routePrefix={routePrefix} />
           </>
         ) : (
           // Show all modules for dashboard routes
