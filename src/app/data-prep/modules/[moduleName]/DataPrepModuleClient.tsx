@@ -11,6 +11,7 @@ import DepthMatchingPage from '@/features/depth-matching/page';
 import FillMissingPage from '@/features/fill_missing/page';
 import SplicingMergingPage from '@/features/splicing-merging/page';
 import DataPrepSmoothingParams from '@/data-prep/smoothing/DataPrepSmoothing';
+import MatchingPlotPage from '@/features/plot-dm/page';
 
 interface DataPrepModuleClientProps {
   moduleName: string;
@@ -62,6 +63,8 @@ const DataPrepModuleClient: React.FC<DataPrepModuleClientProps> = ({
         return <DataPrepSmoothingParams />;
       case 'splicing-merging':
         return <SplicingMergingPage />;
+      case 'plot-dm':
+        return <MatchingPlotPage />;
       default:
         return (
           <div className="h-full p-4 md:p-6 bg-gray-50">

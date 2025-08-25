@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -22,7 +21,7 @@ const createInitialDepthMatchingParameters = (): ParameterRow[] => {
         'MATCHING_LOG': 'DGRCC',
         'SLACK': 35,
         'NUM_CHUNKS': 10,
-        'OUTPUT_LOG': 'DGRCC_DS',
+        'OUTPUT_LOG': 'DGRCC_DM',
     };
     return depthMatchingParams.map(p => ({
         ...p,
@@ -95,6 +94,8 @@ export default function DepthMatchingPage() {
             output_lwd_curve: getParamValue('OUTPUT_LOG')
         };
 
+        console.log('Submitting Depth Matching with payload:', payload);
+
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         const endpoint = `${apiUrl}/api/run-depth-matching`;
 
@@ -116,7 +117,7 @@ export default function DepthMatchingPage() {
             if (plotObject && (plotObject.data || plotObject.layout)) {
                 setPlotFigure({ data: plotObject.data || [], layout: plotObject.layout || {} });
                 alert("Depth Matching complete! Plot generated on the dashboard.");
-                router.push('/dashboard');
+                router.push(`/matching-plot?lwd_path=${encodeURIComponent(matchingWellPath)}`);
             } else {
                 throw new Error('Invalid plot data structure received from server.');
             }

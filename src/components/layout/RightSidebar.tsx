@@ -67,7 +67,9 @@ const getRouteForItem = (itemName: string) => {
       return 'dns-dnsv';
     case 'GWD':
       return 'gwd';
-    
+    case 'PLOT-DM':
+      return 'plot-dm';
+
     default:
       return itemName.toLowerCase().replace(/\s+/g, '-');
   }
@@ -214,7 +216,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ activeButton }) => {
     'FILL MISSING', 
     'SMOOTHING', 
     'NORMALIZATION', 
-    'SPLICING/MERGING'
+    'SPLICING/MERGING',
+    'PLOT-DM'
   ];
   
   const routePrefix = isDataPrep ? '/data-prep/modules' : '/dashboard/modules';

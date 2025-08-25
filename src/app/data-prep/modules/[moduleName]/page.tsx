@@ -15,6 +15,7 @@ const VALID_DATA_PREP_MODULES = [
   'smoothing',
   'normalization',
   'splicing-merging',
+  'plot-dm'
 ];
 
 // Fallback component for Suspense
