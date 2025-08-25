@@ -121,7 +121,7 @@ export default function MatchingPlotPage() {
                         <Plot
                             data={plotFigure.data}
                             layout={plotFigure.layout}
-                            style={{ width: '100%', height: '100%' }}
+                            style={{ width: '100%', height: '1000%' }}
                             useResizeHandler={true}
                             config={{ responsive: true, displaylogo: false }}
                         />
