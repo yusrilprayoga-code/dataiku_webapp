@@ -205,6 +205,7 @@ export default function DirectorySidebar() {
 			setFiles([]);
 		}
 	}, [currentFolder]);
+
 	const commonColumnsResult = useMemo(() => {
 		if (selectedWells.length === 0) {
 			return { isLoading: false, columns: [] };
@@ -212,7 +213,7 @@ export default function DirectorySidebar() {
 
 		// Check if we have column data for all selected wells
 		for (const wellName of selectedWells) {
-			if (!wellColumns[`${wellName}.csv`]) {
+			if (!wellColumns[`${wellName}`]) {
 				return { isLoading: true, columns: [] };
 			}
 		}
