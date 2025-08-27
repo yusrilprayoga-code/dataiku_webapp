@@ -226,6 +226,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             default: endpointPath = '/api/get-module1-plot'; break;
         }
         if (plotType === 'custom') {
+          console.log(`selectedCustomColumns: ${selectedCustomColumns} dan selectedFilePath: ${selectedFilePath}`)
             requestBody = { custom_columns: selectedCustomColumns, file_path: selectedFilePath };
         } else {
             requestBody = { file_path: selectedFilePath };
