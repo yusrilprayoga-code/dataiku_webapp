@@ -6,10 +6,9 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Select from "react-select";
 import { Loader2 } from "lucide-react";
-import { useDashboard } from "@/contexts/DashboardContext";
-import { useAppDataStore } from "@/stores/useAppDataStore";
+import { useDashboard } from "@/contexts/DashboardContext"; // 1. Impor hook useDashboard
 
-export default function FillMissingDashboardParams() {
+export default function FillMissingParams() {
 	// --- STATE MANAGEMENT ---
 	const router = useRouter();
 	const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
@@ -17,25 +16,27 @@ export default function FillMissingDashboardParams() {
 	const [isFlagging, setIsFlagging] = useState(false);
 	const [isFilling, setIsFilling] = useState(false);
 
-	// --- MENGAMBIL DATA DARI KONTEKS DASHBOARD ---
-	const { wellsDir } = useAppDataStore();
+	// 2. Gunakan state dan fungsi dari DashboardContext
 	const { selectedWells, wellColumns, fetchWellColumns } = useDashboard();
 
-	// --- DATA FETCHING & MEMOIZATION ---
-	useEffect(() => {
-		setSelectedLogs([]);
+	// --- DATA FETCHING ---
 
+	useEffect(() => {
 		if (selectedWells.length > 0) {
-			fetchWellColumns(selectedWells);
+			const wellNamesOnly = selectedWells.map((well) =>
+				well.replace(/\.csv$/, "")
+			);
+			fetchWellColumns(wellNamesOnly);
 		}
 	}, [selectedWells, fetchWellColumns]);
 
 	const allAvailableColumns = useMemo(() => {
-		if (!wellColumns || Object.keys(wellColumns).length === 0) return [];
-		// Gabungkan semua kolom dari semua sumur yang dipilih dan buat unik
+		if (!selectedWells || selectedWells.length === 0 || !wellColumns) {
+			return [];
+		}
 		const allCols = Object.values(wellColumns).flat();
 		return [...new Set(allCols)];
-	}, [wellColumns]);
+	}, [selectedWells, wellColumns]);
 
 	const logOptions = useMemo(() => {
 		const excludedLogs = new Set([
@@ -54,10 +55,10 @@ export default function FillMissingDashboardParams() {
 			.map((c) => ({ label: c, value: c }));
 	}, [allAvailableColumns]);
 
-	// --- LOGIKA UTAMA ---
 	const runProcess = async (stage: "flag" | "fill") => {
 		if (selectedWells.length === 0) {
-			alert("Silakan pilih setidaknya satu sumur dari Wells Browser.");
+			// Gunakan selectedWells dari context
+			alert("Silakan pilih setidaknya satu file dari Wells Browser.");
 			return;
 		}
 		if (selectedLogs.length === 0) {
@@ -67,14 +68,12 @@ export default function FillMissingDashboardParams() {
 
 		stage === "flag" ? setIsFlagging(true) : setIsFilling(true);
 
-		// BUAT PAYLOAD SESUAI FORMAT YANG DIHARAPKAN BACKEND UNTUK DASHBOARD
 		const payload = {
-			full_path: wellsDir,
-			selected_wells: selectedWells,
+			file_paths: selectedWells,
 			logs_to_check: selectedLogs,
 			logs_to_fill: selectedLogs,
 			max_consecutive_nan: maxConsecutive,
-			isDataPrep: false,
+			isDataPrep: true,
 		};
 
 		const endpoint =
@@ -92,8 +91,7 @@ export default function FillMissingDashboardParams() {
 			if (!resp.ok)
 				throw new Error(result?.error || `Gagal menjalankan proses ${stage}.`);
 			alert(`✅ ${result.message}`);
-			// Kembali ke dashboard setelah selesai
-			if (stage === "fill") router.push("/dashboard");
+			if (stage === "fill") router.push("/data-prep");
 		} catch (err) {
 			alert(`❌ ${err instanceof Error ? err.message : "Unknown error"}`);
 		} finally {
@@ -101,33 +99,32 @@ export default function FillMissingDashboardParams() {
 		}
 	};
 
-	const isActionDisabled =
-		isFlagging || isFilling || selectedWells.length === 0;
-
 	return (
 		<div className="p-6 bg-white rounded-lg shadow-md max-w-4xl mx-auto">
 			<h2 className="text-xl font-bold mb-4 text-gray-800">
 				Fill Missing Values (Two Stages)
 			</h2>
 
+			{/* --- 5. HAPUS PEMILIHAN FILE LOKAL, GANTI DENGAN INFO DARI CONTEXT --- */}
 			<div className="mb-6 p-4 border rounded-lg bg-gray-50">
 				<h3 className="text-lg font-semibold mb-2">
-					Well(s) Selected to Process
+					File(s) Selected to Process
 				</h3>
 				<p className="text-sm text-gray-500 mb-2">
-					Sumur-sumur berikut telah dipilih dari Wells Browser:
+					File-file berikut telah dipilih dari Wells Browser:
 				</p>
 				{selectedWells.length > 0 ? (
 					<div className="max-h-28 overflow-y-auto text-sm text-blue-800 bg-blue-50 p-2 rounded-md">
 						<ul className="list-disc list-inside">
-							{selectedWells.map((wellName) => (
-								<li key={wellName}>{wellName.replace(/\.csv$/, "")}</li>
+							{selectedWells.map((path) => (
+								<li key={path}>{path.split("/").pop()}</li>
 							))}
 						</ul>
 					</div>
 				) : (
 					<p className="text-sm text-red-600 font-medium">
-						Tidak ada sumur yang dipilih. Silakan pilih dari Wells Browser.
+						Tidak ada file yang dipilih. Silakan pilih file dari Wells Browser
+						terlebih dahulu.
 					</p>
 				)}
 			</div>
@@ -144,7 +141,7 @@ export default function FillMissingDashboardParams() {
 						type="button"
 						onClick={() => runProcess("flag")}
 						className="px-4 py-2 rounded-md text-white font-semibold bg-orange-500 hover:bg-orange-600 flex items-center justify-center min-w-[150px]"
-						disabled={isActionDisabled}>
+						disabled={isFlagging || isFilling || selectedWells.length === 0}>
 						{isFlagging ? (
 							<>
 								<Loader2 className="animate-spin w-4 h-4 mr-2" />
@@ -158,7 +155,7 @@ export default function FillMissingDashboardParams() {
 						type="button"
 						onClick={() => runProcess("fill")}
 						className="px-4 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700 flex items-center justify-center min-w-[150px]"
-						disabled={isActionDisabled}>
+						disabled={isFilling || isFlagging || selectedWells.length === 0}>
 						{isFilling ? (
 							<>
 								<Loader2 className="animate-spin w-4 h-4 mr-2" />
@@ -209,22 +206,34 @@ export default function FillMissingDashboardParams() {
 												: []
 										)
 									}
-									className="min-w-[200px] text-sm"
+									className="min-w-[200px] text-sm" // Hapus text-black dari sini
 									classNamePrefix="react-select"
 									menuPortalTarget={
 										typeof window !== "undefined" ? document.body : null
 									}
+									// --- PERBAIKAN DI SINI ---
 									styles={{
-										input: (base) => ({ ...base, color: "#1f2937" }),
-										option: (base, state) => ({
-											...base,
+										singleValue: (baseStyles) => ({
+											...baseStyles,
+											color: "#1f2937",
+										}),
+										input: (baseStyles) => ({
+											...baseStyles,
+											color: "#1f2937",
+										}),
+										option: (baseStyles, state) => ({
+											...baseStyles,
+											// Mengubah warna teks menjadi hitam saat dipilih atau di-hover
 											color: state.isSelected ? "white" : "#1f2937",
 										}),
-										multiValueLabel: (base) => ({ ...base, color: "black" }),
+										multiValueLabel: (baseStyles) => ({
+											...baseStyles,
+											color: "black",
+										}),
 									}}
 									placeholder={
 										selectedWells.length === 0
-											? "Select well(s) first"
+											? "Select file(s) first"
 											: "Select logs..."
 									}
 									isDisabled={selectedWells.length === 0}
