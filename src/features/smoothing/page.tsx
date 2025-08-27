@@ -1,38 +1,80 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useDashboard } from '@/contexts/DashboardContext';
-import { type ParameterRow } from '@/types';
-import { Loader2 } from 'lucide-react';
-import { useAppDataStore } from '@/stores/useAppDataStore';
+import React, { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useDashboard } from "@/contexts/DashboardContext";
+import { type ParameterRow } from "@/types";
+import { Loader2 } from "lucide-react";
+import { useAppDataStore } from "@/stores/useAppDataStore";
 
+<<<<<<< HEAD
 const createInitialSmoothingParameters = (selection: string[]): ParameterRow[] => {
     // Jika tidak ada interval/zones dipilih, gunakan satu kolom 'default' agar UI tetap muncul
     const effectiveSelection = selection.length > 0 ? selection : ['default'];
     const createValues = (val: string | number) => Object.fromEntries(effectiveSelection.map(i => [i, val]));
+=======
+// Fungsi helper untuk membuat parameter awal berdasarkan pilihan (interval atau zona)
+const createInitialSmoothingParameters = (
+	selection: string[]
+): ParameterRow[] => {
+	const effectiveSelection = selection.length > 0 ? selection : ["default"];
+	const createValues = (val: string | number) =>
+		Object.fromEntries(effectiveSelection.map((i) => [i, val]));
+>>>>>>> cfe60361eb777fec730beed7e0a33afbc341c40d
 
-    const smoothingParams: Omit<ParameterRow, 'values'>[] = [
-        { id: 1, location: 'Parameter', mode: 'Input', comment: 'Smoothing method', unit: '', name: 'METHOD', isEnabled: true },
-        { id: 2, location: 'Parameter', mode: 'Input', comment: 'Size of smooth window', unit: '', name: 'WINDOW', isEnabled: true },
-        { id: 3, location: 'Log', mode: 'Input', comment: 'Log to be smoothed', unit: '', name: 'LOG_IN', isEnabled: true },
-        { id: 4, location: 'Log', mode: 'Output', comment: 'Smoothed log', unit: '', name: 'LOG_OUT', isEnabled: true },
-    ];
+	const smoothingParams: Omit<ParameterRow, "values">[] = [
+		{
+			id: 1,
+			location: "Parameter",
+			mode: "Input",
+			comment: "Smoothing method",
+			unit: "",
+			name: "METHOD",
+			isEnabled: true,
+		},
+		{
+			id: 2,
+			location: "Parameter",
+			mode: "Input",
+			comment: "Size of smooth window",
+			unit: "",
+			name: "WINDOW",
+			isEnabled: true,
+		},
+		{
+			id: 3,
+			location: "Log",
+			mode: "Input",
+			comment: "Log to be smoothed",
+			unit: "",
+			name: "LOG_IN",
+			isEnabled: true,
+		},
+		{
+			id: 4,
+			location: "Log",
+			mode: "Output",
+			comment: "Smoothed log",
+			unit: "",
+			name: "LOG_OUT",
+			isEnabled: true,
+		},
+	];
 
-    const defaultValues: Record<string, string | number> = {
-        'METHOD': 'MOVING_AVG',
-        'WINDOW': 5,
-        'LOG_IN': 'GR',
-    };
+	const defaultValues: Record<string, string | number> = {
+		METHOD: "MOVING_AVG",
+		WINDOW: 5,
+		LOG_IN: "GR",
+	};
+	defaultValues["LOG_OUT"] = `${defaultValues["LOG_IN"]}_SM`;
 
-    defaultValues['LOG_OUT'] = `${defaultValues['LOG_IN']}_SM`;
-
-    return smoothingParams.map(p => ({
-        ...p,
-        values: createValues(defaultValues[p.name] || '')
-    }));
+	return smoothingParams.map((p) => ({
+		...p,
+		values: createValues(defaultValues[p.name] || ""),
+	}));
 };
 
+<<<<<<< HEAD
 export default function SmoothingParams() {
     const { selectedWells, selectedIntervals, wellColumns, selectedZones } = useDashboard();
     const router = useRouter();
@@ -55,25 +97,63 @@ export default function SmoothingParams() {
         const effectiveSelection = selectedZones.length > 0 ? selectedZones : selectedIntervals;
         setParameters(createInitialSmoothingParameters(effectiveSelection));
     }, [selectedIntervals, selectedZones]);
+=======
+export default function SmoothingDashboardParams() {
+	const {
+		selectedWells,
+		selectedIntervals,
+		selectedZones,
+		wellColumns,
+		fetchWellColumns,
+	} = useDashboard();
+	const router = useRouter();
+	const [parameters, setParameters] = useState<ParameterRow[]>([]);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [rowSync, setRowSync] = useState<Record<number, boolean>>({});
+	const { wellsDir } = useAppDataStore();
 
-    // Fetch available columns for DataPrep context
-    useEffect(() => {
-        const fetchWellColumns = async () => {
-            if (!isDataPrep || !wellsDir) return;
+	// --- PERBAIKAN 1: Hapus state 'calculationMode' dan deteksi secara otomatis ---
+	const isUsingZones = selectedZones.length > 0;
+	const effectiveSelection = isUsingZones ? selectedZones : selectedIntervals;
 
-            try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-                const response = await fetch(`${apiUrl}/api/get-well-columns`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ full_path: wellsDir }),
-                });
+	useEffect(() => {
+		// Inisialisasi ulang parameter saat pilihan efektif berubah
+		setParameters(createInitialSmoothingParameters(effectiveSelection));
+	}, [effectiveSelection]);
+>>>>>>> cfe60361eb777fec730beed7e0a33afbc341c40d
 
-                if (!response.ok) {
-                    console.error('Failed to fetch well columns');
-                    return;
-                }
+	useEffect(() => {
+		// Ambil daftar kolom dari sumur yang dipilih
+		if (selectedWells.length > 0) {
+			fetchWellColumns(selectedWells); // false = bukan Data Prep
+		}
+	}, [selectedWells, fetchWellColumns]);
 
+	const allAvailableColumns = useMemo(() => {
+		if (!wellColumns || Object.keys(wellColumns).length === 0) return [];
+		const excludedColumns = new Set([
+			"DEPTH",
+			"STRUKTUR",
+			"WELL_NAME",
+			"CALI",
+			"SP",
+			"MARKER",
+			"ZONE",
+			"RESERVOIR_CLASS",
+		]);
+		const allCols = Object.values(wellColumns).flat();
+		const uniqueColumns = [...new Set(allCols)];
+		return uniqueColumns.filter(
+			(col) => !excludedColumns.has(col.toUpperCase())
+		);
+	}, [wellColumns]);
+
+	const handleValueChange = (id: number, key: string, newValue: string) => {
+		setParameters((prev) => {
+			// Buat salinan state untuk dimodifikasi
+			const newParameters = [...prev];
+
+<<<<<<< HEAD
                 const data = await response.json();
                 console.log(data)
                 
@@ -109,46 +189,102 @@ export default function SmoothingParams() {
         
         // In Dashboard context, use the existing logic
         if (selectedWells.length === 0) return [];
+=======
+			// Temukan baris yang diubah
+			const rowIndex = newParameters.findIndex((row) => row.id === id);
+			if (rowIndex === -1) return prev; // Jika tidak ditemukan, kembalikan state lama
 
-        // 1. Definisikan kolom-kolom yang akan dikecualikan/disembunyikan
-        const excludedColumns = new Set(['DEPTH', 'STRUKTUR', 'WELL_NAME', 'CALI', 'SP', 'MARKER', 'ZONE', 'RESERVOIR_CLASS']);
+			const rowToUpdate = { ...newParameters[rowIndex] };
 
-        // Gabungkan semua kolom dari sumur yang dipilih
-        const columns = selectedWells.flatMap(well => wellColumns[well] || []);
-        // Buat daftar unik untuk menghindari duplikasi
-        const uniqueColumns = [...new Set(columns)];
+			// Logika untuk sinkronisasi baris
+			if (rowSync[id]) {
+				const newValues = Object.fromEntries(
+					Object.keys(rowToUpdate.values).map((i) => [i, newValue])
+				);
+				rowToUpdate.values = newValues;
+>>>>>>> cfe60361eb777fec730beed7e0a33afbc341c40d
 
-        // 2. Filter daftar kolom unik untuk membuang yang tidak diinginkan
-        const filteredColumns = uniqueColumns.filter(col => !excludedColumns.has(col));
+				if (rowToUpdate.name === "LOG_IN") {
+					const logOutIndex = newParameters.findIndex(
+						(p) => p.name === "LOG_OUT"
+					);
+					if (logOutIndex !== -1) {
+						const newLogOutValues = Object.fromEntries(
+							Object.keys(newParameters[logOutIndex].values).map((i) => [
+								i,
+								`${newValue}_SM`,
+							])
+						);
+						newParameters[logOutIndex] = {
+							...newParameters[logOutIndex],
+							values: newLogOutValues,
+						};
+					}
+				}
+			} else {
+				// Update nilai tunggal
+				const newValues = { ...rowToUpdate.values, [key]: newValue };
+				rowToUpdate.values = newValues;
 
+				if (rowToUpdate.name === "LOG_IN") {
+					const logOutIndex = newParameters.findIndex(
+						(p) => p.name === "LOG_OUT"
+					);
+					if (logOutIndex !== -1) {
+						const newLogOutValues = {
+							...newParameters[logOutIndex].values,
+							[key]: `${newValue}_SM`,
+						};
+						newParameters[logOutIndex] = {
+							...newParameters[logOutIndex],
+							values: newLogOutValues,
+						};
+					}
+				}
+			}
+
+			newParameters[rowIndex] = rowToUpdate;
+			return newParameters;
+		});
+	};
+
+<<<<<<< HEAD
         // 3. Kembalikan hasil filter tanpa diurutkan (.sort() dihapus)
         return filteredColumns;
     }, [isDataPrep, availableColumns, selectedWells, wellColumns]);
+=======
+	const handleRowToggle = (id: number, isEnabled: boolean) => {
+		setRowSync((prev) => ({ ...prev, [id]: isEnabled }));
+	};
+>>>>>>> cfe60361eb777fec730beed7e0a33afbc341c40d
 
-    const handleValueChange = (id: number, interval: string, newValue: string) => {
-        setParameters(prev => prev.map(row => {
-            if (row.id !== id) return row;
-            if (rowSync[id]) {
-                const newValues = Object.fromEntries(
-                    Object.keys(row.values).map(i => [i, newValue])
-                );
-                return { ...row, values: newValues };
-            }
-            return {
-                ...row,
-                values: { ...row.values, [interval]: newValue },
-            };
-        }));
-    };
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (selectedWells.length === 0 || effectiveSelection.length === 0) {
+			alert("Silakan pilih sumur dan setidaknya satu interval atau zona.");
+			return;
+		}
+		setIsSubmitting(true);
 
-    const handleRowToggle = (id: number, isEnabled: boolean) => {
-        setRowSync(prev => ({ ...prev, [id]: isEnabled }));
-    };
+		const formParams = parameters
+			.filter((p) => p.isEnabled)
+			.reduce((acc, param) => {
+				const firstKey = effectiveSelection[0] || "default";
+				acc[param.name] = param.values[firstKey];
+				return acc;
+			}, {} as Record<string, string | number>);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
+		// --- PERBAIKAN 2: Buat payload berdasarkan deteksi otomatis ---
+		const payload = {
+			full_path: wellsDir,
+			params: formParams,
+			selected_wells: selectedWells,
+			selected_intervals: isUsingZones ? [] : selectedIntervals,
+			selected_zones: isUsingZones ? selectedZones : [],
+			isDataPrep: false,
+		};
 
+<<<<<<< HEAD
         // Use the effective selection for value extraction (same as VSH)
         const firstActiveKey = isUsingZones 
             ? (selectedZones[0] || 'default') 
@@ -172,39 +308,45 @@ export default function SmoothingParams() {
         
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         const endpoint = `${apiUrl}/api/run-smoothing`; 
+=======
+		const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+		const endpoint = `${apiUrl}/api/run-smoothing`;
 
-        try {
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Server error');
-            }
-            const result = await response.json();
-            alert(result.message || "Proses smoothing berhasil!");
-            router.push('/dashboard');
-        } catch (error) {
-            alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-    
-    const getRowBgColor = (location: string, mode: string): string => {
-        switch (location) {
-            case 'Parameter': return 'bg-orange-600';
-            case 'Log': return mode === 'Input' ? 'bg-cyan-400' : 'bg-cyan-200';
-            default: return 'bg-white';
-        }
-    };
-    
-    const staticHeaders = isDataPrep 
-        ? ['#', 'Location', 'Mode', 'Comment', 'Unit', 'Name', 'Value']
-        : ['#', 'Location', 'Mode', 'Comment', 'Unit', 'Name', 'P'];
+		try {
+			const response = await fetch(endpoint, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(payload),
+			});
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || "Server error");
+			}
+			const result = await response.json();
+			alert(result.message || "Proses smoothing berhasil!");
+			router.push("/dashboard");
+		} catch (error) {
+			alert(
+				`Error: ${error instanceof Error ? error.message : "Unknown error"}`
+			);
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+>>>>>>> cfe60361eb777fec730beed7e0a33afbc341c40d
 
+	const getRowBgColor = (location: string, mode: string): string => {
+		switch (location) {
+			case "Parameter":
+				return "bg-orange-600";
+			case "Log":
+				return mode === "Input" ? "bg-cyan-400" : "bg-cyan-200";
+			default:
+				return "bg-white";
+		}
+	};
+
+<<<<<<< HEAD
     return (
         <div className="p-4 md:p-6 h-full flex flex-col bg-white rounded-lg shadow-md">
             <h2 className="text-xl font-bold mb-4 text-gray-800 flex-shrink-0">Smoothing</h2>
@@ -338,3 +480,147 @@ export default function SmoothingParams() {
         </div>
     );
 }
+=======
+	const staticHeaders = [
+		"#",
+		"Location",
+		"Mode",
+		"Comment",
+		"Unit",
+		"Name",
+		"P",
+	];
+	const dynamicHeaders = effectiveSelection;
+
+	return (
+		<div className="p-4 md:p-6 h-full flex flex-col bg-white rounded-lg shadow-md">
+			<h2 className="text-xl font-bold mb-4 text-gray-800 flex-shrink-0">
+				Smoothing
+			</h2>
+			<form
+				onSubmit={handleSubmit}
+				className="flex-grow flex flex-col min-h-0">
+				<div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50">
+					<p className="text-sm font-medium text-gray-700">
+						Well: {selectedWells.join(", ") || "N/A"} / Intervals:{" "}
+						{selectedIntervals.length || selectedZones.length} selected
+					</p>
+
+					{/* --- PERBAIKAN 3: Hapus UI radio button --- */}
+					<div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+						<button
+							type="button"
+							onClick={() => router.back()}
+							className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">
+							Cancel
+						</button>
+						<button
+							type="submit"
+							className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700 flex items-center justify-center"
+							disabled={isSubmitting}>
+							{isSubmitting ? <Loader2 className="animate-spin" /> : "Start"}
+						</button>
+					</div>
+				</div>
+
+				<h3 className="text-lg font-semibold mb-2 flex-shrink-0">Parameters</h3>
+				<div className="flex-grow min-h-0 border border-gray-300 rounded-lg">
+					<div className="overflow-auto h-full">
+						<table className="min-w-full text-sm table-auto">
+							<thead className="bg-gray-200 sticky top-0 z-10">
+								<tr>
+									{staticHeaders.map((header) => (
+										<th
+											key={header}
+											className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r">
+											{header}
+										</th>
+									))}
+									{dynamicHeaders.map((header) => (
+										<th
+											key={header}
+											className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r">
+											{header}
+										</th>
+									))}
+								</tr>
+							</thead>
+							<tbody className="bg-white">
+								{parameters.map((param) => (
+									<tr
+										key={param.id}
+										className={`border-b ${getRowBgColor(
+											param.location,
+											param.mode
+										)}`}>
+										<td className="px-3 py-2 border-r text-center">
+											{param.id}
+										</td>
+										<td className="px-3 py-2 border-r">{param.location}</td>
+										<td className="px-3 py-2 border-r">{param.mode}</td>
+										<td className="px-3 py-2 border-r">{param.comment}</td>
+										<td className="px-3 py-2 border-r">{param.unit}</td>
+										<td className="px-3 py-2 border-r font-semibold">
+											{param.name}
+										</td>
+										<td className="px-3 py-2 border-r text-center">
+											<input
+												type="checkbox"
+												className="h-4 w-4"
+												checked={!!rowSync[param.id]}
+												onChange={(e) =>
+													handleRowToggle(param.id, e.target.checked)
+												}
+											/>
+										</td>
+										{dynamicHeaders.map((key) => (
+											<td
+												key={`${param.id}-${key}`}
+												className="px-3 py-2 border-r bg-white text-black">
+												{param.name === "METHOD" ? (
+													<select
+														value={param.values[key] ?? ""}
+														onChange={(e) =>
+															handleValueChange(param.id, key, e.target.value)
+														}
+														className="w-full p-1">
+														<option value="MOVING_AVG">MOVING_AVG</option>
+													</select>
+												) : param.name === "LOG_IN" ? (
+													<select
+														value={param.values[key] ?? ""}
+														onChange={(e) =>
+															handleValueChange(param.id, key, e.target.value)
+														}
+														className="w-full p-1">
+														{allAvailableColumns.map((col) => (
+															<option
+																key={col}
+																value={col}>
+																{col}
+															</option>
+														))}
+													</select>
+												) : (
+													<input
+														type={param.name === "WINDOW" ? "number" : "text"}
+														value={param.values[key] ?? ""}
+														onChange={(e) =>
+															handleValueChange(param.id, key, e.target.value)
+														}
+														className="w-full p-1"
+													/>
+												)}
+											</td>
+										))}
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</form>
+		</div>
+	);
+}
+>>>>>>> cfe60361eb777fec730beed7e0a33afbc341c40d

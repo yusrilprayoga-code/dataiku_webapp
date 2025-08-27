@@ -32,7 +32,7 @@ export default function SaveLocationModal({ isOpen, onClose, onSave, isSaving }:
   const structures = selectedField ? folderStructure[selectedField] : [];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-gray bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-md transform transition-all animate-fade-in-up">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -53,7 +53,7 @@ export default function SaveLocationModal({ isOpen, onClose, onSave, isSaving }:
               id="field-select"
               value={selectedField || ''}
               onChange={(e) => setSelectedField(e.target.value || null)}
-              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-black bg-white"
             >
               <option value="" disabled>-- Choose a Field --</option>
               {fields.map(field => (
@@ -71,7 +71,7 @@ export default function SaveLocationModal({ isOpen, onClose, onSave, isSaving }:
               value={selectedStructure || ''}
               onChange={(e) => setSelectedStructure(e.target.value || null)}
               disabled={!selectedField}
-              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 text-black bg-white"
             >
               <option value="" disabled>-- Choose a Structure --</option>
               {structures.map(structure => (

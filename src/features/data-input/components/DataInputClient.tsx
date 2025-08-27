@@ -210,7 +210,7 @@ export default function DataInputUtamaPage() {
         
         // Tutup modal dan lanjutkan ke dashboard
         setIsModalOpen(false);
-        router.push('/dashboard');
+        router.push('/structures');
 
       } catch (error) {
         console.error("Save failed:", error);

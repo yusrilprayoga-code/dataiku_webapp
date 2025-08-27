@@ -114,7 +114,7 @@ export default function DataInputView() {
 
   const handleContinue = () => {
     setIsNavigating(true);
-    router.push('/dashboard');
+    router.push('/structures');
   };
 
   // UPDATED: This function now returns the correct CSS classes for row background colors
