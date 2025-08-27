@@ -206,36 +206,51 @@ export default function DirectorySidebar() {
 		}
 	}, [currentFolder]);
 
+	// In DirectorySidebar.tsx
+
 	const commonColumnsResult = useMemo(() => {
 		if (selectedWells.length === 0) {
 			return { isLoading: false, columns: [] };
 		}
 
-		// Check if we have column data for all selected wells
-		for (const wellName of selectedWells) {
-			if (!wellColumns[`${wellName}`]) {
+		const getCleanKey = (path: string): string => {
+			// 1. Normalize backslashes to forward slashes
+			const normalizedPath = path.replace(/\\/g, "/");
+			// 2. Get just the filename part
+			let filename = normalizedPath.split("/").pop() || "";
+			// 3. Remove any existing .csv extension (case-insensitive) to prevent doubles
+			filename = filename.replace(/\.csv$/i, "");
+			// 4. Convert to lowercase and add the correct extension
+			return `${filename.toLowerCase()}.csv`;
+		};
+
+		// 1. Check if we have column data for all selected wells using the clean key
+		for (const wellPath of selectedWells) {
+			const cleanKey = getCleanKey(wellPath);
+			if (!wellColumns[cleanKey]) {
+				console.log(`Still waiting for columns for key: ${cleanKey}`);
 				return { isLoading: true, columns: [] };
 			}
 		}
 
-		// All well columns are loaded, now find the intersection
-		const firstWellCols = [...wellColumns[`${selectedWells[0]}.csv`]];
+		// 2. CORRECTLY find the intersection using the clean key
+		const firstWellKey = getCleanKey(selectedWells[0]);
+		const firstWellCols = wellColumns[firstWellKey] || [];
 
-		const intersection = selectedWells.slice(1).reduce((acc, wellName) => {
-			const currentWellCols = wellColumns[`${wellName}.csv`];
-			return acc.filter((column) => currentWellCols.includes(column));
-		}, firstWellCols);
+		const intersection = selectedWells.slice(1).reduce((acc, wellPath) => {
+			const currentWellKey = getCleanKey(wellPath);
+			const currentWellCols = wellColumns[currentWellKey];
+			if (Array.isArray(currentWellCols)) {
+				return acc.filter((column) => currentWellCols.includes(column));
+			}
+			return acc;
+		}, [...firstWellCols]);
 
-		// --- NEW LOGIC TO PROCESS THE COLUMN LIST ---
-
-		// 1. Create a mutable copy of the common columns
+		// --- Your column processing logic (NPHI_RHOB, etc.) remains the same ---
 		let processedColumns = [...intersection];
 
-		// 2. Check if both 'NPHI' and 'RHOB' are present
 		const hasNphi = processedColumns.includes("NPHI");
 		const hasRhob = processedColumns.includes("RHOB");
-
-		// 3. If both exist, filter them out and add the merged 'NPHI_RHOB'
 		if (hasNphi && hasRhob) {
 			processedColumns = processedColumns.filter(
 				(col) => col !== "NPHI" && col !== "RHOB"
@@ -243,47 +258,38 @@ export default function DirectorySidebar() {
 			processedColumns.push("NPHI_RHOB");
 		}
 
-		// 3. Handle PHIE/PHIT special sequence
 		const hasPhie = processedColumns.includes("PHIE");
 		const hasPhit = processedColumns.includes("PHIT");
 		if (hasPhie && hasPhit) {
-			// Remove original PHIE and PHIT to avoid duplicates
 			processedColumns = processedColumns.filter(
 				(col) => col !== "PHIE" && col !== "PHIT"
 			);
-			// Add the specific required items for the plot sequence
 			processedColumns.push("PHIE", "PHIE_PHIT");
 		}
 
-		// 3. Handle PHIE/PHIT special sequence
 		const hasPhieZ4 = processedColumns.includes("PHIE_Z4");
 		const hasPhitZ4 = processedColumns.includes("PHIT_Z4");
 		if (hasPhieZ4 && hasPhitZ4) {
-			// Remove original PHIE and PHIT to avoid duplicates
 			processedColumns = processedColumns.filter(
 				(col) => col !== "PHIE_Z4" && col !== "PHIT_Z4"
 			);
-			// Add the specific required items for the plot sequence
 			processedColumns.push("PHIE_Z4", "PHIE_PHIT_Z4");
 		}
 
-		// 3. Handle PHIE/PHIT special sequence
 		const hasRt = processedColumns.includes("RT");
 		const hasRgsa = processedColumns.includes("RGSA");
 		if (hasRt && hasRgsa) {
-			// Remove original RT and RGSA to avoid duplicates
 			processedColumns = processedColumns.filter(
 				(col) => col !== "RT" && col !== "RGSA"
 			);
-			// Add the specific required items for the plot sequence
 			processedColumns.push("RT", "RT_RGSA");
 		}
 
-		// 5. Finally, filter out 'DEPTH' from the list, then sort it
 		processedColumns = processedColumns.filter((col) => col !== "DEPTH").sort();
 
+		console.log(`Is Loading FALSE on columns well with well columns: ${wellColumns}`);
 		return { isLoading: false, columns: processedColumns };
-	}, [selectedWells, wellColumns]);
+	}, [selectedWells, wellColumns, selectedFilePath]);
 
 	const handleFolderSelect = (folderName: string) => {
 		if (currentFolder === folderName) {
@@ -296,6 +302,76 @@ export default function DirectorySidebar() {
 		}
 	};
 
+	// const handleFileSelect = async (file: WellFile) => {
+	// 	const filePath = file.path;
+
+	// 	// Update selected files state (UI)
+	// 	const newSelectedFiles = selectedFiles.includes(filePath)
+	// 		? selectedFiles.filter((path) => path !== filePath)
+	// 		: [...selectedFiles, filePath];
+
+	// 	setSelectedFiles(newSelectedFiles);
+
+	// 	// --- PERBAIKAN UTAMA ---
+	// 	// Daripada mengirim nama file saja, kita kirim path relatif lengkap.
+	// 	// Ini memberikan informasi yang dibutuhkan backend.
+	// 	// `selectedWells` di context sekarang akan berisi path seperti:
+	// 	// "data/structures/adera/benuang/BNG-057/bng-57_lwd_8_5_trim.csv"
+	// 	toggleWellSelection(filePath);
+
+	// 	// Jika file baru saja dipilih (bukan dibatalkan), lanjutkan untuk memuat plot
+	// 	if (newSelectedFiles.includes(filePath) && file.extension === ".csv") {
+	// 		console.log(`File selected with full path: ${filePath}`);
+
+	// 		const isSpliced = file.name.toLowerCase().includes("spliced");
+	// 		const newPlotType = isSpliced ? "splicing" : "get-module1-plot";
+
+	// 		setPlotType(newPlotType);
+	// 		setSelectedFilePath(filePath);
+	// 		setPlotFigure({ data: [], layout: {} });
+
+	// 		// Trigger plot generation
+	// 		try {
+	// 			const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+	// 			const fullUrl = `${apiUrl}/api/${
+	// 				isSpliced ? "get-splicing-plot" : "get-module1-plot"
+	// 			}`;
+	// 			const requestBody = { file_path: filePath };
+
+	// 			const response = await fetch(fullUrl, {
+	// 				method: "POST",
+	// 				headers: { "Content-Type": "application/json" },
+	// 				body: JSON.stringify(requestBody),
+	// 			});
+
+	// 			if (!response.ok) {
+	// 				const errorText = await response.text();
+	// 				throw new Error(
+	// 					`Failed to get plot: ${response.status} - ${errorText}`
+	// 				);
+	// 			}
+
+	// 			const plotData = await response.json();
+	// 			const parsedPlotData =
+	// 				typeof plotData === "string" ? JSON.parse(plotData) : plotData;
+
+	// 			if (parsedPlotData && (parsedPlotData.data || parsedPlotData.layout)) {
+	// 				setPlotFigure({
+	// 					data: parsedPlotData.data || [],
+	// 					layout: parsedPlotData.layout || {},
+	// 				});
+	// 			} else {
+	// 				throw new Error("Invalid plot data structure received");
+	// 			}
+	// 		} catch (error) {
+	// 			console.error("Error processing plot:", error);
+	// 			setError(
+	// 				error instanceof Error ? error.message : "Failed to process plot data"
+	// 			);
+	// 		}
+	// 	}
+	// };
+
 	const handleFileSelect = async (file: WellFile) => {
 		const filePath = file.path;
 
@@ -306,65 +382,23 @@ export default function DirectorySidebar() {
 
 		setSelectedFiles(newSelectedFiles);
 
-		// --- PERBAIKAN UTAMA ---
-		// Daripada mengirim nama file saja, kita kirim path relatif lengkap.
-		// Ini memberikan informasi yang dibutuhkan backend.
-		// `selectedWells` di context sekarang akan berisi path seperti:
-		// "data/structures/adera/benuang/BNG-057/bng-57_lwd_8_5_trim.csv"
+		// Toggle well selection in context
 		toggleWellSelection(filePath);
 
-		// Jika file baru saja dipilih (bukan dibatalkan), lanjutkan untuk memuat plot
+		// Check if file is spliced to determine plot type
 		if (newSelectedFiles.includes(filePath) && file.extension === ".csv") {
 			console.log(`File selected with full path: ${filePath}`);
-
 			const isSpliced = file.name.toLowerCase().includes("spliced");
 			const newPlotType = isSpliced ? "splicing" : "get-module1-plot";
 
 			setPlotType(newPlotType);
 			setSelectedFilePath(filePath);
+
+			// Clear existing plot but don't generate new one
 			setPlotFigure({ data: [], layout: {} });
-
-			// Trigger plot generation
-			try {
-				const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-				const fullUrl = `${apiUrl}/api/${
-					isSpliced ? "get-splicing-plot" : "get-module1-plot"
-				}`;
-				const requestBody = { file_path: filePath };
-
-				const response = await fetch(fullUrl, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(requestBody),
-				});
-
-				if (!response.ok) {
-					const errorText = await response.text();
-					throw new Error(
-						`Failed to get plot: ${response.status} - ${errorText}`
-					);
-				}
-
-				const plotData = await response.json();
-				const parsedPlotData =
-					typeof plotData === "string" ? JSON.parse(plotData) : plotData;
-
-				if (parsedPlotData && (parsedPlotData.data || parsedPlotData.layout)) {
-					setPlotFigure({
-						data: parsedPlotData.data || [],
-						layout: parsedPlotData.layout || {},
-					});
-				} else {
-					throw new Error("Invalid plot data structure received");
-				}
-			} catch (error) {
-				console.error("Error processing plot:", error);
-				setError(
-					error instanceof Error ? error.message : "Failed to process plot data"
-				);
-			}
 		}
 	};
+
 
 	const handleSelectAllCustomColumns = (checked: boolean) => {
 		if (checked) {
@@ -376,11 +410,99 @@ export default function DirectorySidebar() {
 		}
 	};
 
+	// const handleSelectAllFiles = () => {
+	// 	if (selectedFiles.length === files.length) {
+	// 		// Deselect all files
+	// 		setSelectedFiles([]);
+	// 		// Clear wells from selection one by one using toggleWellSelection
+	// 		files.forEach((file) => {
+	// 			const wellName = file.name.replace(/\.[^/.]+$/, "");
+	// 			if (selectedWells.includes(wellName)) {
+	// 				toggleWellSelection(wellName);
+	// 			}
+	// 		});
+	// 	} else {
+	// 		// Select all files
+	// 		const allFilePaths = files.map((file) => file.path);
+	// 		setSelectedFiles(allFilePaths);
+	// 		// Add wells to selection one by one using toggleWellSelection
+	// 		files.forEach((file) => {
+	// 			const wellName = file.name.replace(/\.[^/.]+$/, "");
+	// 			if (!selectedWells.includes(wellName)) {
+	// 				toggleWellSelection(wellName);
+	// 			}
+	// 		});
+
+	// 		// Trigger plot for the first CSV file if available
+	// 		const firstCsvFile = files.find((file) => file.extension === ".csv");
+	// 		if (firstCsvFile) {
+	// 			console.log(`Select all - First CSV file: ${firstCsvFile.name}`);
+	// 			console.log(
+	// 				`Select all - Is spliced: ${firstCsvFile.name
+	// 					.toLowerCase()
+	// 					.includes("spliced")}`
+	// 			);
+
+	// 			// Check if file contains "spliced" to determine plot type
+	// 			if (firstCsvFile.name.toLowerCase().includes("spliced")) {
+	// 				console.log("Select all - Setting plot type to splicing");
+	// 				setPlotType("splicing");
+	// 			} else {
+	// 				console.log("Select all - Setting plot type to get-module1-plot");
+	// 				setPlotType("get-module1-plot");
+	// 			}
+	// 			setSelectedFilePath(firstCsvFile.path);
+
+	// 			// Clear any existing plot data before loading new plot
+	// 			setPlotFigure({ data: [], layout: {} });
+
+	// 			// Call appropriate plot API for the first CSV
+	// 			(async () => {
+	// 				try {
+	// 					const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+	// 					let endpoint;
+
+	// 					// Determine API endpoint based on file name
+	// 					if (firstCsvFile.name.toLowerCase().includes("spliced")) {
+	// 						endpoint = `${apiUrl}/api/get-splicing-plot`;
+	// 					} else {
+	// 						endpoint = `${apiUrl}/api/get-module1-plot`;
+	// 					}
+
+	// 					const response = await fetch(endpoint, {
+	// 						method: "POST",
+	// 						headers: { "Content-Type": "application/json" },
+	// 						body: JSON.stringify({ file_path: allFilePaths }),
+	// 					});
+
+	// 					if (response.ok) {
+	// 						const plotData = await response.json();
+	// 						const parsedPlotData =
+	// 							typeof plotData === "string" ? JSON.parse(plotData) : plotData;
+
+	// 						if (
+	// 							parsedPlotData &&
+	// 							(parsedPlotData.data || parsedPlotData.layout)
+	// 						) {
+	// 							setPlotFigure({
+	// 								data: parsedPlotData.data || [],
+	// 								layout: parsedPlotData.layout || {},
+	// 							});
+	// 						}
+	// 					}
+	// 				} catch (error) {
+	// 					console.error("Error in select all plot generation:", error);
+	// 				}
+	// 			})();
+	// 		}
+	// 	}
+	// };
+
 	const handleSelectAllFiles = () => {
 		if (selectedFiles.length === files.length) {
 			// Deselect all files
 			setSelectedFiles([]);
-			// Clear wells from selection one by one using toggleWellSelection
+			// Clear wells from selection
 			files.forEach((file) => {
 				const wellName = file.name.replace(/\.[^/.]+$/, "");
 				if (selectedWells.includes(wellName)) {
@@ -391,7 +513,7 @@ export default function DirectorySidebar() {
 			// Select all files
 			const allFilePaths = files.map((file) => file.path);
 			setSelectedFiles(allFilePaths);
-			// Add wells to selection one by one using toggleWellSelection
+			// Add wells to selection
 			files.forEach((file) => {
 				const wellName = file.name.replace(/\.[^/.]+$/, "");
 				if (!selectedWells.includes(wellName)) {
@@ -399,68 +521,19 @@ export default function DirectorySidebar() {
 				}
 			});
 
-			// Trigger plot for the first CSV file if available
-			const firstCsvFile = files.find((file) => file.extension === ".csv");
-			if (firstCsvFile) {
-				console.log(`Select all - First CSV file: ${firstCsvFile.name}`);
-				console.log(
-					`Select all - Is spliced: ${firstCsvFile.name
-						.toLowerCase()
-						.includes("spliced")}`
-				);
+			// Set plot type based on first CSV file but don't generate plot
+			// const firstCsvFile = files.find((file) => file.extension === ".csv");
+			// if (firstCsvFile) {
+			// 	if (firstCsvFile.name.toLowerCase().includes("spliced")) {
+			// 		setPlotType("splicing");
+			// 	} else {
+			// 		setPlotType("get-module1-plot");
+			// 	}
+			// 	setSelectedFilePath(firstCsvFile.path);
+			// }
 
-				// Check if file contains "spliced" to determine plot type
-				if (firstCsvFile.name.toLowerCase().includes("spliced")) {
-					console.log("Select all - Setting plot type to splicing");
-					setPlotType("splicing");
-				} else {
-					console.log("Select all - Setting plot type to get-module1-plot");
-					setPlotType("get-module1-plot");
-				}
-				setSelectedFilePath(firstCsvFile.path);
-
-				// Clear any existing plot data before loading new plot
-				setPlotFigure({ data: [], layout: {} });
-
-				// Call appropriate plot API for the first CSV
-				(async () => {
-					try {
-						const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-						let endpoint;
-
-						// Determine API endpoint based on file name
-						if (firstCsvFile.name.toLowerCase().includes("spliced")) {
-							endpoint = `${apiUrl}/api/get-splicing-plot`;
-						} else {
-							endpoint = `${apiUrl}/api/get-module1-plot`;
-						}
-
-						const response = await fetch(endpoint, {
-							method: "POST",
-							headers: { "Content-Type": "application/json" },
-							body: JSON.stringify({ file_path: allFilePaths }),
-						});
-
-						if (response.ok) {
-							const plotData = await response.json();
-							const parsedPlotData =
-								typeof plotData === "string" ? JSON.parse(plotData) : plotData;
-
-							if (
-								parsedPlotData &&
-								(parsedPlotData.data || parsedPlotData.layout)
-							) {
-								setPlotFigure({
-									data: parsedPlotData.data || [],
-									layout: parsedPlotData.layout || {},
-								});
-							}
-						}
-					} catch (error) {
-						console.error("Error in select all plot generation:", error);
-					}
-				})();
-			}
+			// Clear any existing plot data
+			// setPlotFigure({ data: [], layout: {} });
 		}
 	};
 
@@ -513,11 +586,10 @@ export default function DirectorySidebar() {
 							<button
 								key={folder.name}
 								onClick={() => handleFolderSelect(folder.name)}
-								className={`w-full flex items-center gap-2 p-1 text-xs rounded transition-colors duration-200 ${
-									currentFolder === folder.name
-										? "bg-green-100 text-green-800"
-										: "hover:bg-gray-100 text-gray-700"
-								}`}>
+								className={`w-full flex items-center gap-2 p-1 text-xs rounded transition-colors duration-200 ${currentFolder === folder.name
+									? "bg-green-100 text-green-800"
+									: "hover:bg-gray-100 text-gray-700"
+									}`}>
 								<Folder className="w-3 h-3 text-yellow-500" />
 								<span className="flex-1 text-left truncate">{folder.name}</span>
 								{currentFolder === folder.name ? (
@@ -543,13 +615,12 @@ export default function DirectorySidebar() {
 						<div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200">
 							<button
 								onClick={handleSelectAllFiles}
-								className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
-									selectedFiles.length === files.length && files.length > 0
-										? "bg-blue-500 border-blue-500 text-white"
-										: selectedFiles.length > 0
+								className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors duration-200 ${selectedFiles.length === files.length && files.length > 0
+									? "bg-blue-500 border-blue-500 text-white"
+									: selectedFiles.length > 0
 										? "bg-blue-200 border-blue-400 text-blue-700"
 										: "border-gray-300 hover:border-blue-400"
-								}`}
+									}`}
 								title={
 									selectedFiles.length === files.length
 										? "Deselect All"
@@ -590,30 +661,27 @@ export default function DirectorySidebar() {
 										key={file.path}
 										className="space-y-0.5">
 										<div
-											className={`w-full flex items-center gap-2 p-1 text-xs rounded transition-colors duration-200 ${
-												isSelected
-													? "bg-blue-100 text-blue-800 border border-blue-300"
-													: "hover:bg-gray-100 text-gray-700 border border-transparent"
-											}`}
+											className={`w-full flex items-center gap-2 p-1 text-xs rounded transition-colors duration-200 ${isSelected
+												? "bg-blue-100 text-blue-800 border border-blue-300"
+												: "hover:bg-gray-100 text-gray-700 border border-transparent"
+												}`}
 											title={file.path}>
 											{/* Checkbox */}
 											<button
 												onClick={() => handleFileSelect(file)}
-												className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors duration-200 ${
-													isSelected
-														? "bg-blue-500 border-blue-500 text-white"
-														: "border-gray-300 hover:border-blue-400"
-												}`}>
+												className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors duration-200 ${isSelected
+													? "bg-blue-500 border-blue-500 text-white"
+													: "border-gray-300 hover:border-blue-400"
+													}`}>
 												{isSelected && <Check className="w-3 h-3" />}
 											</button>
 
 											{/* File icon and name */}
 											<File
-												className={`w-3 h-3 flex-shrink-0 ${
-													file.extension === ".csv"
-														? "text-blue-500"
-														: "text-gray-500"
-												}`}
+												className={`w-3 h-3 flex-shrink-0 ${file.extension === ".csv"
+													? "text-blue-500"
+													: "text-gray-500"
+													}`}
 											/>
 											<span className="flex-1 text-left truncate">
 												{file.name}
@@ -669,7 +737,7 @@ export default function DirectorySidebar() {
 										!commonColumnsResult.isLoading &&
 										commonColumnsResult.columns.length > 0 &&
 										selectedCustomColumns.length ===
-											commonColumnsResult.columns.length
+										commonColumnsResult.columns.length
 									}
 									onChange={(e) =>
 										handleSelectAllCustomColumns(e.target.checked)
