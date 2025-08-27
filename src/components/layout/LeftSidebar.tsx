@@ -62,6 +62,28 @@ export default function LeftSidebar() {
 		// 1. Create a mutable copy of the common columns
 		let processedColumns = [...intersection];
 
+		const hasNPHI = processedColumns.includes("NPHI");
+		const hasNGSA = processedColumns.includes("NGSA");
+		if (hasNPHI && hasNGSA) {
+			// Remove original NPHI and NGSA to avoid duplicates
+			processedColumns = processedColumns.filter(
+				(col) => col !== "NPHI" && col !== "NGSA"
+			);
+			// Add the specific required items for the plot sequence
+			processedColumns.push("NPHI", "NPHI_NGSA");
+		}
+
+		const hasRHOB = processedColumns.includes("RHOB");
+		const hasDGSA = processedColumns.includes("DGSA");
+		if (hasRHOB && hasDGSA) {
+			// Remove original RHOB and DGSA to avoid duplicates
+			processedColumns = processedColumns.filter(
+				(col) => col !== "RHOB" && col !== "DGSA"
+			);
+			// Add the specific required items for the plot sequence
+			processedColumns.push("RHOB", "RHOB_DGSA");
+		}
+
 		// 2. Check if both 'NPHI' and 'RHOB' are present
 		const hasNphi = processedColumns.includes("NPHI");
 		const hasRhob = processedColumns.includes("RHOB");
