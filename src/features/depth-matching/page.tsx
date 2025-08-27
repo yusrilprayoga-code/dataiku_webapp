@@ -35,7 +35,7 @@ export default function DepthMatchingPage() {
         wellColumns, 
         columnError,
         fetchWellColumns,
-        setPlotFigure
+        // setPlotFigure
     } = useDashboard();
 
     const router = useRouter();
@@ -69,7 +69,7 @@ export default function DepthMatchingPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-        setPlotFigure({ data: [], layout: {} });
+        // setPlotFigure({ data: [], layout: {} });
 
         const formParams = parameters.reduce((acc, param) => {
             acc[param.name] = param.values['default'];
@@ -109,20 +109,13 @@ export default function DepthMatchingPage() {
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Server error during depth matching');
+            } else {
+                const successMessage = await response.json();
+                alert(successMessage['message'])
             }
             
-            const result = await response.json();
-            const plotObject = JSON.parse(result);
-
-            if (plotObject && (plotObject.data || plotObject.layout)) {
-                setPlotFigure({ data: plotObject.data || [], layout: plotObject.layout || {} });
-                alert("Depth Matching complete! Plot generated on the dashboard.");
-                router.push(`/matching-plot?lwd_path=${encodeURIComponent(matchingWellPath)}`);
-            } else {
-                throw new Error('Invalid plot data structure received from server.');
-            }
         } catch (error) {
-            alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            alert(`Error From Here: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setIsSubmitting(false);
         }

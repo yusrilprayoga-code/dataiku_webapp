@@ -204,6 +204,7 @@ export const useAppDataStore = create<AppState>()(
         selectedIntervals: state.selectedIntervals,
         vshParams: state.vshParams,
         vshDNParams: state.vshDNParams,
+        wellsDir:state.wellsDir
       }),
       storage: createJSONStorage(() => localStorage),
     }

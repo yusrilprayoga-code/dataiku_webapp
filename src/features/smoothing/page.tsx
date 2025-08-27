@@ -7,10 +7,10 @@ import { type ParameterRow } from '@/types';
 import { Loader2 } from 'lucide-react';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 
-const createInitialSmoothingParameters = (intervals: string[]): ParameterRow[] => {
-    // Use a default interval if none are provided (like splicing-merging and normalization)
-    const effectiveIntervals = intervals.length > 0 ? intervals : ['default'];
-    const createValues = (val: string | number) => Object.fromEntries(effectiveIntervals.map(i => [i, val]));
+const createInitialSmoothingParameters = (selection: string[]): ParameterRow[] => {
+    // Jika tidak ada interval/zones dipilih, gunakan satu kolom 'default' agar UI tetap muncul
+    const effectiveSelection = selection.length > 0 ? selection : ['default'];
+    const createValues = (val: string | number) => Object.fromEntries(effectiveSelection.map(i => [i, val]));
 
     const smoothingParams: Omit<ParameterRow, 'values'>[] = [
         { id: 1, location: 'Parameter', mode: 'Input', comment: 'Smoothing method', unit: '', name: 'METHOD', isEnabled: true },
@@ -34,7 +34,7 @@ const createInitialSmoothingParameters = (intervals: string[]): ParameterRow[] =
 };
 
 export default function SmoothingParams() {
-    const { selectedWells, selectedIntervals, wellColumns} = useDashboard();
+    const { selectedWells, selectedIntervals, wellColumns, selectedZones } = useDashboard();
     const router = useRouter();
     const pathname = usePathname();
     const [parameters, setParameters] = useState<ParameterRow[]>([]);
@@ -43,13 +43,18 @@ export default function SmoothingParams() {
     const [availableColumns, setAvailableColumns] = useState<string[]>([]);
 
     const { wellsDir } = useAppDataStore();
+    
     // Check if we're in DataPrep context by checking the current pathname
     const isDataPrep = pathname?.startsWith('/data-prep') || false;
 
+    // Determine which intervals/zones to use based on priority (same as VSH)
+    const isUsingZones = selectedZones.length > 0;
+
     useEffect(() => {
-        // Always create parameters, even if no intervals are selected (like splicing-merging and normalization)
-        setParameters(createInitialSmoothingParameters(selectedIntervals));
-    }, [selectedIntervals]);
+        // Use zones if available, otherwise use intervals (same logic as VSH)
+        const effectiveSelection = selectedZones.length > 0 ? selectedZones : selectedIntervals;
+        setParameters(createInitialSmoothingParameters(effectiveSelection));
+    }, [selectedIntervals, selectedZones]);
 
     // Fetch available columns for DataPrep context
     useEffect(() => {
@@ -70,27 +75,38 @@ export default function SmoothingParams() {
                 }
 
                 const data = await response.json();
-                if (data.columns) {
-                    // Filter out excluded columns
-                    const excludedColumns = new Set(['DEPTH', 'STRUKTUR', 'WELL_NAME', 'CALI', 'SP', 'MARKER', 'ZONE', 'RESERVOIR_CLASS']);
-                    const filteredColumns = data.columns.filter((col: string) => !excludedColumns.has(col));
-                    setAvailableColumns(filteredColumns);
-                }
+                console.log(data)
+                
+                // Handle the response structure where data contains well files as keys
+                const allColumns: string[] = [];
+                
+                // Extract columns from all wells
+                Object.values(data).forEach((wellColumns: any) => {
+                    if (Array.isArray(wellColumns)) {
+                        allColumns.push(...wellColumns);
+                    }
+                });
+                
+                // Get unique columns and filter out excluded ones
+                const excludedColumns = new Set(['DEPTH', 'STRUKTUR', 'WELL_NAME', 'CALI', 'SP', 'MARKER', 'ZONE', 'RESERVOIR_CLASS']);
+                const uniqueColumns = [...new Set(allColumns)];
+                const filteredColumns = uniqueColumns.filter((col: string) => !excludedColumns.has(col));
+                
+                setAvailableColumns(filteredColumns);
             } catch (error) {
                 console.error('Error fetching well columns:', error);
             }
         };
 
         fetchWellColumns();
-    }, [isDataPrep, wellsDir]);
+    }, [isDataPrep, wellsDir, selectedWells]);
     
-    // --- PERUBAHAN DI SINI ---
     const allAvailableColumns = useMemo(() => {
         // In DataPrep context, use the dynamically fetched columns
         if (isDataPrep) {
             return availableColumns;
         }
-
+        
         // In Dashboard context, use the existing logic
         if (selectedWells.length === 0) return [];
 
@@ -108,7 +124,6 @@ export default function SmoothingParams() {
         // 3. Kembalikan hasil filter tanpa diurutkan (.sort() dihapus)
         return filteredColumns;
     }, [isDataPrep, availableColumns, selectedWells, wellColumns]);
-    // --- AKHIR PERUBAHAN ---
 
     const handleValueChange = (id: number, interval: string, newValue: string) => {
         setParameters(prev => prev.map(row => {
@@ -134,11 +149,15 @@ export default function SmoothingParams() {
         e.preventDefault();
         setIsSubmitting(true);
 
+        // Use the effective selection for value extraction (same as VSH)
+        const firstActiveKey = isUsingZones 
+            ? (selectedZones[0] || 'default') 
+            : (selectedIntervals[0] || 'default');
+
         const formParams = parameters
             .filter(p => p.isEnabled)
             .reduce((acc, param) => {
-                const firstInterval = selectedIntervals[0] || Object.keys(param.values)[0];
-                const value = param.values[firstInterval];
+                const value = param.values[firstActiveKey] || param.values[Object.keys(param.values)[0]];
                 acc[param.name] = value;
                 return acc;
             }, {} as Record<string, string | number>);
@@ -147,7 +166,8 @@ export default function SmoothingParams() {
             full_path: wellsDir,
             params: formParams,
             selected_wells: selectedWells,
-            selected_intervals: selectedIntervals
+            selected_intervals: isUsingZones ? [] : selectedIntervals,
+            selected_zones: isUsingZones ? selectedZones : [],
         };
         
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -191,7 +211,7 @@ export default function SmoothingParams() {
             <form onSubmit={handleSubmit} className="flex-grow flex flex-col min-h-0">
                 <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50">
                     <div className="md:col-span-4">
-                        <p className="text-sm font-medium text-gray-700">Well: {selectedWells.join(', ') || 'N/A'} / Intervals: {selectedIntervals.length} selected</p>
+                        <p className="text-sm font-medium text-gray-700">Well: {selectedWells.join(', ') || 'N/A'} / Intervals: {selectedIntervals.length || selectedZones.length} selected</p>
                     </div>
                     <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                         <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
@@ -209,6 +229,7 @@ export default function SmoothingParams() {
                                 <tr>
                                     {staticHeaders.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th>))}
                                     {!isDataPrep && selectedIntervals.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th>))}
+                                    {!isDataPrep && selectedZones.map(header => (<th key={header} className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-300 whitespace-nowrap">{header}</th>))}
                                 </tr>
                             </thead>
                             <tbody className="bg-white">
@@ -252,7 +273,7 @@ export default function SmoothingParams() {
                                                     <input type="checkbox" className="h-4 w-4 rounded border-gray-400" checked={!!rowSync[param.id]} onChange={(e) => handleRowToggle(param.id, e.target.checked)} />
                                                 </td>
                                                 {selectedIntervals.map(interval => (
-                                                    <td key={interval} className="px-3 py-2 border-r bg-white text-black">
+                                                    <td key={`${param.id}-${interval}`} className="px-3 py-2 border-r bg-white text-black">
                                                         {param.name === 'METHOD' ? (
                                                             <select value={param.values[interval] ?? ''} onChange={(e) => handleValueChange(param.id, interval, e.target.value)} className="w-full p-1 bg-white text-black">
                                                                 <option value="MOVING_AVG">MOVING_AVG</option>
@@ -273,6 +294,33 @@ export default function SmoothingParams() {
                                                                 type="text" 
                                                                 value={param.values[interval] ?? ''} 
                                                                 onChange={(e) => handleValueChange(param.id, interval, e.target.value)} 
+                                                                className="w-full min-w-[100px] p-1 bg-white text-black" 
+                                                            />
+                                                        )}
+                                                    </td>
+                                                ))}
+                                                {isUsingZones && selectedZones.map(zone => (
+                                                    <td key={`${param.id}-${zone}`} className="px-3 py-2 border-r bg-white text-black">
+                                                        {param.name === 'METHOD' ? (
+                                                            <select value={param.values[zone] ?? ''} onChange={(e) => handleValueChange(param.id, zone, e.target.value)} className="w-full p-1 bg-white text-black">
+                                                                <option value="MOVING_AVG">MOVING_AVG</option>
+                                                            </select>
+                                                        ) : param.name === 'LOG_IN' ? (
+                                                            <select 
+                                                                value={param.values[zone] ?? ''} 
+                                                                onChange={(e) => handleValueChange(param.id, zone, e.target.value)} 
+                                                                className="w-full p-1 bg-white text-black"
+                                                            >
+                                                                {allAvailableColumns.length === 0 && <option value="">No logs available</option>}
+                                                                {allAvailableColumns.map(colName => (
+                                                                    <option key={colName} value={colName}>{colName}</option>
+                                                                ))}
+                                                            </select>
+                                                        ) : (
+                                                            <input 
+                                                                type="text" 
+                                                                value={param.values[zone] ?? ''} 
+                                                                onChange={(e) => handleValueChange(param.id, zone, e.target.value)} 
                                                                 className="w-full min-w-[100px] p-1 bg-white text-black" 
                                                             />
                                                         )}
