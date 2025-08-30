@@ -171,7 +171,7 @@ export default function SwgradParams() {
 
     return (
         <div className="p-4 md:p-6 h-full flex flex-col bg-white rounded-lg shadow-md">
-            <h2 className="text-xl font-bold mb-4 text-gray-800 flex-shrink-0">SWGRAD & SW Calculation</h2>
+            <h2 className="text-xl font-bold mb-4 text-gray-800 flex-shrink-0">SWGRAD Calculation</h2>
 
             <form onSubmit={handleSubmit} className="flex-grow flex flex-col min-h-0">
                 <div className="flex-shrink-0 mb-6 p-4 border rounded-lg bg-gray-50">

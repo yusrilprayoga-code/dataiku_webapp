@@ -169,7 +169,7 @@ export default function CrossplotViewer() {
 
             <div className="mt-4 min-h-[600px] border-2 border-dashed rounded-lg flex items-center justify-center p-2">
                 {loading && <div className="text-center text-gray-500"><Loader2 className="animate-spin h-8 w-8 mx-auto mb-2"/>Generating plot...</div>}
-                {error && <div className="text-center text-red-600 p-4"><AlertTriangle className="mx-auto h-8 w-8 mb-2"/>Error: {error}</div>}
+                {error && <div className="text-center text-red-600 p-4"><AlertTriangle className="mx-auto h-8 w-8 mb-2"/>{error}</div>}
                 {!loading && !error && plotResult && (
                     <Plot
                         data={plotResult.data}
