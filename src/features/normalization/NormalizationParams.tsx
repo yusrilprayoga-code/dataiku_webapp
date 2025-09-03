@@ -61,6 +61,15 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
 		},
 		{
 			id: 6,
+			location: "Constant",
+			mode: "Input",
+			comment: "Number of bins to subdivide input log values",
+			unit: "",
+			name: "BINS",
+			isEnabled: true,
+		},
+		{
+			id: 7,
 			location: "Log",
 			mode: "Input",
 			comment: "Input Log",
@@ -69,7 +78,7 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
 			name: "LOG_IN",
 		},
 		{
-			id: 7,
+			id: 8,
 			location: "Log",
 			mode: "Output",
 			comment: "Output Log Name",
@@ -87,6 +96,7 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
 		"HIGH_REF",
 		"LOW_IN",
 		"HIGH_IN",
+		"BINS"
 	]);
 
 	const defaultValues: Record<string, string | number> = {
@@ -95,10 +105,11 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
 		LOW_REF: 40,
 		HIGH_REF: 140,
 		LOW_IN: 5, // Nilai awal ini akan segera ditimpa oleh data dari backend
-		HIGH_IN: 95, // Nilai awal ini akan segera ditimpa oleh data dari backend
+		HIGH_IN: 95, // Nilai awal ini akan segera ditimpa oleh data dari backendHIGH_IN: 95
+		BINS: 100.0,
 	};
 
-	defaultValues["LOG_OUT"] = `${defaultValues["LOG_IN"]}_NO`;
+	defaultValues["LOG_OUT"] = `${defaultValues["LOG_IN"]}_NORM`;
 
 	return allPossibleParams
 		.filter((p) => relevantParamNames.has(p.name))
@@ -197,9 +208,9 @@ export default function NormalizationParams() {
 				setParameters((prev) =>
 					prev.map((p) => {
 						const newValues = { ...p.values };
-						if (p.name === "LOW_IN" || p.name === "HIGH_IN") {
+						if (p.name === "LOW_REF" || p.name === "HIGH_REF") {
 							Object.keys(newValues).forEach((key) => {
-								newValues[key] = p.name === "LOW_IN" ? data.p5 : data.p95;
+								newValues[key] = p.name === "LOW_REF" ? data.p5 : data.p95;
 							});
 							return { ...p, values: newValues };
 						}

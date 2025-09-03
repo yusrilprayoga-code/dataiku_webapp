@@ -38,7 +38,7 @@ const createInitialSWParameters = (selection: string[]): ParameterRow[] => {
     RT: 'RT',
     PHIE: 'PHIE',
     SW: 'SW',
-    VSH: 'VSH'
+    VSH: 'VSH_LINEAR'
   };
 
   // Petakan untuk menghasilkan data awal yang benar
@@ -116,7 +116,7 @@ export default function SWSimandouxParams() {
     };
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    const endpoint = `${apiUrl}/api/run-sw-calculation`;
+    const endpoint = `${apiUrl}/api/run-sw-simandoux-calculation`;
 
     try {
       const response = await fetch(endpoint, {

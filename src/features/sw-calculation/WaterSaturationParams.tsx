@@ -38,7 +38,7 @@ const createInitialSWParameters = (selection: string[]): ParameterRow[] => {
     RT: 'RT',
     PHIE: 'PHIE',
     SW: 'SW',
-    VSH: 'VSH'
+    VSH: 'VSH_LINEAR'
   };
 
   // Petakan untuk menghasilkan data awal yang benar
