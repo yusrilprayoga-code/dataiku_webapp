@@ -33,7 +33,7 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
         'M': 2,
         'N': 2,
         'PHIE': 'PHIE',
-        'VSH': 'VSH',
+        'VSH': 'VSH_LINEAR',
         'RT': 'RT',
         'FTEMP': 75.0,
         'SWGRAD': 'SWGRAD',

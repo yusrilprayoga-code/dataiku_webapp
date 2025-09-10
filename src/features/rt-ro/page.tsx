@@ -39,7 +39,7 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
         'RT_SH': 2.2,
         'RWA': 'RWA_FULL',
         'PHIE': 'PHIE',
-        'VSH': 'VSH',
+        'VSH': 'VSH_LINEAR',
         'RT': 'RT',
         'GROUP_ID': 'GROUP_ID',
         'RT_R0_GRAD': 'RT_R0_GRAD',

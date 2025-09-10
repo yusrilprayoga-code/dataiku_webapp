@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { type ParameterRow } from '@/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Settings } from 'lucide-react';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 
 // Fungsi diubah untuk menerima selectedIntervals dan membuat struktur data yang sesuai
@@ -51,6 +51,7 @@ export default function VshDNCalculationParams() {
     const [isFetchingDefaults, setIsFetchingDefaults] = useState(false);
     const [rowSync, setRowSync] = useState<Record<number, boolean>>({}); // State untuk checkbox "P" dikembalikan
     const { setVshDNParams, wellsDir } = useAppDataStore();
+    const [fetchPerZone, setFetchPerZone] = useState(false);
 
     const isUsingZones = selectedZones.length > 0;
 
@@ -59,47 +60,100 @@ export default function VshDNCalculationParams() {
             setParameters(createInitialVshDNParameters(effectiveSelection));
         }, [selectedIntervals, selectedZones]);
 
-    // useEffect untuk mengambil nilai default dari backend
+    // --- MODIFIED: Enhanced useEffect to handle fetchPerZone logic ---
     useEffect(() => {
         const fetchIntersectionDefaults = async () => {
             if (selectedWells.length === 0) return;
 
             setIsFetchingDefaults(true);
             const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+            
             try {
-                const response = await fetch(`${apiUrl}/api/get-intersection-point`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        full_path: wellsDir,
-                        selected_wells: selectedWells,
-                        selected_intervals: selectedIntervals,
-                        selected_zones: selectedZones,
-                    }),
-                });
+                if (fetchPerZone && isUsingZones) {
+                    // Fetch parameters for each zone individually
+                    console.log('Fetching per zone for zones:', selectedZones);
+                    const zonePromises = selectedZones.map(async (zone) => {
+                        console.log(`Making API call for zone: ${zone}`);
+                        const response = await fetch(`${apiUrl}/api/get-intersection-point`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                full_path: wellsDir,
+                                selected_wells: selectedWells,
+                                selected_intervals: [], // Empty for zone-specific fetching
+                                selected_zones: [zone], // Single zone
+                            }),
+                        });
 
-                if (!response.ok) {
-                    const err = await response.json();
-                    console.error("Gagal mengambil nilai default:", err.error);
-                    return;
-                }
-                
-                const data = await response.json();
-
-                setParameters(prevParams => 
-                    prevParams.map(param => {
-                        if (param.name === "RHOB_SH" || param.name === "NPHI_SH") {
-                            const newValue = param.name === "RHOB_SH" ? data.rhob_sh : data.nphi_sh;
-                            // Update semua nilai interval untuk parameter ini
-                            const newValues = Object.fromEntries(
-                                Object.keys(param.values).map(key => [key, newValue])
-                            );
-                            return { ...param, values: newValues };
+                        if (!response.ok) {
+                            const err = await response.json();
+                            console.error(`Gagal mengambil nilai default untuk zone ${zone}:`, err.error);
+                            return null;
                         }
-                        return param;
-                    })
-                );
+                        
+                        const data = await response.json();
+                        console.log(`Data received for zone ${zone}:`, data);
+                        return { zone, data };
+                    });
 
+                    const zoneResults = await Promise.all(zonePromises);
+                    console.log('All zone results:', zoneResults);
+                    
+                    setParameters(prevParams => 
+                        prevParams.map(param => {
+                            if (param.name === "RHOB_SH" || param.name === "NPHI_SH") {
+                                const newValues = { ...param.values };
+                                
+                                zoneResults.forEach(result => {
+                                    if (result) {
+                                        const newValue = param.name === "RHOB_SH" ? result.data.rhob_sh : result.data.nphi_sh;
+                                        console.log(`Setting ${param.name} for zone ${result.zone} to:`, newValue);
+                                        newValues[result.zone] = newValue;
+                                    }
+                                });
+                                
+                                return { ...param, values: newValues };
+                            }
+                            return param;
+                        })
+                    );
+                } else {
+                    // Fetch aggregated parameters for all zones/intervals
+                    console.log('Fetching aggregated data for all zones/intervals');
+                    const response = await fetch(`${apiUrl}/api/get-intersection-point`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            full_path: wellsDir,
+                            selected_wells: selectedWells,
+                            selected_intervals: selectedIntervals,
+                            selected_zones: selectedZones,
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json();
+                        console.error("Gagal mengambil nilai default:", err.error);
+                        return;
+                    }
+                    
+                    const data = await response.json();
+                    console.log('Aggregated data received:', data);
+
+                    setParameters(prevParams => 
+                        prevParams.map(param => {
+                            if (param.name === "RHOB_SH" || param.name === "NPHI_SH") {
+                                const newValue = param.name === "RHOB_SH" ? data.rhob_sh : data.nphi_sh;
+                                // Update semua nilai interval untuk parameter ini
+                                const newValues = Object.fromEntries(
+                                    Object.keys(param.values).map(key => [key, newValue])
+                                );
+                                return { ...param, values: newValues };
+                            }
+                            return param;
+                        })
+                    );
+                }
             } catch (error) {
                 console.error("Error saat memanggil API:", error);
             } finally {
@@ -108,7 +162,8 @@ export default function VshDNCalculationParams() {
         };
 
         fetchIntersectionDefaults();
-    }, [selectedWells, selectedIntervals, selectedZones, wellsDir]);
+    }, [selectedWells, selectedIntervals, selectedZones, wellsDir, fetchPerZone, isUsingZones]);
+    // Added fetchPerZone and isUsingZones to dependency array
 
     // Fungsi handleValueChange dikembalikan untuk menangani input per interval
     const handleValueChange = (id: number, interval: string, newValue: string) => {
@@ -202,6 +257,20 @@ export default function VshDNCalculationParams() {
                     <div className="md:col-span-4">
                         <p className="text-sm font-medium text-gray-700">Well: {selectedWells.join(', ') || 'N/A'} / Intervals: {selectedIntervals.length || selectedZones.length} selected</p>
                     </div>
+                    {/* --- NEW: TOGGLE FOR ZONE FETCHING --- */}
+                    {isUsingZones && (
+                        <div className="flex items-center gap-2 text-sm">
+                            <Settings className="w-4 h-4 text-gray-600" />
+                            <label htmlFor="fetch-per-zone">Fetch param values for each zone individually</label>
+                            <input
+                                id="fetch-per-zone"
+                                type="checkbox"
+                                className="h-4 w-4"
+                                checked={fetchPerZone}
+                                onChange={(e) => setFetchPerZone(e.target.checked)}
+                            />
+                        </div>
+                    )}
                     <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
                         <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 font-semibold">Cancel</button>
                         <button type="submit" className="px-6 py-2 rounded-md text-white font-semibold bg-blue-600 hover:bg-blue-700 flex items-center justify-center min-w-[80px]" disabled={isSubmitting || isFetchingDefaults}>
