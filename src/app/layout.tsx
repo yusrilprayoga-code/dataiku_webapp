@@ -1,6 +1,17 @@
 import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import UniversalHeader from "@/components/layout/UniversalHeader";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
   title: "Data Platform",
@@ -14,7 +25,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased font-sans">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
         <UniversalHeader />
         <main className="min-h-screen">
           {children}

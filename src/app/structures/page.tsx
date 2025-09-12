@@ -1,75 +1,47 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import StructuresDashboard from '@/components/structures/StructuresDashboard';
 import { StructuresData } from '@/types/structures';
-import RefreshButton from '@/components/RefreshButton';
 
-export default function StructuresPage() {
-  const [data, setData] = useState<StructuresData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchStructuresData() {
-      try {
-        // Gunakan environment variable untuk URL backend
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        
-        if (!apiUrl) {
-          console.error('NEXT_PUBLIC_API_URL is not set in environment variables');
-          setError('Backend URL not configured');
-          return;
-        }
-
-        // Panggil endpoint baru yang telah kita buat di app.py
-        const endpoint = `${apiUrl}/api/get-structures-summary`;
-        console.log(`Fetching structures data from: ${endpoint}`);
-        
-        const res = await fetch(endpoint, {
-          // 'no-store' memastikan kita selalu mendapatkan data terbaru dari file system
-          cache: 'no-store', 
-        });
-
-        if (!res.ok) {
-          const errorBody = await res.text();
-          console.error(`Failed to fetch structures data: ${res.status} ${res.statusText}`, errorBody);
-          setError(`Failed to fetch data: ${res.status} ${res.statusText}`);
-          return;
-        }
-        
-        const structuresData: StructuresData = await res.json();
-        setData(structuresData);
-
-      } catch (error) {
-        console.error('Error fetching structures data:', error);
-        setError(error instanceof Error ? error.message : 'Unknown error occurred');
-      } finally {
-        setLoading(false);
-      }
+// Fungsi ini sekarang akan memanggil backend secara nyata
+async function getStructuresData(): Promise<StructuresData | null> {
+  try {
+    // Gunakan environment variable untuk URL backend
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    
+    if (!apiUrl) {
+      console.error('NEXT_PUBLIC_API_URL is not set in environment variables');
+      return null;
     }
 
-    fetchStructuresData();
-  }, []);
+    // Panggil endpoint baru yang telah kita buat di app.py
+    const endpoint = `${apiUrl}/api/get-structures-summary`;
+    console.log(`Fetching structures data from: ${endpoint}`);
+    
+    const res = await fetch(endpoint, {
+      // 'no-store' memastikan kita selalu mendapatkan data terbaru dari file system
+      cache: 'no-store', 
+    });
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-800">
-        <div className="max-w-md mx-auto text-center p-8 bg-white rounded-lg shadow-lg">
-          <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
-            <svg className="w-8 h-8 text-blue-600 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          </div>
-          <h1 className="text-xl font-bold text-gray-800 mb-2">Loading Structures Data</h1>
-          <p className="text-gray-600">Fetching latest data from backend...</p>
-        </div>
-      </div>
-    );
+    if (!res.ok) {
+      const errorBody = await res.text();
+      console.error(`Failed to fetch structures data: ${res.status} ${res.statusText}`, errorBody);
+      return null;
+    }
+    
+    const data: StructuresData = await res.json();
+    return data;
+
+  } catch (error) {
+    console.error('Error fetching structures data:', error);
+    return null;
   }
+}
 
-  if (error || !data) {
+// Komponen Page tidak perlu diubah sama sekali
+export default async function StructuresPage() {
+  const data = await getStructuresData();
+  
+  if (!data) {
+    // Tampilan error ini akan otomatis muncul jika fetch gagal
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-800">
         <div className="max-w-md mx-auto text-center p-8 bg-white rounded-lg shadow-lg border border-red-200">
@@ -82,11 +54,6 @@ export default function StructuresPage() {
           <p className="text-gray-600 mb-4">
             Unable to fetch structures data from the backend API.
           </p>
-          {error && (
-            <p className="text-sm text-red-600 mb-4 font-mono bg-red-50 p-2 rounded">
-              {error}
-            </p>
-          )}
           <div className="text-sm text-gray-500 space-y-2">
             <p>Please check:</p>
             <ul className="text-left list-disc list-inside space-y-1">
@@ -95,7 +62,12 @@ export default function StructuresPage() {
               <li>Backend URL is accessible (check console for details)</li>
             </ul>
           </div>
-          <RefreshButton />
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
