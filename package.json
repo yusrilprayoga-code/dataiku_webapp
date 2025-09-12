@@ -5,8 +5,10 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "build:dataiku": "ASSET_PREFIX=./ next build",
     "start": "next start",
-    "lint": "next lint"  },
+    "lint": "next lint"
+  },
   "dependencies": {
     "clsx": "^2.1.1",
     "exceljs": "^4.4.0",
