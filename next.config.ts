@@ -7,7 +7,7 @@ const nextConfig = {
     // Untuk development dan testing: tanpa prefix
     // Untuk Dataiku: bisa menggunakan environment variable
     assetPrefix: process.env.ASSET_PREFIX || '',
-    
+    // basePath: '/out',
     // Untuk menghindari masalah dengan trailing slash di environment yang berbeda
     trailingSlash: true,
     
