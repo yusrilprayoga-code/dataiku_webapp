@@ -3,9 +3,6 @@ import path from 'path';
 import fs from 'fs/promises';
 import * as xlsx from 'xlsx';
 
-export const dynamic = 'force-static';
-export const revalidate = 0; 
-
 interface StructureDetails {
     field_name: string;
     structure_name: string;

@@ -24,7 +24,7 @@ export async function GET(
     }
 
     // Construct backend endpoint with all path parameters
-    const backendEndpoint = `${backendUrl}/api/well-files/${pathParams.join('/')}`;
+    const backendEndpoint = `${backendUrl}/api/well-folder-files/${pathParams.join('/')}`;
     
     console.log(`Proxying request to backend: ${backendEndpoint}`);
     
@@ -57,7 +57,7 @@ export async function GET(
     return NextResponse.json(data);
     
   } catch (error) {
-    console.error('Error in well-files API proxy:', error);
+    console.error('Error in well-folder-files API proxy:', error);
     
     // Check if it's a network error or parsing error
     if (error instanceof Error) {

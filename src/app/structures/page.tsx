@@ -1,10 +1,9 @@
-import RefreshButton from '@/components/RefreshButton';
 import StructuresDashboard from '@/components/structures/StructuresDashboard';
 import { StructuresData } from '@/types/structures';
+import RefreshButton from '@/components/RefreshButton';
 
-// Tambahkan konfigurasi ini untuk memberitahu Next.js bahwa halaman ini dynamic
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const dynamic = 'force-dynamic'
+export const revalidate = 60
 
 // Fungsi ini sekarang akan memanggil backend secara nyata
 async function getStructuresData(): Promise<StructuresData | null> {

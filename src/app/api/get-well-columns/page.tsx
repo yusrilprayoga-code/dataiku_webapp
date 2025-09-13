@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { params: string[] } }
-) {
+export async function POST(request: NextRequest) {
   try {
-    const pathParams = params.params || [];
+    const body = await request.json();
     
-    if (pathParams.length === 0) {
-      return NextResponse.json(
-        { error: 'Path parameters are required' },
-        { status: 400 }
-      );
-    }
-
     // Get backend API URL from environment
     const backendUrl = process.env.NEXT_PUBLIC_API_URL;
     if (!backendUrl) {
@@ -23,16 +13,18 @@ export async function GET(
       );
     }
 
-    // Construct backend endpoint with all path parameters
-    const backendEndpoint = `${backendUrl}/api/well-files/${pathParams.join('/')}`;
+    // Make request to backend server
+    const backendEndpoint = `${backendUrl}/api/get-well-columns`;
     
     console.log(`Proxying request to backend: ${backendEndpoint}`);
+    console.log('Request body:', body);
     
     const response = await fetch(backendEndpoint, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -54,10 +46,19 @@ export async function GET(
     }
 
     const data = await response.json();
+    
+    // Validate that we got valid data
+    if (typeof data !== 'object' || data === null || Object.keys(data).length === 0) {
+      return NextResponse.json(
+        { error: 'Backend returned empty or invalid well columns data' },
+        { status: 502 }
+      );
+    }
+    
     return NextResponse.json(data);
     
   } catch (error) {
-    console.error('Error in well-files API proxy:', error);
+    console.error('Error in get-well-columns API proxy:', error);
     
     // Check if it's a network error or parsing error
     if (error instanceof Error) {
@@ -70,7 +71,7 @@ export async function GET(
     }
     
     return NextResponse.json(
-      { error: 'Failed to fetch data from backend' },
+      { error: 'Failed to fetch well columns from backend' },
       { status: 502 }
     );
   }
