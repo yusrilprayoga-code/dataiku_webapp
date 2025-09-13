@@ -80,7 +80,6 @@ export default function DirectorySidebar() {
 	const [loadingFolders, setLoadingFolders] = useState(true);
 	const [loadingFiles, setLoadingFiles] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 	useEffect(() => {
 		if (selectedWells.length > 0) {
@@ -97,14 +96,15 @@ export default function DirectorySidebar() {
 			setLoadingFolders(true);
 			setError(null);
 
-			console.log(`API URL: ${apiUrl}`);
+			console.log(`Loading well folders for: ${FIELD_NAME}/${STRUCTURE_NAME}`);
 			console.log(
-				`Full request URL: ${apiUrl}/api/structure-folders/${FIELD_NAME}/${STRUCTURE_NAME}`
+				`Full request URL: /api/structure-folders/${FIELD_NAME}/${STRUCTURE_NAME}`
 			);
 
 			try {
+				// Use internal API route instead of direct backend call
 				const response = await fetch(
-					`${apiUrl}/api/structure-folders/${FIELD_NAME}/${STRUCTURE_NAME}`
+					`/api/structure-folders/${FIELD_NAME}/${STRUCTURE_NAME}`
 				);
 				console.log(
 					`Response status: ${response.status} ${response.statusText}`
@@ -117,7 +117,12 @@ export default function DirectorySidebar() {
 						const errorText = await response.text();
 						if (errorText) {
 							errorMessage += ` - ${errorText}`;
-							console.error("Backend error response:", errorText);
+							console.error("API error response:", errorText);
+							
+							// Check if we got an HTML error page
+							if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+								errorMessage = 'Backend service unavailable - received HTML error page';
+							}
 						}
 					} catch (parseErr) {
 						console.error("Could not parse error response:", parseErr);
@@ -141,7 +146,14 @@ export default function DirectorySidebar() {
 				setWellFolders(folderObjects);
 			} catch (err) {
 				console.error("Error loading well folders:", err);
-				setError(err instanceof Error ? err.message : "Failed to load folders");
+				let errorMessage = err instanceof Error ? err.message : "Failed to load folders";
+				
+				// Check for specific parsing errors
+				if (err instanceof Error && err.message.includes('Unexpected token')) {
+					errorMessage = 'Backend returned invalid response - possibly HTML error page';
+				}
+				
+				setError(errorMessage);
 				setWellFolders([]);
 			} finally {
 				setLoadingFolders(false);
@@ -149,7 +161,7 @@ export default function DirectorySidebar() {
 		};
 
 		loadWellFolders();
-	}, [apiUrl, wellsDir]);
+	}, [wellsDir]); // Remove apiUrl dependency
 
 	// Load files when folder is selected
 	useEffect(() => {
@@ -157,16 +169,16 @@ export default function DirectorySidebar() {
 			const loadFiles = async () => {
 				setLoadingFiles(true);
 				setError(null);
-				const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 				console.log(`Loading files for folder: ${currentFolder}`);
 				console.log(
-					`Full request URL: ${apiUrl}/api/well-folder-files/${FIELD_NAME}/${STRUCTURE_NAME}/${currentFolder}`
+					`Full request URL: /api/well-folder-files/${FIELD_NAME}/${STRUCTURE_NAME}/${currentFolder}`
 				);
 
 				try {
+					// Use internal API route instead of direct backend call
 					const response = await fetch(
-						`${apiUrl}/api/well-folder-files/${FIELD_NAME}/${STRUCTURE_NAME}/${currentFolder}`
+						`/api/well-folder-files/${FIELD_NAME}/${STRUCTURE_NAME}/${currentFolder}`
 					);
 					console.log(
 						`Files response status: ${response.status} ${response.statusText}`
@@ -178,7 +190,12 @@ export default function DirectorySidebar() {
 							const errorText = await response.text();
 							if (errorText) {
 								errorMessage += ` - ${errorText}`;
-								console.error("Backend error response:", errorText);
+								console.error("API error response:", errorText);
+								
+								// Check if we got an HTML error page
+								if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+									errorMessage = 'Backend service unavailable - received HTML error page';
+								}
 							}
 						} catch (parseErr) {
 							console.error("Could not parse error response:", parseErr);
@@ -193,7 +210,14 @@ export default function DirectorySidebar() {
 					setFiles(data.csv_files_details);
 				} catch (err) {
 					console.error("Error loading files:", err);
-					setError(err instanceof Error ? err.message : "Failed to load files");
+					let errorMessage = err instanceof Error ? err.message : "Failed to load files";
+					
+					// Check for specific parsing errors
+					if (err instanceof Error && err.message.includes('Unexpected token')) {
+						errorMessage = 'Backend returned invalid response - possibly HTML error page';
+					}
+					
+					setError(errorMessage);
 					setFiles([]);
 				} finally {
 					setLoadingFiles(false);
