@@ -71,10 +71,10 @@ export default function DepthMatchingPage() {
         setIsSubmitting(true);
         // setPlotFigure({ data: [], layout: {} });
 
-        const formParams = parameters.reduce((acc, param) => {
-            acc[param.name] = param.values['default'];
-            return acc;
-        }, {} as Record<string, string | number>);
+        // const formParams = parameters.reduce((acc, param) => {
+        //     acc[param.name] = param.values['default'];
+        //     return acc;
+        // }, {} as Record<string, string | number>);
 
         const getParamValue = (name: string) => {
             const param = parameters.find(p => p.name === name);

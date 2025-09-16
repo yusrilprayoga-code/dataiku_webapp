@@ -20,10 +20,10 @@ const createInitialParameters = (intervals: string[]): ParameterRow[] => {
         { id: 5, location: 'Log', mode: 'Input', comment: 'Effective Porosity', unit: 'V/V', name: 'PHIE', isEnabled: true },
         { id: 6, location: 'Log', mode: 'Input', comment: 'Volume of wetclay', unit: 'V/V', name: 'VSH', isEnabled: true },
         { id: 7, location: 'Log', mode: 'Input', comment: 'Unflushed Zone Resistivity', unit: 'OHMM', name: 'RT', isEnabled: true },
-        { id: 8, location: 'Constant', mode: 'Input', comment: 'Formation temperature', unit: 'DEGC', name: 'FTEMP', isEnabled: true },
+        // { id: 8, location: 'Constant', mode: 'Input', comment: 'Formation temperature', unit: 'DEGC', name: 'FTEMP', isEnabled: true },
         // { id: 9, location: 'Log', mode: 'Input', comment: 'TVDss', unit: 'METRES', name: 'TVDSS', isEnabled: true },
-        { id: 9, location: 'Log', mode: 'Output', comment: 'Output Sw gradient', unit: 'V/V', name: 'SWGRAD', isEnabled: true },
-        { id: 10, location: 'Log', mode: 'Output', comment: 'Output Sw Array', unit: 'V/V', name: 'SW', isEnabled: true },
+        { id: 8, location: 'Log', mode: 'Output', comment: 'Output Sw gradient', unit: 'V/V', name: 'SWGRAD', isEnabled: true },
+        { id: 9, location: 'Log', mode: 'Output', comment: 'Output Sw Array', unit: 'V/V', name: 'SW', isEnabled: true },
     ];
 
     // Definisikan nilai default

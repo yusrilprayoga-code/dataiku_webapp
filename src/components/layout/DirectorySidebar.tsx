@@ -289,7 +289,7 @@ export default function DirectorySidebar() {
 
 		console.log(`Is Loading FALSE on columns well with well columns: ${wellColumns}`);
 		return { isLoading: false, columns: processedColumns };
-	}, [selectedWells, wellColumns, selectedFilePath]);
+	}, [selectedWells, wellColumns]);
 
 	const handleFolderSelect = (folderName: string) => {
 		if (currentFolder === folderName) {
