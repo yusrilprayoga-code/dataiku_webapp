@@ -27,8 +27,8 @@ const createInitialIQUALParameters = (selection: string[]): ParameterRow[] => {
     const defaultValues: Record<string, string | number> = {
         'PHIE_THRESHOLD': 0.1,
         'VSH_THRESHOLD': 0.5,
-        'VSH_LOG': '',
-        'PHIE_LOG': '',
+        'VSH_LOG': 'VSH_LINEAR',
+        'PHIE_LOG': 'PHIE',
         'IQUAL': 'IQUAL'
     };
 
