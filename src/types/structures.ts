@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 export interface Structure {
     structure_name: string;
     field_name: string;

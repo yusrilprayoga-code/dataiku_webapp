@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Database, FileText, Folder, LayoutDashboard, Loader2, Upload } from 'lucide-react';
+import { Database, FileText, Folder, LayoutDashboard, Loader2 } from 'lucide-react';
 
 const navItems = [
   {

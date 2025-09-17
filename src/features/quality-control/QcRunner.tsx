@@ -5,7 +5,7 @@
 import { useAppDataStore } from '@/stores/useAppDataStore';
 import { Loader2, PlayCircle } from 'lucide-react';
 import React, { useState } from 'react';
-import { QcApiResponse, QcSummaryItem } from './types';
+import { QcApiResponse } from './types';
 
 export default function QcRunner() {
     // Ambil data yang sudah disiapkan dari Zustand store

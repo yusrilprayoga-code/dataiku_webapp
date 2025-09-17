@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { StructuresData, FieldDetails, StructureDetails } from '@/types/structures';
+import { StructuresData, FieldDetails} from '@/types/structures';
 import { FolderIcon, FileTextIcon, Loader2 } from 'lucide-react';
 import { useAppDataStore } from '@/stores/useAppDataStore';
 
@@ -16,9 +16,7 @@ export default function StructuresDashboard({ initialData }: StructuresDashboard
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [selectedStructure, setSelectedStructure] = useState<string | null>(null);
   const [fieldDetails, setFieldDetails] = useState<FieldDetails | null>(null);
-  const [structureDetails, setStructureDetails] = useState<StructureDetails | null>(null);
   const [isLoadingField, setIsLoadingField] = useState(false);
-  const [isLoadingStructure, setIsLoadingStructure] = useState(false);
   const setStructure = useAppDataStore(state => state.setStructure);
 
   const handleFieldSelect = async (fieldName: string) => {
@@ -26,7 +24,6 @@ export default function StructuresDashboard({ initialData }: StructuresDashboard
     
     setSelectedField(fieldName);
     setSelectedStructure(null);
-    setStructureDetails(null);
     setIsLoadingField(true);
     
     try {
@@ -64,21 +61,12 @@ export default function StructuresDashboard({ initialData }: StructuresDashboard
       // Get the field name for the current structure
       const fieldName = selectedField?.toLowerCase() || '';
       
-      // Map structure and field names for API calls
-      let apiFieldName = '';
-      let apiStructureName = '';
-      
       if (fieldName === 'adera') {
-        apiFieldName = 'adera';
         if (structureName.toLowerCase() === 'abab') {
-          apiStructureName = 'abab';
         } else if (structureName.toLowerCase() === 'benuang') {
-          apiStructureName = 'benuang';
         }
       } else if (fieldName === 'prabumulih') {
-        apiFieldName = 'prabumulih';
         if (structureName.toLowerCase().includes('gunung') || structureName.toLowerCase().includes('kemala')) {
-          apiStructureName = 'gunungkemala';
         }
       }
 

@@ -23,8 +23,8 @@ const createInitialSWParameters = (selection: string[]): ParameterRow[] => {
     { id: 7, location: 'Log', mode: 'Input', comment: 'True formation resistivity', unit: 'OHMM', name: 'RT', isEnabled: true },
     { id: 8, location: 'Log', mode: 'Input', comment: 'Limited effective porosity', unit: 'V/V', name: 'PHIE', isEnabled: true },
     { id: 9, location: 'Log', mode: 'Input', comment: 'Limited volume of shale', unit: 'V/V', name: 'VSH', isEnabled: true },
-    { id: 10, location: 'Log', mode: 'Input', comment: 'Formation temperature', unit: 'DEGF', name: 'FTEMP', isEnabled: true },
-    { id: 11, location: 'Log', mode: 'Output', comment: 'SW from Indonesia', unit: 'V/V', name: 'SW', isEnabled: true },
+    // { id: 10, location: 'Log', mode: 'Input', comment: 'Formation temperature', unit: 'DEGF', name: 'FTEMP', isEnabled: true },
+    { id: 10, location: 'Log', mode: 'Output', comment: 'SW from Indonesia', unit: 'V/V', name: 'SW', isEnabled: true },
   ];
 
   const defaultValues: Record<string, string | number> = {
